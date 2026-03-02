@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>童养园管理后台</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+    <div class="admin-container">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h2>童养园管理后台</h2>
+            </div>
+            <nav class="nav-menu">
+                <a href="index.html" class="nav-item active">
+                    <span class="icon">📊</span>
+                    <span>数据概览</span>
+                </a>
+                <a href="users.html" class="nav-item">
+                    <span class="icon">👥</span>
+                    <span>用户管理</span>
+                </a>
+                <a href="consultants.html" class="nav-item">
+                    <span class="icon">👨‍⚕️</span>
+                    <span>咨询师管理</span>
+                </a>
+                <a href="learning.html" class="nav-item">
+                    <span class="icon">📚</span>
+                    <span>学习资源</span>
+                </a>
+                <a href="appointments.html" class="nav-item">
+                    <span class="icon">📅</span>
+                    <span>预约管理</span>
+                </a>
+                <a href="statistics.html" class="nav-item">
+                    <span class="icon">📈</span>
+                    <span>数据统计</span>
+                </a>
+                <a href="#" class="nav-item" id="logoutBtn">
+                    <span class="icon">🚪</span>
+                    <span>退出登录</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 顶部栏 -->
+            <header class="top-bar">
+                <div class="breadcrumb">
+                    <span>首页</span>
+                    <span class="separator">/</span>
+                    <span>数据概览</span>
+                </div>
+                <div class="user-info">
+                    <span id="adminName">管理员</span>
+                    <span class="badge">ADMIN</span>
+                </div>
+            </header>
+
+            <!-- 数据卡片 -->
+            <div class="dashboard-cards">
+                <div class="card">
+                    <div class="card-icon" style="background: #4CAF50;">👥</div>
+                    <div class="card-content">
+                        <h3>总用户数</h3>
+                        <p class="number" id="totalUsers">-</p>
+                        <span class="trend up">↑ 较上周 +12%</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-icon" style="background: #2196F3;">👨‍⚕️</div>
+                    <div class="card-content">
+                        <h3>咨询师数量</h3>
+                        <p class="number" id="totalConsultants">-</p>
+                        <span class="trend up">↑ 较上周 +5%</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-icon" style="background: #FF9800;">📅</div>
+                    <div class="card-content">
+                        <h3>今日预约</h3>
+                        <p class="number" id="todayAppointments">-</p>
+                        <span class="trend down">↓ 较昨日 -3%</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-icon" style="background: #9C27B0;">💰</div>
+                    <div class="card-content">
+                        <h3>本月收入</h3>
+                        <p class="number" id="monthlyRevenue">-</p>
+                        <span class="trend up">↑ 较上月 +18%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 快速操作 -->
+            <div class="quick-actions">
+                <h3>快速操作</h3>
+                <div class="action-buttons">
+                    <button class="action-btn" onclick="location.href='users.html'">
+                        <span class="icon">➕</span>
+                        <span>添加用户</span>
+                    </button>
+                    <button class="action-btn" onclick="location.href='consultants.html'">
+                        <span class="icon">✅</span>
+                        <span>审核咨询师</span>
+                    </button>
+                    <button class="action-btn" onclick="location.href='appointments.html'">
+                        <span class="icon">📋</span>
+                        <span>查看预约</span>
+                    </button>
+                    <button class="action-btn" onclick="refreshData()">
+                        <span class="icon">🔄</span>
+                        <span>刷新数据</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 最近活动 -->
+            <div class="recent-activity">
+                <h3>最近活动</h3>
+                <div class="activity-list" id="activityList">
+                    <div class="activity-item">
+                        <span class="time">刚刚</span>
+                        <span class="content">加载中...</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/config.js?v=2.0"></script>
+    <script src="js/admin-common.js?v=2.0"></script>
+    <script src="js/admin-dashboard.js?v=2.0"></script>
+</body>
+</html>

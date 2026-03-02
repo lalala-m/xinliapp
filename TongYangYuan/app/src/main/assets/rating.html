@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>服务评价</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .rating-section {
+            margin-bottom: 24px;
+        }
+
+        .rating-item {
+            padding: 20px 16px;
+            border-bottom: 1px solid #F0F0F0;
+        }
+
+        .rating-item:last-child {
+            border-bottom: none;
+        }
+
+        .rating-label {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .rating-label .rating-value {
+            font-size: 14px;
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        .star-rating {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .star {
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            color: #E0E0E0;
+        }
+
+        .star:hover,
+        .star.active {
+            color: #FFD700;
+            transform: scale(1.1);
+        }
+
+        .star.filled {
+            color: #FFD700;
+        }
+
+        .rating-card {
+            margin: 16px;
+            padding: 20px;
+        }
+
+        .comment-section {
+            margin-top: 24px;
+        }
+
+        .comment-label {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .comment-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 16px;
+            border: 2px solid #E0E0E0;
+            border-radius: 12px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+
+        .comment-textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(111, 166, 248, 0.1);
+        }
+
+        .submit-rating-btn {
+            width: calc(100% - 32px);
+            margin: 24px 16px;
+        }
+
+        .action-section {
+            margin-top: 32px;
+            padding: 0 16px;
+        }
+
+        .join-team-btn {
+            width: 100%;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #6FA6F8 0%, #BDEBC8 100%);
+            color: white;
+            font-weight: 600;
+        }
+
+        .join-team-btn:active {
+            background: linear-gradient(135deg, #4A8AE8 0%, #A9D9B8 100%);
+        }
+
+        .upgrade-service-card {
+            background: linear-gradient(135deg, rgba(111, 166, 248, 0.1) 0%, rgba(189, 235, 200, 0.1) 100%);
+            border: 2px solid var(--primary-color);
+            border-radius: 16px;
+            padding: 20px;
+            margin: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upgrade-service-card:active {
+            transform: scale(0.98);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .upgrade-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .upgrade-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .upgrade-badge {
+            background: #FF5252;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .upgrade-desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .upgrade-price {
+            margin-top: 12px;
+            font-size: 16px;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .chevron-right {
+            width: 20px;
+            height: 20px;
+            stroke: var(--primary-color);
+            stroke-width: 2;
+            fill: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-app-bar glass">
+        <div class="title">服务评价</div>
+    </div>
+
+    <div class="content">
+        <div class="card rating-card">
+            <div class="rating-section">
+                <div class="rating-item" data-dimension="professionalism">
+                    <div class="rating-label">
+                        <span>专业度</span>
+                        <span class="rating-value" id="professionalism-value">未评分</span>
+                    </div>
+                    <div class="star-rating" id="professionalism-stars">
+                        <svg class="star" data-rating="1" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <svg class="star" data-rating="2" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <svg class="star" data-rating="3" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <svg class="star" data-rating="4" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <svg class="star" data-rating="5" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="rating-item" data-dimension="communication">
+                    <div class="rating-label">
+                        <span>沟通能力</span>
+                        <span class="rating-value" id="communication-value">未评分</span>
+                    </div>
+                    <div class="star-rating" id="communication-stars">
+                        <svg class="star" data-rating="1" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <svg class="star" data-rating="2" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <svg class="star" data-rating="3" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <svg class="star" data-rating="4" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <svg class="star" data-rating="5" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="rating-item" data-dimension="attitude">
+                    <div class="rating-label">
+                        <span>服务态度</span>
+                        <span class="rating-value" id="attitude-value">未评分</span>
+                    </div>
+                    <div class="star-rating" id="attitude-stars">
+                        <svg class="star" data-rating="1" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <svg class="star" data-rating="2" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <svg class="star" data-rating="3" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <svg class="star" data-rating="4" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <svg class="star" data-rating="5" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="rating-item" data-dimension="problem-solving">
+                    <div class="rating-label">
+                        <span>问题解决能力</span>
+                        <span class="rating-value" id="problem-solving-value">未评分</span>
+                    </div>
+                    <div class="star-rating" id="problem-solving-stars">
+                        <svg class="star" data-rating="1" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <svg class="star" data-rating="2" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <svg class="star" data-rating="3" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <svg class="star" data-rating="4" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <svg class="star" data-rating="5" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="rating-item" data-dimension="overall">
+                    <div class="rating-label">
+                        <span>整体满意度</span>
+                        <span class="rating-value" id="overall-value">未评分</span>
+                    </div>
+                    <div class="star-rating" id="overall-stars">
+                        <svg class="star" data-rating="1" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <svg class="star" data-rating="2" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <svg class="star" data-rating="3" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <svg class="star" data-rating="4" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <svg class="star" data-rating="5" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="comment-section">
+                <div class="comment-label">其他建议（选填）</div>
+                <textarea class="comment-textarea" id="comment" placeholder="请分享您的咨询体验和建议..."></textarea>
+            </div>
+        </div>
+
+        <button class="btn btn-primary submit-rating-btn" onclick="submitRating()">
+            提交评价
+        </button>
+
+        <div class="action-section">
+            <button class="btn join-team-btn" onclick="joinConsultantTeam()">
+                加入咨询师团队
+            </button>
+
+            <div class="upgrade-service-card" onclick="upgradeService()">
+                <div class="upgrade-header">
+                    <div>
+                        <div class="upgrade-title">升级长期定制服务</div>
+                        <div class="upgrade-badge">立减50元</div>
+                    </div>
+                    <svg class="chevron-right" viewBox="0 0 24 24">
+                        <path d="M9 6l6 6-6 6"/>
+                    </svg>
+                </div>
+                <div class="upgrade-desc">
+                    享受一对一专属指导，获得持续的家庭教育支持
+                </div>
+                <div class="upgrade-price">查看套餐详情 →</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        const ratings = {
+            professionalism: 0,
+            communication: 0,
+            attitude: 0,
+            'problem-solving': 0,
+            overall: 0
+        };
+
+        function initStarRatings() {
+            const ratingItems = document.querySelectorAll('.rating-item');
+            ratingItems.forEach(item => {
+                const dimension = item.dataset.dimension;
+                const stars = item.querySelectorAll('.star');
+                
+                stars.forEach((star, index) => {
+                    star.addEventListener('click', () => {
+                        const rating = parseInt(star.dataset.rating);
+                        setRating(dimension, rating);
+                    });
+
+                    star.addEventListener('mouseenter', () => {
+                        highlightStars(stars, index + 1);
+                    });
+                });
+
+                item.addEventListener('mouseleave', () => {
+                    highlightStars(stars, ratings[dimension]);
+                });
+            });
+        }
+
+        function highlightStars(stars, count) {
+            stars.forEach((star, index) => {
+                if (index < count) {
+                    star.classList.add('filled');
+                    star.classList.remove('active');
+                } else {
+                    star.classList.remove('filled');
+                    star.classList.remove('active');
+                }
+            });
+        }
+
+        function setRating(dimension, rating) {
+            ratings[dimension] = rating;
+            const stars = document.querySelectorAll(`#${dimension}-stars .star`);
+            const valueEl = document.getElementById(`${dimension}-value`);
+            
+            highlightStars(stars, rating);
+            valueEl.textContent = `${rating}星`;
+            valueEl.style.color = 'var(--primary-color)';
+        }
+
+        function submitRating() {
+            // 检查是否所有维度都已评分
+            const allRated = Object.values(ratings).every(r => r > 0);
+            if (!allRated) {
+                showToast('请完成所有维度的评分');
+                return;
+            }
+
+            const comment = document.getElementById('comment').value.trim();
+            const ratingData = {
+                ...ratings,
+                comment: comment,
+                appointmentId: getUrlParam('appointmentId') || getUrlParam('appointment_id') || '',
+                consultantName: getUrlParam('consultantName') || getUrlParam('consultant_name') || ''
+            };
+
+            if (window.Android && typeof Android.submitRating === 'function') {
+                Android.submitRating(JSON.stringify(ratingData));
+            } else {
+                console.log('提交评价:', ratingData);
+                showToast('评价提交成功，感谢您的反馈！');
+                setTimeout(() => {
+                    if (window.Android && typeof Android.goBack === 'function') {
+                        Android.goBack();
+                    } else {
+                        window.location.href = 'message.html';
+                    }
+                }, 1500);
+            }
+        }
+
+        function joinConsultantTeam() {
+            if (window.Android && typeof Android.navigateToConsultantTraining === 'function') {
+                Android.navigateToConsultantTraining();
+            } else {
+                window.location.href = 'consultant_training.html';
+            }
+        }
+
+        function upgradeService() {
+            if (window.Android && typeof Android.navigateToUpgradeService === 'function') {
+                Android.navigateToUpgradeService();
+            } else {
+                window.location.href = 'upgrade_service.html';
+            }
+        }
+
+        function getUrlParam(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name) || '';
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initStarRatings();
+        });
+    </script>
+</body>
+</html>
+

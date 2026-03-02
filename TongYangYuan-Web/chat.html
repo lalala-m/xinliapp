@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>咨询对话 - 童养园咨询师端</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/chat.css">
+    <link rel="stylesheet" href="css/anti-flicker.css">
+</head>
+<body>
+    <div class="chat-container">
+        <!-- 聊天头部 -->
+        <header class="chat-header">
+            <div class="chat-header-left">
+                <button class="back-btn" onclick="Chat.goBack()">
+                    ←
+                </button>
+                <div class="avatar" id="clientAvatar">王</div>
+                <div class="chat-client-info">
+                    <div class="chat-client-name" id="clientName">王女士</div>
+                    <div class="chat-client-child" id="clientChild">孩子：小明（8岁）</div>
+                </div>
+            </div>
+            <div class="chat-header-actions">
+                <button class="btn btn-primary" onclick="Chat.startAudioCall()">
+                    🎧 语音通话
+                </button>
+                <button class="btn btn-primary" onclick="Chat.startVideoCall()">
+                    📹 视频通话
+                </button>
+                <button class="btn btn-danger" id="endConsultationBtn" onclick="Chat.endConsultation()">
+                    结束咨询
+                </button>
+            </div>
+        </header>
+
+        <!-- 消息区域 -->
+        <div class="messages-area" id="messagesArea">
+            <!-- 消息动态加载 -->
+        </div>
+
+        <!-- 输入区域 -->
+        <div class="input-area" id="inputArea">
+            <div class="input-container">
+                <div class="input-field-wrapper">
+                    <textarea
+                        class="message-input"
+                        id="messageInput"
+                        placeholder="输入消息..."
+                        rows="1"
+                    ></textarea>
+                </div>
+                <button class="btn btn-primary send-btn" onclick="Chat.sendMessage()">
+                    发送
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/mock-data.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    
+    <!-- WebSocket Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    
+    <script src="js/chat.js"></script>
+</body>
+</html>

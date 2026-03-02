@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI 智能识别</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .preview-container {
+            width: 100%;
+            min-height: 200px;
+            background: #F5F5F5;
+            border-radius: 16px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .preview-image {
+            max-width: 100%;
+            max-height: 400px;
+            display: none;
+        }
+        
+        .placeholder {
+            color: #999;
+            text-align: center;
+        }
+        
+        .result-card {
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            display: none;
+        }
+        
+        .detection-box {
+            position: absolute;
+            border: 2px solid #6FA6F8;
+            background: rgba(111, 166, 248, 0.2);
+            pointer-events: none;
+        }
+        
+        .detection-label {
+            position: absolute;
+            background: #6FA6F8;
+            color: white;
+            padding: 2px 6px;
+            font-size: 12px;
+            border-radius: 4px;
+            top: -20px;
+            left: -2px;
+            white-space: nowrap;
+        }
+
+        .server-status {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            padding: 6px 12px;
+            border-radius: 99px;
+            font-size: 12px;
+            background: #eee;
+            color: #666;
+            z-index: 200;
+        }
+        
+        .server-status.online {
+            background: #E8F5E9;
+            color: #4CAF50;
+        }
+        
+        .server-status.offline {
+            background: #FFEBEE;
+            color: #F44336;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-app-bar glass">
+        <button class="icon-btn" onclick="history.back()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 18l-6-6 6-6" />
+            </svg>
+        </button>
+        <div class="title">AI 智能识别</div>
+    </div>
+
+    <div class="server-status offline" id="serverStatus">连接中...</div>
+
+    <div class="content" style="padding-top: 80px;">
+        <div class="preview-container" id="previewContainer">
+            <div class="placeholder" id="placeholder">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 8px;">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21 15 16 10 5 21"/>
+                </svg>
+                <div>点击下方按钮选择图片</div>
+            </div>
+            <img class="preview-image" id="previewImage">
+            <div id="overlayLayer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></div>
+        </div>
+
+        <div class="hero-actions">
+            <button class="btn btn-secondary" onclick="pickImage()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21 15 16 10 5 21"/>
+                </svg>
+                相册选择
+            </button>
+            <button class="btn btn-primary" onclick="captureImage()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                </svg>
+                拍照识别
+            </button>
+        </div>
+
+        <div id="resultsArea" style="margin-top: 24px;">
+            <!-- 识别结果列表 -->
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        // 配置服务器地址
+        let SERVER_URL = 'http://10.0.2.2:5000'; // 默认安卓模拟器地址
+        
+        // 如果不在安卓环境中（比如电脑浏览器），使用 localhost
+        if (typeof window.Android === 'undefined') {
+             SERVER_URL = 'http://localhost:5000';
+        }
+
+        const previewImage = document.getElementById('previewImage');
+        const placeholder = document.getElementById('placeholder');
+        const overlayLayer = document.getElementById('overlayLayer');
+        const resultsArea = document.getElementById('resultsArea');
+        const serverStatus = document.getElementById('serverStatus');
+        
+        let currentBlob = null;
+
+        // 检查服务器状态
+        async function checkServer() {
+            try {
+                const response = await fetch(`${SERVER_URL}/health`, { 
+                    method: 'GET',
+                    mode: 'cors',
+                    cache: 'no-cache',
+                    headers: { 'Content-Type': 'application/json' },
+                    // 设置较短超时
+                    signal: AbortSignal.timeout(3000)
+                });
+                if (response.ok) {
+                    serverStatus.textContent = 'AI 服务在线';
+                    serverStatus.className = 'server-status online';
+                } else {
+                    throw new Error('Server error');
+                }
+            } catch (e) {
+                serverStatus.textContent = 'AI 服务离线';
+                serverStatus.className = 'server-status offline';
+                console.error('Server check failed:', e);
+            }
+        }
+        
+        checkServer();
+        setInterval(checkServer, 10000);
+
+        function pickImage() {
+            if (window.Android && window.Android.openImagePicker) {
+                window.Android.openImagePicker();
+            }
+        }
+
+        function captureImage() {
+            if (window.Android && window.Android.captureImage) {
+                window.Android.captureImage();
+            }
+        }
+
+        // 接收图片回调
+        window.onMediaSelected = function(type, content, uri) {
+            if (type === 'image') {
+                // 如果是 base64
+                if (uri.startsWith('data:image')) {
+                    previewImage.src = uri;
+                    showPreview();
+                    
+                    // 将 base64 转 blob 用于上传
+                    fetch(uri)
+                        .then(res => res.blob())
+                        .then(blob => {
+                            currentBlob = blob;
+                            uploadAndPredict(blob);
+                        });
+                } 
+                // 如果是 file:// (需要 WebAppInterface 支持转 base64 或直接传流)
+                // 目前 WebAppInterface 已修改为返回 base64，所以逻辑一致
+            }
+        };
+
+        function showPreview() {
+            previewImage.style.display = 'block';
+            placeholder.style.display = 'none';
+            overlayLayer.innerHTML = '';
+            resultsArea.innerHTML = '<div class="text-center" style="color:#999;">正在识别中...</div>';
+        }
+
+        async function uploadAndPredict(imageBlob) {
+            const formData = new FormData();
+            formData.append('image', imageBlob, 'image.jpg');
+
+            try {
+                const response = await fetch(`${SERVER_URL}/predict`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Prediction failed');
+                }
+
+                const data = await response.json();
+                if (data.success) {
+                    renderResults(data.detections);
+                } else {
+                    resultsArea.innerHTML = '<div class="text-center" style="color:red;">识别失败: ' + data.error + '</div>';
+                }
+            } catch (e) {
+                resultsArea.innerHTML = '<div class="text-center" style="color:red;">网络错误，请确保电脑上的 YOLO 服务已启动</div>';
+                console.error(e);
+            }
+        }
+
+        function renderResults(detections) {
+            resultsArea.innerHTML = '';
+            overlayLayer.innerHTML = '';
+            
+            if (detections.length === 0) {
+                resultsArea.innerHTML = '<div class="text-center">未检测到目标</div>';
+                return;
+            }
+
+            // 获取图片原始尺寸和显示尺寸
+            const naturalWidth = previewImage.naturalWidth;
+            const naturalHeight = previewImage.naturalHeight;
+            const displayWidth = previewImage.width;
+            const displayHeight = previewImage.height;
+            
+            const scaleX = displayWidth / naturalWidth;
+            const scaleY = displayHeight / naturalHeight;
+            
+            // 修正居中显示的偏移
+            // 这里的 preview-container 是 flex center，图片可能是 contain 模式
+            // 简单起见，我们假设图片填满或我们获取到的 offset 是相对于图片的
+            
+            detections.forEach(det => {
+                // 绘制框
+                const [x1, y1, x2, y2] = det.bbox;
+                const box = document.createElement('div');
+                box.className = 'detection-box';
+                
+                // 计算相对位置
+                box.style.left = (x1 * scaleX) + 'px';
+                box.style.top = (y1 * scaleY) + 'px';
+                box.style.width = ((x2 - x1) * scaleX) + 'px';
+                box.style.height = ((y2 - y1) * scaleY) + 'px';
+                
+                // 标签
+                const label = document.createElement('div');
+                label.className = 'detection-label';
+                label.textContent = `${det.label} ${(det.confidence * 100).toFixed(0)}%`;
+                box.appendChild(label);
+                
+                // 为了准确定位，我们需要将 box 放入一个与图片重叠的容器中
+                // 这里为了简单，我们直接利用 overlayLayer (absolute top 0 left 0)
+                // 但需要注意图片可能居中显示，导致 left 0 不是图片左边
+                // 更精确的做法是获取 img 的 offsetLeft
+                
+                const imgRect = previewImage.getBoundingClientRect();
+                const containerRect = document.getElementById('previewContainer').getBoundingClientRect();
+                
+                const offsetX = imgRect.left - containerRect.left;
+                const offsetY = imgRect.top - containerRect.top;
+                
+                box.style.left = (x1 * scaleX + offsetX) + 'px';
+                box.style.top = (y1 * scaleY + offsetY) + 'px';
+                
+                overlayLayer.appendChild(box);
+                
+                // 添加列表项
+                const card = document.createElement('div');
+                card.className = 'result-card';
+                card.innerHTML = `
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <strong>${det.label}</strong>
+                        <span style="color:#6FA6F8;font-weight:bold;">${(det.confidence * 100).toFixed(1)}%</span>
+                    </div>
+                `;
+                resultsArea.appendChild(card);
+            });
+        }
+    </script>
+</body>
+</html>

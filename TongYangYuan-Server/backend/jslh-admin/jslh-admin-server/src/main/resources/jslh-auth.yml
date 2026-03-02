@@ -1,0 +1,15 @@
+ignore_urls:
+  - /auth/captcha
+  - /auth/login
+  - /auth/access-token
+  - /user/getRealNameList
+  - /user/getUserIdListByRoleIdList
+  - /user/getRoleNameList
+  - /tenant/list
+  - /pay/alipay/**
+  - /pay/wechat/**
+  - /params/code/**
+  - /ai/chat/message
+  - /jmreport/**
+  - /jimubi/**
+  - /drag/**

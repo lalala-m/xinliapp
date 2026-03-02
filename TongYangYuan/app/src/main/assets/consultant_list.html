@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>咨询师推荐</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .consultant-card {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            align-items: center;
+        }
+
+        .avatar {
+            width: 96px;
+            height: 96px;
+            border-radius: 24px;
+            background: linear-gradient(135deg, #BDEBC8 0%, #A9C9FF 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            overflow: hidden;
+            box-shadow: 0 12px 24px rgba(111, 166, 248, 0.16);
+        }
+
+        .avatar svg {
+            width: 60px;
+            height: 60px;
+            color: #ffffff;
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .avatar-initial {
+            font-size: 32px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .consultant-info {
+            flex: 1;
+        }
+
+        .consultant-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #6FA6F8;
+            margin-bottom: 4px;
+        }
+
+        .consultant-title {
+            font-size: 14px;
+            color: #666666;
+            margin-bottom: 8px;
+        }
+
+        .rating-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .star-icon {
+            width: 16px;
+            height: 16px;
+            fill: #FFD700;
+        }
+
+        .rating {
+            font-size: 14px;
+            color: #333333;
+            font-weight: 600;
+        }
+
+        .served {
+            font-size: 13px;
+            color: #999999;
+        }
+
+        .specialty {
+            font-size: 14px;
+            color: #666666;
+            margin-top: 8px;
+        }
+
+        .consultant-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 6px;
+        }
+
+        .consultant-tag {
+            font-size: 12px;
+            color: #6FA6F8;
+            background: rgba(111, 166, 248, 0.12);
+            border: 1px solid rgba(111, 166, 248, 0.4);
+            border-radius: 999px;
+            padding: 4px 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-app-bar glass">
+        <div class="title">童康源 咨询师推荐</div>
+    </div>
+
+    <div class="content">
+        <div id="consultantsList">
+            <!-- 咨询师卡片将动态生成 -->
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script src="js/consultants_fallback.js"></script>
+    <script>
+        function escapeHtml(text) {
+            if (text === undefined || text === null) {
+                return '';
+            }
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function escapeAttr(value) {
+            if (value === undefined || value === null) {
+                return '';
+            }
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/"/g, '&quot;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        function escapeForJsString(value) {
+            if (value === undefined || value === null) {
+                return '';
+            }
+            return String(value)
+                .replace(/\\/g, '\\\\')
+                .replace(/'/g, '\\\'');
+        }
+
+        function getAvatarBackground(consultant) {
+            const palette = {
+                green: 'linear-gradient(135deg, #BDEBC8 0%, #6FA6F8 100%)',
+                blue: 'linear-gradient(135deg, #A9C9FF 0%, #FFBBEC 100%)',
+                gold: 'linear-gradient(135deg, #FFE29F 0%, #FFA99F 100%)'
+            };
+            const raw = (consultant && consultant.avatarColor) ? consultant.avatarColor.trim() : '';
+            if (!raw) {
+                return palette.green;
+            }
+            if (raw.startsWith('#') || raw.startsWith('rgb') || raw.includes('gradient')) {
+                return raw;
+            }
+            return palette[raw.toLowerCase()] || palette.green;
+        }
+
+        function renderAvatarContent(consultant) {
+            const photo = consultant && consultant.avatarUrl ? consultant.avatarUrl.trim() : '';
+            if (photo) {
+                return `<img src="${escapeAttr(photo)}" alt="${escapeAttr((consultant.name || '咨询师') + ' 照片')}">`;
+            }
+            const initial = (consultant && consultant.name ? consultant.name.trim() : '咨').charAt(0) || '咨';
+            return `<span class="avatar-initial">${escapeHtml(initial)}</span>`;
+        }
+
+        function renderAvatar(consultant) {
+            const background = escapeAttr(getAvatarBackground(consultant));
+            return `
+                <div class="avatar" style="background:${background};">
+                    ${renderAvatarContent(consultant)}
+                </div>
+            `;
+        }
+
+        const tierPriority = {
+            INTERNAL: 0,
+            BLUE_V: 1,
+            YELLOW_V: 2
+        };
+        let consultants = [];
+
+        function renderConsultants() {
+            const list = document.getElementById('consultantsList');
+            list.innerHTML = consultants.map(consultant => {
+                const safeName = escapeHtml(consultant.name || '咨询师');
+                const safeTitle = escapeHtml(consultant.title || '');
+                const safeSpecialty = escapeHtml(consultant.specialty || '');
+                const safeServed = escapeHtml(consultant.servedCount || '0');
+                const safeOnclickName = escapeForJsString(consultant.name || '');
+                const ratingText = Number(consultant.rating || 0).toFixed(1);
+                return `
+                <div class="list-item consultant-card" onclick="viewDetail('${safeOnclickName}')">
+                    ${renderAvatar(consultant)}
+                    <div class="consultant-info">
+                        <div class="consultant-name">${safeName}</div>
+                        <div class="consultant-title">${safeTitle}</div>
+                        ${renderPrimaryTag(consultant)}
+                        <div class="rating-row">
+                            <svg class="star-icon" viewBox="0 0 24 24">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                            <span class="rating">${ratingText} 分</span>
+                            <span class="served">已服务 ${safeServed}+ 家庭</span>
+                        </div>
+                        <div class="specialty">${safeSpecialty}</div>
+                    </div>
+                </div>
+            `;
+            }).join('');
+        }
+
+        function renderPrimaryTag(consultant) {
+            const tag = window.resolveIdentityTag ? window.resolveIdentityTag(consultant) : '';
+            if (!tag) {
+                return '';
+            }
+            return `
+                <div class="consultant-tags">
+                    <span class="consultant-tag">${escapeHtml(tag)}</span>
+                </div>
+            `;
+        }
+
+        function sortConsultants() {
+            consultants.sort((a, b) => {
+                const tierDiff = (tierPriority[a.identityTier] ?? 2) - (tierPriority[b.identityTier] ?? 2);
+                if (tierDiff !== 0) {
+                    return tierDiff;
+                }
+                return (b.rating ?? 0) - (a.rating ?? 0);
+            });
+        }
+
+        function hydrateConsultants() {
+            // 获取传递过来的问题参数
+            let selectedQuestions = '';
+            
+            // 尝试从 URL 获取参数
+            const urlParams = new URLSearchParams(window.location.search);
+            const questions = urlParams.get('questions');
+            
+            if (window.Android && Android.getConsultants) {
+                try {
+                    const json = Android.getConsultants();
+                    const parsed = JSON.parse(json);
+                    if (Array.isArray(parsed) && parsed.length) {
+                        consultants = parsed;
+                    }
+                } catch (e) {
+                    console.error('加载咨询师数据失败', e);
+                }
+            } else if (Array.isArray(window.FALLBACK_CONSULTANTS)) {
+                consultants = window.FALLBACK_CONSULTANTS;
+            }
+
+            // 过滤逻辑
+            if (questions) {
+                console.log('Selected questions:', questions);
+                const questionList = questions.split(/[,，、]/).map(s => s.trim()).filter(s => s);
+                
+                // 1. 尝试找到完全匹配或包含关键词的咨询师
+                const matchedConsultants = consultants.filter(c => {
+                    // 如果咨询师是内部人员(PLATINUM)，通常全能，不过滤？或者根据需求
+                    // 这里假设内部人员也参与关键词匹配，或者作为兜底
+                    if (c.identityTier === 'PLATINUM' || c.identityTier === 'INTERNAL') {
+                         return true; // 内部人员始终匹配
+                    }
+
+                    if (!c.specialty) return false;
+                    const specialties = c.specialty.split(/[,，、]/).map(s => s.trim());
+                    // 检查咨询师的擅长领域是否包含用户选的任何一个问题
+                    // 或者问题是否包含擅长领域
+                    return questionList.some(q => 
+                        specialties.some(s => {
+                            if (!s) return false;
+                            // 忽略大小写
+                            const sLower = s.toLowerCase();
+                            const qLower = q.toLowerCase();
+                            return qLower.includes(sLower) || sLower.includes(qLower);
+                        })
+                    );
+                });
+
+                if (matchedConsultants.length > 0) {
+                    consultants = matchedConsultants;
+                    showToast(`已为您筛选擅长 "${questions}" 的咨询师`);
+                } else {
+                    // 2. 如果没有匹配的，展示所有，并提示
+                    // 也可以优先展示内部人员(PLATINUM)
+                    showToast(`暂无 "${questions}" 领域的专属专家，为您推荐全能咨询师`);
+                    // 可以在UI上加个提示条
+                    const tip = document.createElement('div');
+                    tip.style.padding = '12px 16px';
+                    tip.style.background = '#FFF3E0';
+                    tip.style.color = '#FF9800';
+                    tip.style.fontSize = '14px';
+                    tip.style.marginBottom = '8px';
+                    tip.style.borderRadius = '8px';
+                    tip.textContent = `暂无针对 "${questions}" 的认证专家，以下是为您推荐的资深咨询师：`;
+                    const contentDiv = document.querySelector('.content');
+                    const listDiv = document.getElementById('consultantsList');
+                    if (contentDiv && listDiv) {
+                        contentDiv.insertBefore(tip, listDiv);
+                    }
+                }
+            }
+
+            sortConsultants();
+            renderConsultants();
+        }
+
+        function viewDetail(name) {
+            if (window.Android) {
+                Android.navigateToConsultantDetail(name);
+            } else {
+                showToast(`查看 ${name} 的详情`);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            hydrateConsultants();
+        });
+    </script>
+</body>
+</html>

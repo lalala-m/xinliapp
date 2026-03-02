@@ -1,0 +1,613 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="16dp"
+    app:cardBackgroundColor="@color/brand_beige"
+    app:cardCornerRadius="@dimen/corner_20"
+    app:cardElevation="6dp"
+    app:cardUseCompatPadding="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/padding_24">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvChildIndex"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="@color/brand_blue_deep"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <ImageButton
+                android:id="@+id/btnEdit"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="@android:color/transparent"
+                android:padding="4dp"
+                android:src="@drawable/ic_edit"
+                android:contentDescription="@string/child_edit" />
+
+            <ImageButton
+                android:id="@+id/btnDelete"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="@android:color/transparent"
+                android:padding="4dp"
+                android:src="@drawable/ic_delete"
+                android:contentDescription="@string/child_delete" />
+        </LinearLayout>
+
+        <!-- 基础信息 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/child_name_label"
+            android:textColor="@color/brand_gray"
+            android:textSize="14sp" />
+
+        <EditText
+            android:id="@+id/etName"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_round_outline_gray"
+            android:hint="@string/child_name_hint"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:textColor="@color/brand_gray"
+            android:textColorHint="@color/brand_gray"
+            android:textSize="16sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/child_gender_label"
+            android:textColor="@color/brand_gray"
+            android:textSize="14sp" />
+
+        <LinearLayout
+            android:id="@+id/layoutGender"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvBoy"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_marginEnd="12dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_gender_selector"
+                android:gravity="center"
+                android:padding="8dp"
+                android:text="@string/child_gender_boy"
+                android:textColor="@color/selector_gender_text"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvGirl"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_gender_selector"
+                android:gravity="center"
+                android:padding="8dp"
+                android:text="@string/child_gender_girl"
+                android:textColor="@color/selector_gender_text"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/label_birth_month"
+            android:textColor="@color/brand_gray"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/tvBirth"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_round_outline_gray"
+            android:gravity="center_vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:text="@string/child_birth_hint"
+            android:textColor="@color/brand_gray"
+            android:textSize="16sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/label_ethnicity"
+            android:textColor="@color/brand_gray"
+            android:textSize="14sp" />
+
+        <EditText
+            android:id="@+id/etEthnicity"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_round_outline_gray"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:textColor="@color/brand_gray"
+            android:textColorHint="@color/brand_gray"
+            android:textSize="16sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/label_native_place"
+            android:textColor="@color/brand_gray"
+            android:textSize="14sp" />
+
+        <EditText
+            android:id="@+id/etNativePlace"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_round_outline_gray"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:textColor="@color/brand_gray"
+            android:textColorHint="@color/brand_gray"
+            android:textSize="16sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/label_family_rank"
+            android:textColor="@color/brand_gray"
+            android:textSize="14sp" />
+
+        <EditText
+            android:id="@+id/etFamilyRank"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_round_outline_gray"
+            android:hint="如：老二"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:textColor="@color/brand_gray"
+            android:textColorHint="@color/brand_gray"
+            android:textSize="16sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/label_birth_place"
+            android:textColor="@color/brand_gray"
+            android:textSize="14sp" />
+
+        <EditText
+            android:id="@+id/etBirthPlace"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_round_outline_gray"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:textColor="@color/brand_gray"
+            android:textColorHint="@color/brand_gray"
+            android:textSize="16sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/label_language_env"
+            android:textColor="@color/brand_gray"
+            android:textSize="14sp" />
+
+        <EditText
+            android:id="@+id/etLanguageEnv"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_round_outline_gray"
+            android:hint="@string/label_language_hint"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:textColor="@color/brand_gray"
+            android:textColorHint="@color/brand_gray"
+            android:textSize="16sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/label_school"
+            android:textColor="@color/brand_gray"
+            android:textSize="14sp" />
+
+        <EditText
+            android:id="@+id/etSchool"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_round_outline_gray"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:textColor="@color/brand_gray"
+            android:textColorHint="@color/brand_gray"
+            android:textSize="16sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/label_home_address"
+            android:textColor="@color/brand_gray"
+            android:textSize="14sp" />
+
+        <EditText
+            android:id="@+id/etAddress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_round_outline_gray"
+            android:gravity="top"
+            android:hint="@string/label_address_hint"
+            android:minLines="2"
+            android:padding="@dimen/padding_16"
+            android:textColor="@color/brand_gray"
+            android:textColorHint="@color/brand_gray"
+            android:textSize="16sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/label_interest_hobby"
+            android:textColor="@color/brand_gray"
+            android:textSize="14sp" />
+
+        <EditText
+            android:id="@+id/etInterests"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_round_outline_gray"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:textColor="@color/brand_gray"
+            android:textColorHint="@color/brand_gray"
+            android:textSize="16sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/label_interest_activity"
+            android:textColor="@color/brand_gray"
+            android:textSize="14sp" />
+
+        <EditText
+            android:id="@+id/etActivities"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_round_outline_gray"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:textColor="@color/brand_gray"
+            android:textColorHint="@color/brand_gray"
+            android:textSize="16sp" />
+
+        <!-- 身体状态 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/label_body_status"
+            android:textColor="@color/brand_gray"
+            android:textSize="14sp" />
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chipGroupBodyStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            app:chipSpacingHorizontal="8dp"
+            app:chipSpacingVertical="8dp"
+            app:singleSelection="true">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipBodyExcellent"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:tag="@string/body_status_excellent"
+                android:text="@string/body_status_excellent"
+                app:chipBackgroundColor="@color/brand_beige"
+                app:chipStrokeColor="@color/brand_outline"
+                app:chipStrokeWidth="1dp" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipBodyGood"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:tag="@string/body_status_good"
+                android:text="@string/body_status_good"
+                app:chipBackgroundColor="@color/brand_beige"
+                app:chipStrokeColor="@color/brand_outline"
+                app:chipStrokeWidth="1dp" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipBodyOk"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:tag="@string/body_status_ok"
+                android:text="@string/body_status_ok"
+                app:chipBackgroundColor="@color/brand_beige"
+                app:chipStrokeColor="@color/brand_outline"
+                app:chipStrokeWidth="1dp" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipBodyPoor"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:tag="@string/body_status_poor"
+                android:text="@string/body_status_poor"
+                app:chipBackgroundColor="@color/brand_beige"
+                app:chipStrokeColor="@color/brand_outline"
+                app:chipStrokeWidth="1dp" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipBodyBad"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:tag="@string/body_status_bad"
+                android:text="@string/body_status_bad"
+                app:chipBackgroundColor="@color/brand_beige"
+                app:chipStrokeColor="@color/brand_outline"
+                app:chipStrokeWidth="1dp" />
+        </com.google.android.material.chip.ChipGroup>
+
+        <LinearLayout
+            android:id="@+id/layoutBodyStatusDetail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/label_body_status_detail"
+                android:textColor="@color/brand_gray"
+                android:textSize="14sp" />
+
+            <EditText
+                android:id="@+id/etBodyStatusDesc"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_round_outline_gray"
+                android:gravity="top"
+                android:minLines="2"
+                android:padding="@dimen/padding_16"
+                android:textColor="@color/brand_gray"
+                android:textColorHint="@color/brand_gray"
+                android:textSize="16sp" />
+        </LinearLayout>
+
+        <!-- 病史 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/label_medical_history"
+            android:textColor="@color/brand_gray"
+            android:textSize="14sp" />
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chipGroupMedicalHistory"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            app:chipSpacingHorizontal="8dp"
+            app:chipSpacingVertical="8dp">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipMedicalNone"
+                style="@style/Widget.MaterialComponents.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:tag="@string/medical_none"
+                android:text="@string/medical_none" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipMedicalEncephalitis"
+                style="@style/Widget.MaterialComponents.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:tag="@string/medical_encephalitis"
+                android:text="@string/medical_encephalitis" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipMedicalEpilepsy"
+                style="@style/Widget.MaterialComponents.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:tag="@string/medical_epilepsy"
+                android:text="@string/medical_epilepsy" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipMedicalHeart"
+                style="@style/Widget.MaterialComponents.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:tag="@string/medical_heart"
+                android:text="@string/medical_heart" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipMedicalAsthma"
+                style="@style/Widget.MaterialComponents.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:tag="@string/medical_asthma"
+                android:text="@string/medical_asthma" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipMedicalAllergy"
+                style="@style/Widget.MaterialComponents.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:tag="@string/medical_allergy"
+                android:text="@string/medical_allergy" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipMedicalTb"
+                style="@style/Widget.MaterialComponents.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:tag="@string/medical_tb"
+                android:text="@string/medical_tb" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipMedicalOther"
+                style="@style/Widget.MaterialComponents.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:tag="@string/medical_other"
+                android:text="@string/medical_other" />
+        </com.google.android.material.chip.ChipGroup>
+
+        <LinearLayout
+            android:id="@+id/layoutMedicalOther"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/label_medical_other_detail"
+                android:textColor="@color/brand_gray"
+                android:textSize="14sp" />
+
+            <EditText
+                android:id="@+id/etMedicalOther"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_round_outline_gray"
+                android:gravity="top"
+                android:minLines="2"
+                android:padding="@dimen/padding_16"
+                android:textColor="@color/brand_gray"
+                android:textColorHint="@color/brand_gray"
+                android:textSize="16sp" />
+        </LinearLayout>
+
+        <!-- 联系方式 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/label_father_phone"
+            android:textColor="@color/brand_gray"
+            android:textSize="14sp" />
+
+        <EditText
+            android:id="@+id/etFatherPhone"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_round_outline_gray"
+            android:digits="0123456789"
+            android:hint="@string/label_father_phone"
+            android:inputType="phone"
+            android:maxLength="11"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:textColor="@color/brand_gray"
+            android:textColorHint="@color/brand_gray"
+            android:textSize="16sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/label_mother_phone"
+            android:textColor="@color/brand_gray"
+            android:textSize="14sp" />
+
+        <EditText
+            android:id="@+id/etMotherPhone"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_round_outline_gray"
+            android:digits="0123456789"
+            android:hint="@string/label_mother_phone"
+            android:inputType="phone"
+            android:maxLength="11"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:textColor="@color/brand_gray"
+            android:textColorHint="@color/brand_gray"
+            android:textSize="16sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/label_guardian_phone"
+            android:textColor="@color/brand_gray"
+            android:textSize="14sp" />
+
+        <EditText
+            android:id="@+id/etGuardianPhone"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_round_outline_gray"
+            android:digits="0123456789"
+            android:hint="@string/label_guardian_phone"
+            android:inputType="phone"
+            android:maxLength="11"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:textColor="@color/brand_gray"
+            android:textColorHint="@color/brand_gray"
+            android:textSize="16sp" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>
+

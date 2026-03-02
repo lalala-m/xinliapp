@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>心理测评 - 童养园</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <style>
+        .assessment-list {
+            padding: 20px;
+        }
+        .assessment-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .assessment-info h3 {
+            margin: 0 0 8px 0;
+            color: #333;
+        }
+        .assessment-info p {
+            margin: 0;
+            color: #666;
+            font-size: 14px;
+        }
+        .btn-start {
+            padding: 8px 20px;
+            background: #6FA6F8;
+            color: white;
+            border-radius: 20px;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="dashboard-header">
+            <div class="header-content">
+                <div class="header-left" onclick="history.back()">
+                    <span style="font-size: 20px; margin-right: 10px;">←</span>
+                    <h1 class="header-title">心理测评中心</h1>
+                </div>
+                <div class="header-right">
+                    <a href="assessment_history.html" style="color: #6FA6F8;">历史记录</a>
+                </div>
+            </div>
+        </header>
+
+        <main class="assessment-list" id="testList">
+            <!-- 测评列表 -->
+            <div class="loading">加载中...</div>
+        </main>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/assessment.js"></script>
+</body>
+</html>

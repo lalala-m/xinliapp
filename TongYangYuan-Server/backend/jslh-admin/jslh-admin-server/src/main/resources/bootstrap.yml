@@ -1,0 +1,31 @@
+server:
+  port: 8082
+  servlet:
+    context-path: /sys
+
+spring:
+  application:
+    name: jslh-admin-server
+  #环境 dev|test|prod
+  profiles:
+    active: dev
+  messages:
+    encoding: UTF-8
+    basename: i18n/messages_common
+  cloud:
+    nacos:
+      discovery:
+        metadata:
+          management:
+            context-path: ${server.servlet.context-path}/actuator
+        server-addr: ${nacos_host:nacos-host}:${nacos_port:8848}
+        namespace: ${nacos_namespace:}
+      config:
+        server-addr: ${spring.cloud.nacos.discovery.server-addr}
+        namespace: ${nacos_namespace:}
+      username: ${nacos_username:nacos}
+      password: ${nacos_password:nacos}
+  config:
+    import:
+      - optional:nacos:datasource.yaml?group=JSLH_CLOUD_GROUP&namespace=${nacos_namespace:}&refreshEnabled=true
+      - optional:nacos:common.yaml?group=JSLH_CLOUD_GROUP&namespace=${nacos_namespace:}&refreshEnabled=true

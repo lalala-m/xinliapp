@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>咨询师详情</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .detail-header {
+            text-align: center;
+            padding: 32px 16px;
+        }
+
+        .avatar-large {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #BDEBC8 0%, #A9C9FF 100%);
+            margin: 0 auto 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .avatar-large svg {
+            width: 60px;
+            height: 60px;
+            color: #6FA6F8;
+        }
+
+        .consultant-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: #6FA6F8;
+            margin-bottom: 4px;
+        }
+
+        .consultant-title {
+            font-size: 14px;
+            color: #666666;
+        }
+
+        .consultant-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+            justify-content: center;
+        }
+
+        .consultant-tag {
+            font-size: 12px;
+            color: #6FA6F8;
+            background: rgba(111, 166, 248, 0.12);
+            border: 1px solid rgba(111, 166, 248, 0.4);
+            border-radius: 999px;
+            padding: 4px 12px;
+        }
+
+        .info-section {
+            margin-bottom: 16px;
+        }
+
+        .section-label {
+            font-size: 14px;
+            color: #666666;
+            margin-bottom: 8px;
+        }
+
+        .section-content {
+            font-size: 16px;
+            color: #333333;
+            line-height: 1.6;
+        }
+
+        .review-tag {
+            display: inline-block;
+            padding: 8px 16px;
+            background: #BDEBC8;
+            border-radius: 16px;
+            font-size: 15px;
+            color: #333333;
+            margin: 4px 8px 4px 0;
+        }
+
+        .book-btn {
+            width: calc(100% - 32px);
+            margin: 24px 16px 32px;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-app-bar glass">
+        <button class="back-btn" onclick="history.back()">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 18l-6-6 6-6"/>
+            </svg>
+        </button>
+        <div class="title" id="pageTitle">咨询师</div>
+    </div>
+
+    <div class="content">
+        <div class="detail-header">
+            <div class="avatar-large">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                </svg>
+            </div>
+            <div class="consultant-name" id="consultantName">咨询师</div>
+            <div class="consultant-title" id="consultantTitle">职称</div>
+            <div class="consultant-tags" id="consultantTags"></div>
+        </div>
+
+        <div class="card">
+            <div class="info-section">
+                <div class="section-label">擅长领域</div>
+                <div class="section-content" id="specialty">-</div>
+            </div>
+
+            <div class="info-section" style="margin-top: 16px;">
+                <div class="section-label">咨询风格</div>
+                <div class="section-content" id="intro">-</div>
+            </div>
+        </div>
+
+        <div style="padding: 16px;">
+            <div class="section-label" style="font-weight: 600; margin-bottom: 12px;">家长反馈</div>
+            <div id="reviews">
+                <!-- 评价标签将动态生成 -->
+            </div>
+        </div>
+
+        <button class="btn btn-primary book-btn" id="actionButton">
+            立即咨询
+        </button>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script src="js/consultants_fallback.js"></script>
+    <script>
+        let currentConsultantName = '';
+        let paidUser = false;
+
+        function loadConsultantData() {
+            const name = getUrlParam('name');
+            const consultant = resolveConsultant(name);
+            if (!consultant) {
+                return;
+            }
+
+            currentConsultantName = consultant.name;
+            document.getElementById('consultantName').textContent = consultant.name;
+            document.getElementById('pageTitle').textContent = consultant.name + ' 咨询师';
+            document.getElementById('consultantTitle').textContent = consultant.title;
+            document.getElementById('specialty').textContent = consultant.specialty;
+            document.getElementById('intro').textContent = consultant.intro;
+            renderTags(consultant);
+            renderReviews(consultant.reviews);
+            updateActionButton();
+        }
+
+        function resolveConsultant(name) {
+            if (window.Android && Android.getConsultantDetail) {
+                try {
+                    const json = Android.getConsultantDetail(name || '');
+                    const detail = JSON.parse(json || '{}');
+                    if (detail && detail.name) {
+                        return detail;
+                    }
+                    showToast('咨询师信息不存在或已下架');
+                    return null;
+                } catch (e) {
+                    console.error('加载咨询师详情失败', e);
+                    showToast('加载咨询师信息失败');
+                    return null;
+                }
+            }
+            
+            console.warn('Android interface not found, using fallback data');
+            if (Array.isArray(window.FALLBACK_CONSULTANTS)) {
+                return window.FALLBACK_CONSULTANTS.find(item => item.name === name) 
+                    || window.FALLBACK_CONSULTANTS[0];
+            }
+            return null;
+        }
+
+        function renderTags(consultant) {
+            const container = document.getElementById('consultantTags');
+            const tag = window.resolveIdentityTag ? window.resolveIdentityTag(consultant) : '';
+            if (!tag) {
+                container.innerHTML = '';
+                container.style.display = 'none';
+                return;
+            }
+            container.style.display = 'flex';
+            container.innerHTML = `<span class="consultant-tag">${tag}</span>`;
+        }
+
+        function renderReviews(reviews = []) {
+            const reviewsContainer = document.getElementById('reviews');
+            if (!reviews.length) {
+                reviewsContainer.innerHTML = '<span class="review-tag">欢迎预约后查看更多反馈</span>';
+                return;
+            }
+            reviewsContainer.innerHTML = reviews.map(r =>
+                `<span class="review-tag">${r}</span>`
+            ).join('');
+        }
+
+        function bookAppointment() {
+            const name = currentConsultantName || getUrlParam('name') || '';
+            if (window.Android) {
+                Android.navigateToAppointment(name);
+            } else {
+                showToast('预约咨询功能');
+            }
+        }
+
+        function handlePayNow() {
+            if (window.openRechargePage) {
+                window.openRechargePage();
+            } else if (window.Android && Android.navigateToRecharge) {
+                Android.navigateToRecharge();
+            } else {
+                window.location.href = 'recharge.html';
+            }
+        }
+
+        function updateActionButton() {
+            const button = document.getElementById('actionButton');
+            if (!button) {
+                return;
+            }
+            if (paidUser) {
+                button.textContent = '立即咨询';
+                button.onclick = bookAppointment;
+            } else {
+                button.textContent = '立即支付';
+                button.onclick = handlePayNow;
+            }
+        }
+
+        function refreshPaymentState() {
+            if (window.Android && Android.isPaidUser) {
+                paidUser = Android.isPaidUser();
+            } else {
+                paidUser = window.isPaidUser ? window.isPaidUser() : false;
+            }
+            updateActionButton();
+        }
+
+        function getUrlParam(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadConsultantData();
+            refreshPaymentState();
+        });
+
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                refreshPaymentState();
+            }
+        });
+    </script>
+</body>
+</html>
+

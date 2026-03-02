@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>童康源 · 启动</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(160deg, #A9C9FF 0%, #FFBBEC 100%);
+            color: #ffffff;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .splash-container {
+            text-align: center;
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .brand-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .brand-circle::after {
+            content: '';
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            border: 1px solid rgba(255,255,255,0.4);
+            border-radius: 50%;
+            animation: pulse 2.8s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.9); opacity: 0.4; }
+            100% { transform: scale(1.1); opacity: 0; }
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-6px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .brand-circle svg {
+            width: 60px;
+            height: 60px;
+            color: #ffffff;
+        }
+
+        .title {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: 2px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            opacity: 0.8;
+            letter-spacing: 4px;
+        }
+
+        .tagline {
+            margin-top: 12px;
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .progress {
+            margin-top: 24px;
+            width: 120px;
+            height: 4px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.3);
+            overflow: hidden;
+        }
+
+        .progress::after {
+            content: '';
+            display: block;
+            height: 100%;
+            width: 100%;
+            background: #ffffff;
+            animation: loading 2.4s ease-in-out infinite;
+        }
+
+        @keyframes loading {
+            0% { transform: translateX(-100%); }
+            50% { transform: translateX(0%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .skip-btn {
+            margin-top: 28px;
+            padding: 12px 32px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.4);
+            background: rgba(255,255,255,0.15);
+            color: #ffffff;
+            font-size: 14px;
+            backdrop-filter: blur(6px);
+            cursor: pointer;
+        }
+
+        .skip-btn:active {
+            transform: scale(0.96);
+        }
+    </style>
+</head>
+<body>
+    <div class="splash-container">
+        <div class="brand-circle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 19l-7 4 1-8-6-5 8-1 4-7 4 7 8 1-6 5 1 8z"/>
+            </svg>
+        </div>
+        <div class="title">童康源</div>
+        <div class="subtitle">FAMILY CARE</div>
+        <div class="tagline">温柔守护孩子成长的每一步</div>
+        <div class="progress"></div>
+        <button class="skip-btn" onclick="enterApp()">跳过动画</button>
+    </div>
+
+    <script>
+        function enterApp() {
+            if (window.Android && Android.navigateTo) {
+                Android.navigateTo('home');
+            } else {
+                window.location.href = 'index.html';
+            }
+        }
+
+        setTimeout(enterApp, 2600);
+    </script>
+</body>
+</html>
+

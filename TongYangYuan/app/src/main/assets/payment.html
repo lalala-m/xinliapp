@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>选择支付方式</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .payment-container {
+            padding: 24px;
+            padding-top: calc(24px + env(safe-area-inset-top));
+            min-height: 100vh;
+        }
+
+        .payment-header {
+            text-align: center;
+            color: white;
+            margin-bottom: 32px;
+        }
+
+        .payment-amount {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            text-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .payment-desc {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .payment-methods-container {
+            background: white;
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+        }
+
+        .payment-method {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 20px;
+            border: 3px solid transparent;
+            border-radius: 16px;
+            background: var(--surface);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .payment-method::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at center, rgba(111, 166, 248, 0.1), transparent);
+            opacity: 0;
+            transform: scale(0);
+            transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                        transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .payment-method:active {
+            transform: scale(0.97);
+        }
+
+        .payment-method:active::before {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .payment-method.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
+        }
+
+        .payment-icon-wrapper {
+            width: 64px;
+            height: 64px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            flex-shrink: 0;
+        }
+
+        .payment-icon {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+        }
+
+        .payment-info {
+            flex: 1;
+        }
+
+        .payment-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .payment-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .payment-check {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .payment-method.selected .payment-check {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .payment-check svg {
+            width: 16px;
+            height: 16px;
+            stroke: white;
+            stroke-width: 3;
+        }
+
+        .confirm-btn {
+            width: 100%;
+            padding: 18px;
+            border-radius: 16px;
+            border: none;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .confirm-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.2);
+            opacity: 0;
+            transform: scale(0);
+            transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                        transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .confirm-btn:active {
+            transform: scale(0.97);
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.5);
+        }
+
+        .confirm-btn:active::before {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .confirm-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .order-info {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .order-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .order-label {
+            opacity: 0.9;
+        }
+
+        .order-value {
+            font-weight: 600;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .loading-content {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            text-align: center;
+            max-width: 280px;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid rgba(102, 126, 234, 0.2);
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 16px;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="payment-container">
+        <div class="payment-header">
+            <div class="payment-amount" id="paymentAmount">¥0.00</div>
+            <div class="payment-desc" id="paymentDesc">请选择支付方式</div>
+        </div>
+
+        <div class="order-info" id="orderInfo" style="display: none;">
+            <div class="order-item">
+                <span class="order-label">订单号</span>
+                <span class="order-value" id="orderNumber">-</span>
+            </div>
+            <div class="order-item">
+                <span class="order-label">商品名称</span>
+                <span class="order-value" id="productName">-</span>
+            </div>
+        </div>
+
+        <div class="payment-methods-container">
+            <div class="section-title">选择支付方式</div>
+            
+            <div class="payment-method" data-method="wechat" onclick="selectPaymentMethod('wechat')">
+                <div class="payment-icon-wrapper">
+                    <img src="images/WeChat.webp" alt="微信支付" class="payment-icon">
+                </div>
+                <div class="payment-info">
+                    <div class="payment-name">微信支付</div>
+                    <div class="payment-subtitle">推荐使用微信支付</div>
+                </div>
+                <div class="payment-check">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="payment-method" data-method="alipay" onclick="selectPaymentMethod('alipay')">
+                <div class="payment-icon-wrapper">
+                    <img src="images/ZFB.webp" alt="支付宝" class="payment-icon">
+                </div>
+                <div class="payment-info">
+                    <div class="payment-name">支付宝</div>
+                    <div class="payment-subtitle">安全便捷的支付方式</div>
+                </div>
+                <div class="payment-check">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <button class="confirm-btn" id="confirmBtn" onclick="confirmPayment()" disabled>
+            确认支付
+        </button>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">正在跳转支付...</div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        let selectedMethod = null;
+        let paymentData = {};
+
+        // 初始化页面
+        function initPayment() {
+            // 从URL参数获取支付信息
+            const amount = getUrlParam('amount') || '0.00';
+            const desc = getUrlParam('desc') || '请选择支付方式';
+            const orderNumber = getUrlParam('orderNumber') || '';
+            const productName = getUrlParam('productName') || '';
+            const planId = getUrlParam('planId') || '';
+            const appointmentId = getUrlParam('appointmentId') || '';
+
+            // 保存支付数据
+            paymentData = {
+                amount: amount,
+                desc: desc,
+                orderNumber: orderNumber,
+                productName: productName,
+                planId: planId,
+                appointmentId: appointmentId
+            };
+
+            // 显示金额和描述
+            document.getElementById('paymentAmount').textContent = '¥' + amount;
+            document.getElementById('paymentDesc').textContent = desc;
+
+            // 如果有订单信息，显示订单详情
+            if (orderNumber || productName) {
+                const orderInfo = document.getElementById('orderInfo');
+                orderInfo.style.display = 'block';
+                
+                if (orderNumber) {
+                    document.getElementById('orderNumber').textContent = orderNumber;
+                }
+                if (productName) {
+                    document.getElementById('productName').textContent = productName;
+                }
+            }
+        }
+
+        // 选择支付方式
+        function selectPaymentMethod(method) {
+            selectedMethod = method;
+            
+            // 更新UI
+            document.querySelectorAll('.payment-method').forEach(el => {
+                el.classList.remove('selected');
+            });
+            document.querySelector(`[data-method="${method}"]`).classList.add('selected');
+            
+            // 启用确认按钮
+            document.getElementById('confirmBtn').disabled = false;
+        }
+
+        // 确认支付
+        function confirmPayment() {
+            if (!selectedMethod) {
+                showToast('请选择支付方式');
+                return;
+            }
+
+            // 显示加载动画
+            document.getElementById('loadingOverlay').classList.add('active');
+
+            // 调用Android接口进行支付
+            setTimeout(() => {
+                if (window.Android) {
+                    if (selectedMethod === 'wechat') {
+                        // 调用微信支付
+                        if (typeof Android.launchWeChatPay === 'function') {
+                            Android.launchWeChatPay(
+                                paymentData.amount,
+                                paymentData.orderNumber || generateOrderNumber(),
+                                paymentData.productName || paymentData.desc
+                            );
+                        } else {
+                            showToast('微信支付功能暂未开放');
+                            // 模拟成功 (Fallback)
+                            setTimeout(mockSuccess, 1000);
+                        }
+                    } else if (selectedMethod === 'alipay') {
+                        // 调用支付宝支付
+                        if (typeof Android.launchAlipay === 'function') {
+                            Android.launchAlipay(
+                                paymentData.amount,
+                                paymentData.orderNumber || generateOrderNumber(),
+                                paymentData.productName || paymentData.desc
+                            );
+                        } else {
+                            showToast('支付宝支付功能暂未开放');
+                            // 模拟成功 (Fallback)
+                            setTimeout(mockSuccess, 1000);
+                        }
+                    }
+                } else {
+                    // 非Android环境，模拟支付
+                    console.log('支付信息:', {
+                        method: selectedMethod,
+                        ...paymentData
+                    });
+                    showToast('支付功能仅在APP中可用');
+                    // 模拟成功 (Web Preview)
+                    setTimeout(mockSuccess, 1500);
+                }
+            }, 500);
+        }
+
+        function mockSuccess() {
+             document.getElementById('loadingOverlay').classList.remove('active');
+             showToast('模拟支付成功');
+             if (window.Android && Android.onPaymentSuccess) {
+                 Android.onPaymentSuccess();
+             }
+             setTimeout(() => {
+                 if (window.Android && Android.goBack) {
+                     Android.goBack();
+                 } else {
+                     history.back();
+                 }
+             }, 1000);
+        }
+
+        // 供Native调用的成功回调
+        window.onPaymentSuccess = function() {
+             document.getElementById('loadingOverlay').classList.remove('active');
+             // Native side usually handles the toast and navigation, but we ensure UI is clean
+        };
+
+
+        // 生成订单号
+        function generateOrderNumber() {
+            const timestamp = Date.now();
+            const random = Math.floor(Math.random() * 10000);
+            return `TYY${timestamp}${random}`;
+        }
+
+        // 显示提示
+        function showToast(message) {
+            if (window.Android && typeof Android.showToast === 'function') {
+                Android.showToast(message);
+            } else {
+                alert(message);
+            }
+        }
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', initPayment);
+    </script>
+</body>
+</html>

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>咨询指导</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .tabs {
+            display: flex;
+            gap: 16px;
+            padding: 16px;
+            background: white;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 14px;
+            border: 2px solid #E0E0E0;
+            border-radius: 12px;
+            background: white;
+            color: #666666;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .tab.active {
+            border-color: #6FA6F8;
+            background: #6FA6F8;
+            color: white;
+        }
+
+        .tab:active {
+            transform: scale(0.98);
+        }
+
+        .questions-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            padding: 16px;
+        }
+
+        .question-card {
+            padding: 12px 8px;
+            background: white;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 14px;
+            color: #333333;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border: 2px solid transparent;
+        }
+
+        .question-card:active {
+            transform: scale(0.95);
+            border-color: #6FA6F8;
+            background: rgba(111, 166, 248, 0.1);
+        }
+
+        .question-card.selected {
+            border-color: #6FA6F8;
+            background: rgba(111, 166, 248, 0.1);
+            color: #6FA6F8;
+        }
+
+        .tip-text {
+            padding: 16px;
+            color: #666666;
+            font-size: 16px;
+        }
+
+        .view-consultants-btn {
+            margin: 16px;
+            width: calc(100% - 32px);
+        }
+
+        .footer-text {
+            text-align: center;
+            padding: 16px;
+            color: #999999;
+            font-size: 14px;
+        }
+        .custom-input-container {
+            padding: 0 16px 16px 16px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .custom-input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #E0E0E0;
+            border-radius: 12px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .custom-input:focus {
+            border-color: #6FA6F8;
+        }
+
+        .btn-add {
+            padding: 0 20px;
+            background: #6FA6F8;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-add:active {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-app-bar glass">
+        <div class="title">咨询指导</div>
+    </div>
+
+    <div class="content">
+        <div class="tip-text">请选择您当前最关注的问题</div>
+
+        <div class="tabs">
+            <button class="tab active" id="singleTab" onclick="switchTab(true)">单项问题</button>
+            <button class="tab" id="multiTab" onclick="switchTab(false)">多项问题</button>
+        </div>
+
+        <div class="questions-grid" id="questionsGrid">
+            <!-- 问题卡片将动态生成 -->
+        </div>
+
+        <div class="custom-input-container">
+            <input type="text" class="custom-input" id="customInput" placeholder="请输入自定义问题" onkeypress="handleKeyPress(event)">
+            <button class="btn-add" onclick="addCustomQuestion()">添加</button>
+        </div>
+
+        <button class="btn btn-primary view-consultants-btn" onclick="viewConsultants()">
+            查看咨询师推荐
+        </button>
+
+        <div class="footer-text">更多儿童健康方案即将上线</div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        const singleQuestions = [
+            "抑郁症", "焦虑症", "心理创伤", "双相情感障碍", "强迫症", "PTSD创伤应激综合症",
+            "睡眠问题", "躯体化反应", "社交恐惧", "回避型人格", "自杀倾向", "自残行为问题",
+            "边缘型人格障碍(BPD)", "注意力缺陷多动障碍ADHD", "暴饮暴食", "微笑抑郁症",
+            "哀失与哀伤辅导", "成瘾问题", "偏执型人格障碍", "人格障碍", "妄想性障碍",
+            "自恋型人格特质", "表演型人格", "恋物癖", "冲动控制/破坏性行为", "产后抑郁",
+            "躁狂症", "斯德哥尔摩综合症", "性别认同", "自闭症", "进食障碍(厌食症)",
+            "惊恐", "异装症", "器质性精神障碍", "异食症", "更年期情绪问题",
+            "幽闭恐惧症", "怀孕/围产期/产后心理健康", "巨物恐惧症"
+        ];
+
+        let isSingleMode = true;
+        let selectedQuestions = new Set();
+        let customQuestions = [];
+
+        function switchTab(single) {
+            isSingleMode = single;
+            selectedQuestions.clear();
+            // 切换模式时清空自定义问题，或者保留？通常切换模式意味着重新选择
+            // 这里选择保留自定义问题列表，但清空选中状态
+            // customQuestions = []; 
+            
+            document.getElementById('singleTab').classList.toggle('active', single);
+            document.getElementById('multiTab').classList.toggle('active', !single);
+            
+            renderQuestions();
+        }
+
+        function renderQuestions() {
+            const grid = document.getElementById('questionsGrid');
+            const allQuestions = [...singleQuestions, ...customQuestions];
+            grid.innerHTML = allQuestions.map(q => `
+                <div class="question-card ${selectedQuestions.has(q) ? 'selected' : ''}" 
+                     onclick="toggleQuestion('${q}')">
+                    ${q}
+                </div>
+            `).join('');
+        }
+
+        function toggleQuestion(question) {
+            if (isSingleMode) {
+                selectedQuestions.clear();
+                selectedQuestions.add(question);
+            } else {
+                if (selectedQuestions.has(question)) {
+                    selectedQuestions.delete(question);
+                } else {
+                    selectedQuestions.add(question);
+                }
+            }
+            renderQuestions();
+            
+            if (selectedQuestions.size > 0) {
+                showToast(`已选择：${Array.from(selectedQuestions).join('、')}`);
+            }
+        }
+
+        function addCustomQuestion() {
+            const input = document.getElementById('customInput');
+            const val = input.value.trim();
+            if (!val) {
+                showToast('请输入问题内容');
+                return;
+            }
+            
+            if (singleQuestions.includes(val) || customQuestions.includes(val)) {
+                showToast('该问题已存在');
+                // 如果已存在，直接选中
+                toggleQuestion(val);
+                input.value = '';
+                return;
+            }
+
+            customQuestions.push(val);
+            // 添加后自动选中
+            toggleQuestion(val);
+            input.value = '';
+            
+            // 滚动到底部
+            setTimeout(() => {
+                const grid = document.getElementById('questionsGrid');
+                grid.scrollTop = grid.scrollHeight;
+            }, 100);
+        }
+
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') {
+                addCustomQuestion();
+            }
+        }
+
+        function viewConsultants() {
+            const questions = Array.from(selectedQuestions).join(',');
+            if (window.Android && Android.navigateToConsultantList) {
+                // 传递选中的问题（包括自定义问题）
+                Android.navigateToConsultantList(questions);
+            } else {
+                showToast('查看咨询师列表' + (questions ? ': ' + questions : ''));
+            }
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            renderQuestions();
+        });
+    </script>
+</body>
+</html>
+

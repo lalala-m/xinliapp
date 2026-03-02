@@ -1,0 +1,60 @@
+server:
+  port: 8088
+  servlet:
+    context-path: /seata-order
+
+spring:
+  application:
+    name: jslh-seata-order
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      database: 0
+      password:
+      timeout: 30s
+  datasource:
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/seata_order?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+      username: jslh
+      password: 123456
+  profiles:
+    active: dev
+  messages:
+    encoding: UTF-8
+    basename: i18n/messages,i18n/messages_common
+  cloud:
+    nacos:
+      discovery:
+        metadata:
+          management:
+            context-path: ${server.servlet.context-path}/actuator
+        server-addr: ${nacos_host:nacos-host}:${nacos_port:8848}
+        namespace: ${nacos_namespace:}
+      config:
+        server-addr: ${spring.cloud.nacos.discovery.server-addr}
+        namespace: ${nacos_namespace:}
+      username: ${nacos_username:nacos}
+      password: ${nacos_password:nacos}
+  config:
+    import:
+      - optional:nacos:common.yaml?group=JSLH_CLOUD_GROUP&namespace=${nacos_namespace:}&refreshEnabled=true
+
+mybatis-plus:
+  global-config:
+    banner: false
+
+seata:
+  tx-service-group: default_tx_group
+  config:
+    type: nacos
+    nacos:
+      server-addr: ${nacos_host:nacos-host}:${nacos_port:8848}
+      group: JSLH_CLOUD_GROUP
+      namespace: ${nacos_namespace:}
+      data-id: seata.properties
+      username: ${nacos_username:nacos}
+      password: ${nacos_password:nacos}
+  enable-auto-data-source-proxy: false
+

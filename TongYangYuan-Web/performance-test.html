@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>性能测试 - 童养园</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-card {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; }
+        h2 { color: #666; margin-top: 0; }
+        button {
+            background: #6FA6F8;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #4A8AE8; }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .success { color: green; }
+        .warning { color: orange; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>🚀 童养园性能测试工具</h1>
+
+    <div class="test-card">
+        <h2>1. 存储性能测试</h2>
+        <button onclick="testStorage()">测试存储读写速度</button>
+        <div id="storageResult" class="result"></div>
+    </div>
+
+    <div class="test-card">
+        <h2>2. DOM操作性能测试</h2>
+        <button onclick="testDOM()">测试DOM渲染速度</button>
+        <div id="domResult" class="result"></div>
+    </div>
+
+    <div class="test-card">
+        <h2>3. 数据量测试</h2>
+        <button onclick="checkDataSize()">检查当前数据大小</button>
+        <div id="dataSizeResult" class="result"></div>
+    </div>
+
+    <div class="test-card">
+        <h2>4. 清理工具</h2>
+        <button onclick="clearAllData()">清除所有数据</button>
+        <button onclick="resetTestData()">重置测试数据</button>
+        <div id="cleanResult" class="result"></div>
+    </div>
+
+    <div class="test-card">
+        <h2>5. 性能建议</h2>
+        <button onclick="getRecommendations()">获取优化建议</button>
+        <div id="recommendResult" class="result"></div>
+    </div>
+
+    <script>
+        // 测试存储性能
+        function testStorage() {
+            const result = document.getElementById('storageResult');
+            result.innerHTML = '测试中...';
+
+            const testData = { test: 'data', timestamp: Date.now() };
+            const iterations = 1000;
+
+            // 写入测试
+            console.time('写入测试');
+            const writeStart = performance.now();
+            for (let i = 0; i < iterations; i++) {
+                localStorage.setItem(`test_${i}`, JSON.stringify(testData));
+            }
+            const writeTime = performance.now() - writeStart;
+            console.timeEnd('写入测试');
+
+            // 读取测试
+            console.time('读取测试');
+            const readStart = performance.now();
+            for (let i = 0; i < iterations; i++) {
+                JSON.parse(localStorage.getItem(`test_${i}`));
+            }
+            const readTime = performance.now() - readStart;
+            console.timeEnd('读取测试');
+
+            // 清理测试数据
+            for (let i = 0; i < iterations; i++) {
+                localStorage.removeItem(`test_${i}`);
+            }
+
+            const writeSpeed = (iterations / writeTime * 1000).toFixed(0);
+            const readSpeed = (iterations / readTime * 1000).toFixed(0);
+
+            result.innerHTML = `
+                <div class="success">✓ 写入速度: ${writeSpeed} 次/秒 (${writeTime.toFixed(2)}ms)</div>
+                <div class="success">✓ 读取速度: ${readSpeed} 次/秒 (${readTime.toFixed(2)}ms)</div>
+                <div>评价: ${writeSpeed > 5000 ? '优秀' : writeSpeed > 2000 ? '良好' : '需要优化'}</div>
+            `;
+        }
+
+        // 测试DOM操作
+        function testDOM() {
+            const result = document.getElementById('domResult');
+            result.innerHTML = '测试中...';
+
+            const container = document.createElement('div');
+            document.body.appendChild(container);
+
+            // 测试innerHTML方式
+            console.time('innerHTML方式');
+            const htmlStart = performance.now();
+            let html = '';
+            for (let i = 0; i < 100; i++) {
+                html += `<div>Item ${i}</div>`;
+            }
+            container.innerHTML = html;
+            const htmlTime = performance.now() - htmlStart;
+            console.timeEnd('innerHTML方式');
+
+            // 测试DocumentFragment方式
+            console.time('Fragment方式');
+            const fragStart = performance.now();
+            const fragment = document.createDocumentFragment();
+            for (let i = 0; i < 100; i++) {
+                const div = document.createElement('div');
+                div.textContent = `Item ${i}`;
+                fragment.appendChild(div);
+            }
+            container.innerHTML = '';
+            container.appendChild(fragment);
+            const fragTime = performance.now() - fragStart;
+            console.timeEnd('Fragment方式');
+
+            document.body.removeChild(container);
+
+            const improvement = ((htmlTime - fragTime) / htmlTime * 100).toFixed(1);
+
+            result.innerHTML = `
+                <div>innerHTML方式: ${htmlTime.toFixed(2)}ms</div>
+                <div class="success">✓ Fragment方式: ${fragTime.toFixed(2)}ms</div>
+                <div class="success">性能提升: ${improvement}%</div>
+            `;
+        }
+
+        // 检查数据大小
+        function checkDataSize() {
+            const result = document.getElementById('dataSizeResult');
+
+            let total = 0;
+            let items = 0;
+            const details = {};
+
+            for (let key in localStorage) {
+                if (localStorage.hasOwnProperty(key)) {
+                    const size = localStorage[key].length;
+                    total += size;
+                    items++;
+                    if (key.startsWith('tyy_')) {
+                        details[key] = (size / 1024).toFixed(2) + ' KB';
+                    }
+                }
+            }
+
+            const totalKB = (total / 1024).toFixed(2);
+            const maxSize = 5120; // 5MB
+            const usage = (total / 1024 / maxSize * 100).toFixed(1);
+
+            let statusClass = 'success';
+            let statusText = '正常';
+            if (usage > 80) {
+                statusClass = 'error';
+                statusText = '警告：接近存储上限';
+            } else if (usage > 50) {
+                statusClass = 'warning';
+                statusText = '注意：存储使用较多';
+            }
+
+            result.innerHTML = `
+                <div class="${statusClass}">存储状态: ${statusText}</div>
+                <div>总大小: ${totalKB} KB / ${maxSize} KB (${usage}%)</div>
+                <div>项目数: ${items}</div>
+                <div style="margin-top: 10px;">详细信息:</div>
+                <div style="font-size: 12px;">${JSON.stringify(details, null, 2)}</div>
+            `;
+        }
+
+        // 清除所有数据
+        function clearAllData() {
+            if (confirm('确定要清除所有数据吗？此操作不可恢复！')) {
+                localStorage.clear();
+                document.getElementById('cleanResult').innerHTML =
+                    '<div class="success">✓ 所有数据已清除</div>';
+                setTimeout(() => {
+                    location.href = 'index.html';
+                }, 1500);
+            }
+        }
+
+        // 重置测试数据
+        function resetTestData() {
+            if (confirm('确定要重置测试数据吗？')) {
+                localStorage.removeItem('tyy_initialized');
+                localStorage.removeItem('tyy_appointments');
+                localStorage.removeItem('tyy_messages');
+                document.getElementById('cleanResult').innerHTML =
+                    '<div class="success">✓ 测试数据已重置</div>';
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            }
+        }
+
+        // 获取优化建议
+        function getRecommendations() {
+            const result = document.getElementById('recommendResult');
+
+            const recommendations = [];
+
+            // 检查浏览器
+            const ua = navigator.userAgent;
+            if (ua.indexOf('Chrome') === -1 && ua.indexOf('Edge') === -1) {
+                recommendations.push('⚠️ 建议使用Chrome或Edge浏览器以获得最佳性能');
+            }
+
+            // 检查存储
+            let total = 0;
+            for (let key in localStorage) {
+                if (localStorage.hasOwnProperty(key)) {
+                    total += localStorage[key].length;
+                }
+            }
+            if (total > 1024 * 1024) {
+                recommendations.push('⚠️ 存储数据较多，建议定期清理');
+            }
+
+            // 检查内存
+            if (performance.memory) {
+                const usedMB = (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(2);
+                if (usedMB > 50) {
+                    recommendations.push(`⚠️ 内存使用较高 (${usedMB}MB)，建议刷新页面`);
+                }
+            }
+
+            if (recommendations.length === 0) {
+                recommendations.push('✓ 当前性能良好，无需优化');
+            }
+
+            result.innerHTML = recommendations.map(r => `<div>${r}</div>`).join('');
+        }
+
+        // 页面加载时显示基本信息
+        window.onload = function() {
+            console.log('%c童养园性能测试工具', 'color: #6FA6F8; font-size: 20px; font-weight: bold;');
+            console.log('使用此工具可以测试和优化应用性能');
+            console.log('建议在遇到性能问题时运行这些测试');
+        };
+    </script>
+</body>
+</html>

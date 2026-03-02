@@ -1,0 +1,31 @@
+package com.tongyangyuan.mentalhealth.repository;
+
+import com.tongyangyuan.mentalhealth.entity.AdminLog;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Repository
+public interface AdminLogRepository extends JpaRepository<AdminLog, Long> {
+    /**
+     * 根据管理员用户ID查找日志
+     */
+    List<AdminLog> findByAdminUserId(Long adminUserId);
+    
+    /**
+     * 根据操作类型查找日志
+     */
+    List<AdminLog> findByAction(String action);
+    
+    /**
+     * 根据时间范围查找日志
+     */
+    List<AdminLog> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
+    
+    /**
+     * 根据管理员ID和时间范围查找日志
+     */
+    List<AdminLog> findByAdminUserIdAndCreatedAtBetween(Long adminUserId, LocalDateTime start, LocalDateTime end);
+}

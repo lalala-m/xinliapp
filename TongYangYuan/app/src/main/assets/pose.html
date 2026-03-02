@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>体态姿势矫正</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .preview-container {
+            width: 100%;
+            min-height: 200px;
+            background: #F5F5F5;
+            border-radius: 16px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .preview-image {
+            max-width: 100%;
+            max-height: 400px;
+            display: none;
+        }
+        
+        .placeholder {
+            color: #999;
+            text-align: center;
+        }
+        
+        .result-card {
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            display: none;
+        }
+
+        .pose-point {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #FF5252;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+        
+        .pose-line {
+            position: absolute;
+            background: #FF5252;
+            height: 2px;
+            transform-origin: left center;
+            pointer-events: none;
+        }
+
+        .server-status {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            padding: 6px 12px;
+            border-radius: 99px;
+            font-size: 12px;
+            background: #eee;
+            color: #666;
+            z-index: 200;
+        }
+        
+        .server-status.online {
+            background: #E8F5E9;
+            color: #4CAF50;
+        }
+        
+        .server-status.offline {
+            background: #FFEBEE;
+            color: #F44336;
+        }
+
+        .analysis-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        
+        .badge-good {
+            background: #E8F5E9;
+            color: #2E7D32;
+        }
+        
+        .badge-warn {
+            background: #FFF3E0;
+            color: #EF6C00;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-app-bar glass">
+        <div class="title">体态姿势矫正</div>
+    </div>
+
+    <div class="server-status offline" id="serverStatus">连接中...</div>
+
+    <div class="content" style="padding-top: 80px;">
+        <div class="preview-container" id="previewContainer">
+            <div class="placeholder" id="placeholder">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 8px;">
+                    <circle cx="12" cy="5" r="3"></circle>
+                    <line x1="12" y1="8" x2="12" y2="16"></line>
+                    <line x1="8" y1="11" x2="16" y2="11"></line>
+                    <line x1="12" y1="16" x2="9" y2="21"></line>
+                    <line x1="12" y1="16" x2="15" y2="21"></line>
+                </svg>
+                <div>拍摄全身或半身照片</div>
+            </div>
+            <img class="preview-image" id="previewImage">
+            <div id="overlayLayer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></div>
+        </div>
+
+        <div class="hero-actions">
+            <button class="btn btn-secondary" onclick="pickImage()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21 15 16 10 5 21"/>
+                </svg>
+                相册选择
+            </button>
+            <button class="btn btn-primary" onclick="captureImage()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                </svg>
+                拍照识别
+            </button>
+        </div>
+
+        <div id="resultsArea" style="margin-top: 24px;">
+            <!-- 识别结果列表 -->
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        let SERVER_URL = 'http://localhost:5000';
+        if (typeof window.Android !== 'undefined' && typeof Android.getBaseUrl === 'function') {
+            try {
+                const base = Android.getBaseUrl();
+                const url = new URL(base);
+                SERVER_URL = `${url.protocol}//${url.hostname}:5000`;
+            } catch (e) {
+                SERVER_URL = 'http://10.0.2.2:5000';
+            }
+        }
+
+        const previewImage = document.getElementById('previewImage');
+        const placeholder = document.getElementById('placeholder');
+        const overlayLayer = document.getElementById('overlayLayer');
+        const resultsArea = document.getElementById('resultsArea');
+        const serverStatus = document.getElementById('serverStatus');
+        
+        let currentBlob = null;
+
+        // 骨架连接定义
+        const SKELETON = [
+            [5, 6], [5, 7], [7, 9], [6, 8], [8, 10], // 上身
+            [5, 11], [6, 12], [11, 12], // 躯干
+            [11, 13], [13, 15], [12, 14], [14, 16] // 下身
+        ];
+
+        async function checkServer() {
+            try {
+                const response = await fetch(`${SERVER_URL}/health`, { 
+                    method: 'GET',
+                    mode: 'cors',
+                    cache: 'no-cache',
+                    headers: { 'Content-Type': 'application/json' },
+                    signal: AbortSignal.timeout(3000)
+                });
+                if (response.ok) {
+                    serverStatus.textContent = 'AI 服务在线';
+                    serverStatus.className = 'server-status online';
+                } else {
+                    throw new Error('Server error');
+                }
+            } catch (e) {
+                serverStatus.textContent = 'AI 服务离线';
+                serverStatus.className = 'server-status offline';
+                console.error('Server check failed:', e);
+            }
+        }
+        
+        checkServer();
+        setInterval(checkServer, 10000);
+
+        function pickImage() {
+            if (window.Android && window.Android.openImagePicker) {
+                window.Android.openImagePicker();
+            }
+        }
+
+        function captureImage() {
+            if (window.Android && window.Android.captureImage) {
+                window.Android.captureImage();
+            }
+        }
+
+        window.onMediaSelected = function(type, content, uri) {
+            if (type === 'image') {
+                if (uri.startsWith('data:image')) {
+                    previewImage.src = uri;
+                    showPreview();
+                    
+                    fetch(uri)
+                        .then(res => res.blob())
+                        .then(blob => {
+                            currentBlob = blob;
+                            uploadAndPredict(blob);
+                        });
+                } 
+            }
+        };
+
+        function showPreview() {
+            previewImage.style.display = 'block';
+            placeholder.style.display = 'none';
+            overlayLayer.innerHTML = '';
+            resultsArea.innerHTML = '<div class="text-center" style="color:#999;">正在分析体态...</div>';
+        }
+
+        async function uploadAndPredict(imageBlob) {
+            const formData = new FormData();
+            formData.append('image', imageBlob, 'image.jpg');
+
+            try {
+                const response = await fetch(`${SERVER_URL}/predict_pose`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Prediction failed');
+                }
+
+                const data = await response.json();
+                if (data.success) {
+                    renderResults(data.poses);
+                } else {
+                    resultsArea.innerHTML = '<div class="text-center" style="color:red;">识别失败: ' + data.error + '</div>';
+                }
+            } catch (e) {
+                resultsArea.innerHTML = '<div class="text-center" style="color:red;">网络错误，请确保电脑上的 YOLO 服务已启动</div>';
+                console.error(e);
+            }
+        }
+
+        function renderResults(poses) {
+            resultsArea.innerHTML = '';
+            overlayLayer.innerHTML = '';
+            
+            if (poses.length === 0) {
+                resultsArea.innerHTML = '<div class="text-center">未检测到人体</div>';
+                return;
+            }
+
+            const naturalWidth = previewImage.naturalWidth;
+            const naturalHeight = previewImage.naturalHeight;
+            const displayWidth = previewImage.width;
+            const displayHeight = previewImage.height;
+            
+            const scaleX = displayWidth / naturalWidth;
+            const scaleY = displayHeight / naturalHeight;
+            
+            const imgRect = previewImage.getBoundingClientRect();
+            const containerRect = document.getElementById('previewContainer').getBoundingClientRect();
+            const offsetX = imgRect.left - containerRect.left;
+            const offsetY = imgRect.top - containerRect.top;
+
+            poses.forEach((pose, index) => {
+                const kpts = pose.keypoints; // Array of [x, y]
+                const confs = pose.keypoints_conf;
+
+                // 绘制点
+                kpts.forEach((pt, i) => {
+                    if (confs && confs[i] < 0.5) return;
+                    if (pt[0] === 0 && pt[1] === 0) return;
+
+                    const point = document.createElement('div');
+                    point.className = 'pose-point';
+                    point.style.left = (pt[0] * scaleX + offsetX) + 'px';
+                    point.style.top = (pt[1] * scaleY + offsetY) + 'px';
+                    overlayLayer.appendChild(point);
+                });
+
+                // 绘制连线
+                SKELETON.forEach(pair => {
+                    const idx1 = pair[0];
+                    const idx2 = pair[1];
+                    
+                    if (confs && (confs[idx1] < 0.5 || confs[idx2] < 0.5)) return;
+                    
+                    const p1 = kpts[idx1];
+                    const p2 = kpts[idx2];
+                    
+                    if ((p1[0]===0 && p1[1]===0) || (p2[0]===0 && p2[1]===0)) return;
+
+                    const x1 = p1[0] * scaleX + offsetX;
+                    const y1 = p1[1] * scaleY + offsetY;
+                    const x2 = p2[0] * scaleX + offsetX;
+                    const y2 = p2[1] * scaleY + offsetY;
+
+                    const length = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
+                    const angle = Math.atan2(y2-y1, x2-x1) * 180 / Math.PI;
+
+                    const line = document.createElement('div');
+                    line.className = 'pose-line';
+                    line.style.width = length + 'px';
+                    line.style.left = x1 + 'px';
+                    line.style.top = y1 + 'px';
+                    line.style.transform = `rotate(${angle}deg)`;
+                    overlayLayer.appendChild(line);
+                });
+
+                // 体态分析逻辑
+                let analysisHtml = '';
+                
+                // 1. 高低肩检测 (Keypoints 5 and 6)
+                if (kpts[5] && kpts[6] && confs[5] > 0.5 && confs[6] > 0.5) {
+                    const shoulderDiff = Math.abs(kpts[5][1] - kpts[6][1]);
+                    // 阈值需要根据图片大小调整，这里简单用相对值
+                    const shoulderDist = Math.abs(kpts[5][0] - kpts[6][0]);
+                    
+                    if (shoulderDiff > shoulderDist * 0.15) {
+                        analysisHtml += `<div style="margin-bottom:4px;"><span class="analysis-badge badge-warn">高低肩风险</span> 双肩水平差异较大</div>`;
+                    } else {
+                        analysisHtml += `<div style="margin-bottom:4px;"><span class="analysis-badge badge-good">肩膀水平</span> 双肩基本平衡</div>`;
+                    }
+                }
+
+                // 2. 头颈前倾检测 (简单判断耳朵和肩膀的X轴相对位置，不太准确，仅作演示)
+                // 更好的判断是侧面照，正面照很难判断头前倾
+                // 这里我们检测头部是否歪斜 (Eyes angle)
+                if (kpts[1] && kpts[2] && confs[1] > 0.5 && confs[2] > 0.5) {
+                    const eyeDiff = Math.abs(kpts[1][1] - kpts[2][1]);
+                    const eyeDist = Math.abs(kpts[1][0] - kpts[2][0]);
+                     if (eyeDiff > eyeDist * 0.2) {
+                        analysisHtml += `<div style="margin-bottom:4px;"><span class="analysis-badge badge-warn">头部歪斜</span> 头部可能未保持正直</div>`;
+                    } else {
+                        analysisHtml += `<div style="margin-bottom:4px;"><span class="analysis-badge badge-good">头部正直</span> 头部姿势良好</div>`;
+                    }
+                }
+
+                const card = document.createElement('div');
+                card.className = 'result-card';
+                card.style.display = 'block';
+                card.innerHTML = `
+                    <div style="font-weight:bold; margin-bottom:8px;">体态分析 (人物 ${index + 1})</div>
+                    ${analysisHtml || '<div style="color:#999;">未检测到足够关键点进行分析，请确保拍摄全身正面照。</div>'}
+                `;
+                resultsArea.appendChild(card);
+            });
+        }
+    </script>
+</body>
+</html>

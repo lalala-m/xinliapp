@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>膳食营养分析</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .preview-container {
+            width: 100%;
+            min-height: 200px;
+            background: #F5F5F5;
+            border-radius: 16px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .preview-image {
+            max-width: 100%;
+            max-height: 400px;
+            display: none;
+        }
+        
+        .placeholder {
+            color: #999;
+            text-align: center;
+        }
+        
+        .result-card {
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            display: none;
+        }
+        
+        .detection-box {
+            position: absolute;
+            border: 2px solid #4CAF50;
+            background: rgba(76, 175, 80, 0.2);
+            pointer-events: none;
+        }
+        
+        .detection-label {
+            position: absolute;
+            background: #4CAF50;
+            color: white;
+            padding: 2px 6px;
+            font-size: 12px;
+            border-radius: 4px;
+            top: -20px;
+            left: -2px;
+            white-space: nowrap;
+        }
+
+        .server-status {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            padding: 6px 12px;
+            border-radius: 99px;
+            font-size: 12px;
+            background: #eee;
+            color: #666;
+            z-index: 200;
+        }
+        
+        .server-status.online {
+            background: #E8F5E9;
+            color: #4CAF50;
+        }
+        
+        .server-status.offline {
+            background: #FFEBEE;
+            color: #F44336;
+        }
+
+        .nutrition-tag {
+            display: inline-block;
+            background: #E8F5E9;
+            color: #2E7D32;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-app-bar glass">
+        <div class="title">膳食营养分析</div>
+    </div>
+
+    <div class="server-status offline" id="serverStatus">连接中...</div>
+
+    <div class="content" style="padding-top: 80px;">
+        <div class="preview-container" id="previewContainer">
+            <div class="placeholder" id="placeholder">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 8px;">
+                    <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+                    <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+                    <line x1="6" y1="1" x2="6" y2="4"></line>
+                    <line x1="10" y1="1" x2="10" y2="4"></line>
+                    <line x1="14" y1="1" x2="14" y2="4"></line>
+                </svg>
+                <div>拍摄或上传食物照片</div>
+            </div>
+            <img class="preview-image" id="previewImage">
+            <div id="overlayLayer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></div>
+        </div>
+
+        <div class="hero-actions">
+            <button class="btn btn-secondary" onclick="pickImage()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21 15 16 10 5 21"/>
+                </svg>
+                相册选择
+            </button>
+            <button class="btn btn-primary" onclick="captureImage()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                </svg>
+                拍照识别
+            </button>
+        </div>
+
+        <div id="resultsArea" style="margin-top: 24px;">
+            <!-- 识别结果列表 -->
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        let SERVER_URL = 'http://localhost:5000';
+        if (typeof window.Android !== 'undefined' && typeof Android.getBaseUrl === 'function') {
+            try {
+                const base = Android.getBaseUrl();
+                const url = new URL(base);
+                SERVER_URL = `${url.protocol}//${url.hostname}:5000`;
+            } catch (e) {
+                SERVER_URL = 'http://10.0.2.2:5000';
+            }
+        }
+
+        const previewImage = document.getElementById('previewImage');
+        const placeholder = document.getElementById('placeholder');
+        const overlayLayer = document.getElementById('overlayLayer');
+        const resultsArea = document.getElementById('resultsArea');
+        const serverStatus = document.getElementById('serverStatus');
+        
+        let currentBlob = null;
+
+        // 食物汉化与营养建议映射
+        const foodMap = {
+            'apple': { name: '苹果', tip: '富含维生素C和膳食纤维' },
+            'banana': { name: '香蕉', tip: '富含钾元素，补充能量' },
+            'sandwich': { name: '三明治', tip: '注意搭配蔬菜，均衡营养' },
+            'orange': { name: '橙子', tip: '补充维C，增强免疫力' },
+            'broccoli': { name: '西兰花', tip: '高纤维蔬菜，健康首选' },
+            'carrot': { name: '胡萝卜', tip: '富含胡萝卜素，保护视力' },
+            'hot dog': { name: '热狗', tip: '加工肉类，建议适量食用' },
+            'pizza': { name: '披萨', tip: '热量较高，注意控制分量' },
+            'donut': { name: '甜甜圈', tip: '高糖高油，建议少吃' },
+            'cake': { name: '蛋糕', tip: '糖分较高，偶尔甜蜜一下' },
+            'bowl': { name: '餐碗', tip: '记得按时吃饭哦' },
+            'cup': { name: '杯子', tip: '多喝水有益健康' },
+            'bottle': { name: '瓶子', tip: '注意补充水分' }
+        };
+
+        // 检查服务器状态
+        async function checkServer() {
+            try {
+                const response = await fetch(`${SERVER_URL}/health`, { 
+                    method: 'GET',
+                    mode: 'cors',
+                    cache: 'no-cache',
+                    headers: { 'Content-Type': 'application/json' },
+                    signal: AbortSignal.timeout(3000)
+                });
+                if (response.ok) {
+                    serverStatus.textContent = 'AI 服务在线';
+                    serverStatus.className = 'server-status online';
+                } else {
+                    throw new Error('Server error');
+                }
+            } catch (e) {
+                serverStatus.textContent = 'AI 服务离线';
+                serverStatus.className = 'server-status offline';
+                console.error('Server check failed:', e);
+            }
+        }
+        
+        checkServer();
+        setInterval(checkServer, 10000);
+
+        function pickImage() {
+            if (window.Android && window.Android.openImagePicker) {
+                window.Android.openImagePicker();
+            }
+        }
+
+        function captureImage() {
+            if (window.Android && window.Android.captureImage) {
+                window.Android.captureImage();
+            }
+        }
+
+        // 接收图片回调
+        window.onMediaSelected = function(type, content, uri) {
+            if (type === 'image') {
+                if (uri.startsWith('data:image')) {
+                    previewImage.src = uri;
+                    showPreview();
+                    
+                    fetch(uri)
+                        .then(res => res.blob())
+                        .then(blob => {
+                            currentBlob = blob;
+                            uploadAndPredict(blob);
+                        });
+                } 
+            }
+        };
+
+        function showPreview() {
+            previewImage.style.display = 'block';
+            placeholder.style.display = 'none';
+            overlayLayer.innerHTML = '';
+            resultsArea.innerHTML = '<div class="text-center" style="color:#999;">正在分析营养成分...</div>';
+        }
+
+        async function uploadAndPredict(imageBlob) {
+            const formData = new FormData();
+            formData.append('image', imageBlob, 'image.jpg');
+
+            try {
+                const response = await fetch(`${SERVER_URL}/predict`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Prediction failed');
+                }
+
+                const data = await response.json();
+                if (data.success) {
+                    renderResults(data.detections);
+                } else {
+                    resultsArea.innerHTML = '<div class="text-center" style="color:red;">识别失败: ' + data.error + '</div>';
+                }
+            } catch (e) {
+                resultsArea.innerHTML = '<div class="text-center" style="color:red;">网络错误，请确保电脑上的 YOLO 服务已启动</div>';
+                console.error(e);
+            }
+        }
+
+        function renderResults(detections) {
+            resultsArea.innerHTML = '';
+            overlayLayer.innerHTML = '';
+            
+            if (detections.length === 0) {
+                resultsArea.innerHTML = '<div class="text-center">未检测到食物或餐具</div>';
+                return;
+            }
+
+            const naturalWidth = previewImage.naturalWidth;
+            const naturalHeight = previewImage.naturalHeight;
+            const displayWidth = previewImage.width;
+            const displayHeight = previewImage.height;
+            
+            const scaleX = displayWidth / naturalWidth;
+            const scaleY = displayHeight / naturalHeight;
+            
+            detections.forEach(det => {
+                // 过滤低置信度
+                if (det.confidence < 0.4) return;
+
+                const info = foodMap[det.label] || { name: det.label, tip: '暂无营养建议' };
+
+                // 绘制框
+                const [x1, y1, x2, y2] = det.bbox;
+                const box = document.createElement('div');
+                box.className = 'detection-box';
+                
+                const imgRect = previewImage.getBoundingClientRect();
+                const containerRect = document.getElementById('previewContainer').getBoundingClientRect();
+                
+                const offsetX = imgRect.left - containerRect.left;
+                const offsetY = imgRect.top - containerRect.top;
+                
+                box.style.left = (x1 * scaleX + offsetX) + 'px';
+                box.style.top = (y1 * scaleY + offsetY) + 'px';
+                box.style.width = ((x2 - x1) * scaleX) + 'px';
+                box.style.height = ((y2 - y1) * scaleY) + 'px';
+                
+                // 标签
+                const label = document.createElement('div');
+                label.className = 'detection-label';
+                label.textContent = `${info.name}`;
+                box.appendChild(label);
+                
+                overlayLayer.appendChild(box);
+                
+                // 添加列表项
+                const card = document.createElement('div');
+                card.className = 'result-card';
+                card.style.display = 'block';
+                card.innerHTML = `
+                    <div style="display:flex;justify-content:space-between;align-items:start;">
+                        <div>
+                            <div style="font-weight:bold; font-size:16px;">${info.name}</div>
+                            <div class="nutrition-tag">${info.tip}</div>
+                        </div>
+                        <span style="color:#4CAF50;font-weight:bold;font-size:12px;">置信度 ${(det.confidence * 100).toFixed(0)}%</span>
+                    </div>
+                `;
+                resultsArea.appendChild(card);
+            });
+            
+            if (resultsArea.children.length === 0) {
+                resultsArea.innerHTML = '<div class="text-center">未检测到已知食物</div>';
+            }
+        }
+    </script>
+</body>
+</html>

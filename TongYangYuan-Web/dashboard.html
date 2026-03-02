@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工作台 - 童养园咨询师端</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/anti-flicker.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- 顶部导航栏 -->
+        <header class="dashboard-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <div class="header-logo">童</div>
+                    <h1 class="header-title">童养园咨询师端</h1>
+                </div>
+                <div class="header-right">
+                    <div class="consultant-info" id="consultantInfo">
+                        <div class="avatar" id="consultantAvatar">张</div>
+                        <div>
+                            <div class="consultant-name" id="consultantName">张医生</div>
+                            <div class="consultant-title" id="consultantTitle">儿童心理咨询师</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary" onclick="Auth.logout()">退出登录</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主内容区 -->
+        <main class="dashboard-main">
+            <!-- 统计卡片 -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon primary">📅</div>
+                    </div>
+                    <div class="stat-value" id="todayCount">0</div>
+                    <div class="stat-label">今日预约</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon warning">⏰</div>
+                    </div>
+                    <div class="stat-value" id="pendingCount">0</div>
+                    <div class="stat-label">待处理</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon success">✓</div>
+                    </div>
+                    <div class="stat-value" id="completedCount">0</div>
+                    <div class="stat-label">已完成</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon primary">👥</div>
+                    </div>
+                    <div class="stat-value" id="totalServed">1200</div>
+                    <div class="stat-label">累计服务</div>
+                </div>
+            </div>
+
+            <!-- 功能导航区 (新增) -->
+            <div class="quick-access-section" style="margin-top: 20px; background: white; padding: 20px; border-radius: 12px;">
+                <h3 style="margin-top: 0; margin-bottom: 15px;">功能入口</h3>
+                <div style="display: flex; gap: 20px;">
+                    <div onclick="location.href='learning.html'" style="flex: 1; background: #e3f2fd; padding: 20px; border-radius: 8px; cursor: pointer; display: flex; align-items: center;">
+                        <span style="font-size: 24px; margin-right: 10px;">📚</span>
+                        <div>
+                            <div style="font-weight: bold; color: #1565c0;">在线学习</div>
+                            <div style="font-size: 12px; color: #5e92f3;">海量育儿心理课程</div>
+                        </div>
+                    </div>
+                    <div onclick="location.href='assessment.html'" style="flex: 1; background: #f3e5f5; padding: 20px; border-radius: 8px; cursor: pointer; display: flex; align-items: center;">
+                        <span style="font-size: 24px; margin-right: 10px;">📝</span>
+                        <div>
+                            <div style="font-weight: bold; color: #7b1fa2;">心理测评</div>
+                            <div style="font-size: 12px; color: #ab47bc;">专业心理状态评估</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 预约列表 -->
+            <div class="appointments-section">
+                <div class="section-header">
+                    <h2 class="section-title">预约管理</h2>
+                    <div class="section-actions">
+                        <button class="btn btn-secondary" onclick="Dashboard.refreshData()">刷新</button>
+                        <button class="btn btn-primary" onclick="Dashboard.addMockAppointment()">添加测试预约</button>
+                    </div>
+                </div>
+
+                <!-- 标签切换 -->
+                <div class="tab-buttons">
+                    <button class="tab-btn active" data-tab="today" onclick="Dashboard.switchTab('today')">
+                        今日预约
+                    </button>
+                    <button class="tab-btn" data-tab="pending" onclick="Dashboard.switchTab('pending')">
+                        待处理
+                    </button>
+                    <button class="tab-btn" data-tab="completed" onclick="Dashboard.switchTab('completed')">
+                        已完成
+                    </button>
+                    <button class="tab-btn" data-tab="all" onclick="Dashboard.switchTab('all')">
+                        全部
+                    </button>
+                </div>
+
+                <!-- 预约列表 -->
+                <div class="appointment-list" id="appointmentList">
+                    <!-- 动态加载 -->
+                </div>
+            </div>
+
+            <!-- 咨询记录 -->
+            <div class="consultation-records-section">
+                <div class="section-header">
+                    <h2 class="section-title">咨询记录</h2>
+                    <div class="section-actions">
+                        <button class="btn btn-secondary" onclick="Dashboard.refreshRecords()">刷新</button>
+                    </div>
+                </div>
+                <div class="consultation-record-list" id="consultationRecordList">
+                    <!-- 动态加载 -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/mock-data.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

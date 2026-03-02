@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>预约管理 - 童养园管理后台</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+    <div class="admin-container">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h2>童养园管理后台</h2>
+            </div>
+            <nav class="nav-menu">
+                <a href="index.html" class="nav-item">
+                    <span class="icon">📊</span>
+                    <span>数据概览</span>
+                </a>
+                <a href="users.html" class="nav-item">
+                    <span class="icon">👥</span>
+                    <span>用户管理</span>
+                </a>
+                <a href="consultants.html" class="nav-item">
+                    <span class="icon">👨‍⚕️</span>
+                    <span>咨询师管理</span>
+                </a>
+                <a href="learning.html" class="nav-item">
+                    <span class="icon">📚</span>
+                    <span>学习资源</span>
+                </a>
+                <a href="appointments.html" class="nav-item active">
+                    <span class="icon">📅</span>
+                    <span>预约管理</span>
+                </a>
+                <a href="statistics.html" class="nav-item">
+                    <span class="icon">📈</span>
+                    <span>数据统计</span>
+                </a>
+                <a href="#" class="nav-item" id="logoutBtn">
+                    <span class="icon">🚪</span>
+                    <span>退出登录</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 顶部栏 -->
+            <header class="top-bar">
+                <div class="breadcrumb">
+                    <span>首页</span>
+                    <span class="separator">/</span>
+                    <span>预约管理</span>
+                </div>
+                <div class="user-info">
+                    <span id="adminName">管理员</span>
+                    <span class="badge">ADMIN</span>
+                </div>
+            </header>
+
+            <!-- 搜索和筛选 -->
+            <div class="toolbar">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="搜索预约（用户、咨询师）">
+                    <button onclick="searchAppointments()">🔍 搜索</button>
+                </div>
+                <div class="filter-box">
+                    <select id="statusFilter" onchange="filterAppointments()">
+                        <option value="">全部状态</option>
+                        <option value="PENDING">待确认</option>
+                        <option value="CONFIRMED">已确认</option>
+                        <option value="COMPLETED">已完成</option>
+                        <option value="CANCELLED">已取消</option>
+                    </select>
+                    <input type="date" id="dateFilter" onchange="filterAppointments()">
+                    <button onclick="refreshAppointments()">🔄 刷新</button>
+                </div>
+            </div>
+
+            <!-- 预约统计 -->
+            <div class="stats-row">
+                <div class="stat-card">
+                    <h4>今日预约</h4>
+                    <p class="stat-number" id="todayCount">0</p>
+                </div>
+                <div class="stat-card">
+                    <h4>待确认</h4>
+                    <p class="stat-number" id="pendingCount">0</p>
+                </div>
+                <div class="stat-card">
+                    <h4>已完成</h4>
+                    <p class="stat-number" id="completedCount">0</p>
+                </div>
+                <div class="stat-card">
+                    <h4>已取消</h4>
+                    <p class="stat-number" id="cancelledCount">0</p>
+                </div>
+            </div>
+
+            <!-- 预约列表 -->
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>预约ID</th>
+                            <th>用户</th>
+                            <th>咨询师</th>
+                            <th>预约时间</th>
+                            <th>咨询类型</th>
+                            <th>状态</th>
+                            <th>创建时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="appointmentTableBody">
+                        <tr>
+                            <td colspan="8" class="loading">加载中...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 分页 -->
+            <div class="pagination" id="pagination">
+                <button onclick="prevPage()" id="prevBtn">上一页</button>
+                <span id="pageInfo">第 1 页 / 共 1 页</span>
+                <button onclick="nextPage()" id="nextBtn">下一页</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- 预约详情模态框 -->
+    <div id="appointmentModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>预约详情</h2>
+            <div id="appointmentDetails"></div>
+            <div class="modal-actions">
+                <button class="btn-success" onclick="confirmAppointment()">确认</button>
+                <button class="btn-danger" onclick="cancelAppointment()">取消</button>
+                <button class="btn-secondary" onclick="closeModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/config.js?v=2.1"></script>
+    <script src="js/admin-common.js?v=2.1"></script>
+    <script src="js/admin-appointments.js?v=1.1"></script>
+</body>
+</html>

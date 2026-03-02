@@ -1,0 +1,39 @@
+server:
+  port: 8091
+  servlet:
+    context-path: /xxl-job
+
+# xxl-job配置
+xxl:
+  job:
+    admin:
+      # 调度中心部署地址，如调度中心集群部署存在多个地址则用逗号分隔
+      addresses: http://127.0.0.1:8080/xxl-job-admin
+    executor:
+      # 执行器AppName
+      appname: jslh-xxl-job
+      logretentiondays: 30
+
+spring:
+  application:
+    name: jslh-xxl-job-server
+  #环境 dev|test|prod
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      discovery:
+        metadata:
+          management:
+            context-path: ${server.servlet.context-path}/actuator
+        server-addr: ${nacos_host:nacos-host}:${nacos_port:8848}
+        namespace: ${nacos_namespace:}
+      config:
+        server-addr: ${spring.cloud.nacos.discovery.server-addr}
+        namespace: ${nacos_namespace:}
+      username: ${nacos_username:nacos}
+      password: ${nacos_password:nacos}
+  config:
+    import:
+      - optional:nacos:datasource.yaml?group=JSLH_CLOUD_GROUP&namespace=${nacos_namespace:}&refreshEnabled=true
+      - optional:nacos:common.yaml?group=JSLH_CLOUD_GROUP&namespace=${nacos_namespace:}&refreshEnabled=true

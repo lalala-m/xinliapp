@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>com.jslh</groupId>
+		<artifactId>jslh-cloud-tenant</artifactId>
+		<version>4.7.0</version>
+	</parent>
+
+	<groupId>com.jslh</groupId>
+	<artifactId>jslh-commons</artifactId>
+	<packaging>pom</packaging>
+
+	<modules>
+	    <module>jslh-commons-dependencies</module>
+		<module>jslh-commons-tools</module>
+		<module>jslh-commons-swagger</module>
+		<module>jslh-commons-lock</module>
+		<module>jslh-commons-xxl-job</module>
+		<module>jslh-commons-mybatis</module>
+		<module>jslh-commons-security</module>
+		<module>jslh-commons-tenant</module>
+		<module>jslh-commons-log</module>
+		<module>jslh-commons-jimureport</module>
+		<module>jslh-commons-dynamic-datasource</module>
+	</modules>
+
+</project>

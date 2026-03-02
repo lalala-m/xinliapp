@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>预约咨询</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .date-selector {
+            padding: 16px;
+            background: white;
+            border-radius: 12px;
+            margin: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .date-selector-icon {
+            width: 32px;
+            height: 32px;
+            color: #6FA6F8;
+            flex-shrink: 0;
+        }
+
+        .date-selector:active {
+            transform: scale(0.98);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        }
+
+        .date-label {
+            font-size: 14px;
+            color: #666666;
+            margin-bottom: 8px;
+        }
+
+        .date-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333333;
+        }
+
+        .time-slots-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            padding: 16px;
+        }
+
+        .time-slot {
+            padding: 16px;
+            background: white;
+            border: 2px solid #E0E0E0;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 16px;
+            color: #333333;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .time-slot-icon {
+            width: 24px;
+            height: 24px;
+            color: #6FA6F8;
+        }
+
+        .time-slot:active {
+            transform: scale(0.98);
+        }
+
+        .time-slot.selected {
+            border-color: #6FA6F8;
+            background: rgba(111, 166, 248, 0.1);
+            color: #6FA6F8;
+            font-weight: 600;
+        }
+
+        .description-input {
+            min-height: 120px;
+            padding: 16px;
+            border: 2px solid #E0E0E0;
+            border-radius: 12px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+        }
+
+        .description-input:focus {
+            outline: none;
+            border-color: #6FA6F8;
+            box-shadow: 0 0 0 3px rgba(111, 166, 248, 0.1);
+        }
+
+        .submit-btn {
+            width: calc(100% - 32px);
+            margin: 24px 16px;
+        }
+
+        .child-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .child-card {
+            padding: 16px;
+            background: white;
+            border-radius: 16px;
+            border: 2px solid transparent;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .child-card-icon {
+            width: 32px;
+            height: 32px;
+            color: #6FA6F8;
+            flex-shrink: 0;
+        }
+
+        .child-card.selected {
+            border-color: #6FA6F8;
+            background: rgba(111, 166, 248, 0.08);
+        }
+
+        .child-card .child-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .child-card .child-meta {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .child-empty {
+            padding: 16px;
+            border-radius: 16px;
+            background: rgba(111, 166, 248, 0.08);
+            color: var(--text-secondary);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .child-empty button {
+            align-self: flex-start;
+        }
+
+        .domain-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .domain-tag {
+            padding: 8px 16px;
+            background: #F0F0F0;
+            border: 2px solid transparent;
+            border-radius: 20px;
+            font-size: 14px;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .domain-tag.selected {
+            background: rgba(111, 166, 248, 0.1);
+            border-color: #6FA6F8;
+            color: #6FA6F8;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-app-bar glass">
+        <div class="title">预约咨询 - 童康源</div>
+    </div>
+
+    <div class="content">
+        <div class="date-selector" onclick="selectDate()">
+            <img src="icons/calendar.svg" alt="日期" class="date-selector-icon">
+            <div>
+                <div class="date-label">选择日期</div>
+                <div class="date-value" id="selectedDate">请选择日期</div>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label class="input-label">选择时间段</label>
+            <div class="time-slots-grid" id="timeSlots">
+                <!-- 时间段将动态生成 -->
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label class="input-label">为哪个孩子申请咨询</label>
+            <div class="child-selector" id="childList"></div>
+            <div class="child-empty" id="childEmpty" style="display: none;">
+                <div>暂未发现孩子档案，请先完善孩子信息。</div>
+                <button class="btn btn-secondary" onclick="openChildInfo()">去完善</button>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label class="input-label">选择咨询领域 (必选)</label>
+            <div class="domain-selector" id="domainList">
+                <!-- 领域标签将动态生成 -->
+            </div>
+            <div class="domain-empty" id="domainEmpty" style="display: none; padding: 12px; color: #999; font-size: 14px;">
+                该咨询师暂未设置特定擅长领域，请直接填写描述。
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label class="input-label">问题描述</label>
+            <textarea class="description-input" id="description" placeholder="请描述孩子的具体情况..."></textarea>
+        </div>
+
+        <button class="btn btn-primary submit-btn" onclick="submitAppointment()">
+            提交预约
+        </button>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        const timeSlots = ["09:00-10:00", "10:30-11:30", "14:00-15:00", "15:30-16:30"];
+        let selectedDate = '';
+        let selectedSlot = '';
+        let childProfiles = [];
+        let selectedChild = null;
+        let consultant = null;
+        let selectedDomain = '';
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date();
+            const dateStr = today.toISOString().split('T')[0];
+            setSelectedDate(dateStr);
+            initTimeSlots();
+            loadChildren();
+            loadConsultantInfo();
+        });
+
+        function loadConsultantInfo() {
+            // 从URL获取咨询师姓名
+            const urlParams = new URLSearchParams(window.location.search);
+            const consultantName = urlParams.get('consultant_name');
+            
+            if (consultantName && window.Android && Android.getConsultantDetail) {
+                try {
+                    const json = Android.getConsultantDetail(consultantName);
+                    consultant = JSON.parse(json);
+                    renderDomainSelector();
+                } catch (e) {
+                    console.warn('Failed to load consultant info', e);
+                    // Fallback if load failed
+                    document.getElementById('domainEmpty').style.display = 'block';
+                }
+            } else {
+                 // 尝试直接从Android Intent Extra (如果WebViewActivity直接注入了)
+                 // 但目前我们没有直接注入对象，只能通过JS接口获取
+                 // 如果获取失败，显示空白或通用领域
+                 document.getElementById('domainEmpty').style.display = 'block';
+            }
+        }
+
+        function renderDomainSelector() {
+            const list = document.getElementById('domainList');
+            const empty = document.getElementById('domainEmpty');
+            
+            if (!consultant || !consultant.specialty) {
+                list.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+
+            empty.style.display = 'none';
+            // 解析specialty，假设是用逗号、顿号等分隔
+            const specialties = consultant.specialty.split(/[,，、]/).map(s => s.trim()).filter(s => s.length > 0);
+            
+            if (specialties.length === 0) {
+                empty.style.display = 'block';
+                return;
+            }
+
+            // 自动修正 selectedDomain: 如果当前选中的领域不在新列表中，重置
+            if (selectedDomain && !specialties.includes(selectedDomain)) {
+                selectedDomain = '';
+            }
+
+            list.innerHTML = specialties.map(tag => `
+                <div class="domain-tag ${selectedDomain === tag ? 'selected' : ''}" onclick="selectDomain('${tag}')">
+                    ${tag}
+                </div>
+            `).join('');
+        }
+
+        function selectDomain(tag) {
+            selectedDomain = tag;
+            // 重新渲染以更新选中状态
+            renderDomainSelector();
+        }
+
+        function initTimeSlots() {
+            const grid = document.getElementById('timeSlots');
+            grid.innerHTML = timeSlots.map(slot => `
+                <div class="time-slot" onclick="selectTimeSlot('${slot}', this)">
+                    <img src="icons/time-slot.svg" alt="时间段" class="time-slot-icon">
+                    ${slot}
+                </div>
+            `).join('');
+        }
+
+        function selectDate() {
+            if (window.Android) {
+                Android.openDatePicker();
+            } else {
+                // 模拟选择今天
+                const today = new Date();
+                const dateStr = today.toISOString().split('T')[0];
+                setSelectedDate(dateStr);
+            }
+        }
+
+        function setSelectedDate(date) {
+            selectedDate = date;
+            const dateEl = document.getElementById('selectedDate');
+            const d = new Date(date);
+            dateEl.textContent = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+        }
+
+        function selectTimeSlot(slot, element) {
+            selectedSlot = slot;
+            document.querySelectorAll('.time-slot').forEach(el => {
+                el.classList.remove('selected');
+            });
+            if (element) {
+                element.classList.add('selected');
+            }
+        }
+
+        function submitAppointment() {
+            if (!selectedDomain && consultant && consultant.specialty) {
+                 // 只有当咨询师有特定领域时才强制校验
+                 showToast('请选择咨询领域');
+                 return;
+            }
+            if (!selectedDate) {
+                showToast('请选择预约日期');
+                return;
+            }
+            if (!selectedSlot) {
+                showToast('请选择时间段');
+                return;
+            }
+            const description = document.getElementById('description').value.trim();
+            if (!description) {
+                showToast('请完善问题描述，便于咨询师准备方案');
+                return;
+            }
+            if (!selectedChild) {
+                showToast('请选择需要咨询的孩子');
+                return;
+            }
+
+            if (window.Android) {
+                // 构造 childName, 防止为空
+                const childName = selectedChild.name || '未命名孩子';
+                Android.submitAppointment(
+                    selectedDate,
+                    selectedSlot,
+                    description,
+                    selectedChild.id || '',
+                    childName,
+                    selectedDomain // 传递选中的领域
+                );
+            } else {
+                showToast('预约提交成功');
+            }
+        }
+
+        function loadChildren() {
+            if (window.Android && typeof Android.getChildProfiles === 'function') {
+                try {
+                    const json = Android.getChildProfiles();
+                    const parsed = JSON.parse(json || '[]');
+                    if (Array.isArray(parsed)) {
+                        childProfiles = parsed;
+                    }
+                } catch (e) {
+                    console.warn('child profiles load failed', e);
+                }
+            }
+            renderChildSelector();
+        }
+
+        function renderChildSelector() {
+            const list = document.getElementById('childList');
+            const empty = document.getElementById('childEmpty');
+            
+            if (!childProfiles || childProfiles.length === 0) {
+                list.innerHTML = '';
+                empty.style.display = 'flex';
+                selectedChild = null;
+                return;
+            }
+            
+            empty.style.display = 'none';
+            // 默认选中第一个孩子
+            if (!selectedChild) {
+                selectedChild = childProfiles[0];
+            }
+            
+            list.innerHTML = childProfiles.map(child => {
+                const isSelected = selectedChild && selectedChild.id === child.id;
+                return `
+                <div class="child-card ${isSelected ? 'selected' : ''}" onclick="selectChild('${child.id}')">
+                    <img src="icons/child-select.svg" alt="选择孩子" class="child-card-icon">
+                    <div style="flex: 1;">
+                        <div class="child-name">${child.name || '未命名孩子'}</div>
+                        <div class="child-meta">${formatChildMeta(child)}</div>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        function selectChild(id) {
+            const child = childProfiles.find(item => item.id === id);
+            if (!child) return;
+            selectedChild = child;
+            renderChildSelector();
+        }
+
+        function formatChildMeta(child) {
+            const gender = child.gender === 'GIRL' ? '女孩' : '男孩';
+            const birth = child.birthDate ? child.birthDate : '生日未填';
+            return `${gender} · ${birth}`;
+        }
+
+        function openChildInfo() {
+            if (window.Android && typeof Android.openChildManagement === 'function') {
+                Android.openChildManagement();
+            } else {
+                window.location.href = 'child_info.html';
+            }
+        }
+
+        window.onDateSelected = function(date) {
+            setSelectedDate(date);
+        }
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>账号管理</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .account-hero {
+            margin-top: 12px;
+            padding: 24px;
+            border-radius: 24px;
+            background: linear-gradient(135deg, #D6E7FF 0%, #F6F9FF 70%);
+            color: #1E2A3B;
+        }
+
+        .account-hero h2 {
+            margin: 0 0 8px;
+            font-size: 22px;
+        }
+
+        .account-hero p {
+            margin: 0;
+            color: rgba(30, 42, 59, 0.7);
+        }
+
+        .account-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.7);
+            color: #1E2A3B;
+            font-size: 13px;
+            margin-top: 16px;
+        }
+
+        .account-list {
+            margin-top: 20px;
+        }
+
+        .account-item {
+            padding: 18px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .account-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .account-meta strong {
+            font-size: 16px;
+            color: var(--text-primary);
+        }
+
+        .account-meta span {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            background: #BDEBC8;
+            color: #1E2A3B;
+            font-size: 12px;
+        }
+
+        .status-badge.pending {
+            background: rgba(255,193,7,0.2);
+            color: #AB6800;
+        }
+
+        .action-card {
+            margin-top: 12px;
+            padding: 0;
+        }
+
+        .action-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 12px;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            cursor: pointer;
+        }
+
+        .management-icon {
+            width: 24px;
+            height: 24px;
+            color: #6FA6F8;
+            flex-shrink: 0;
+        }
+
+        .action-item:last-child {
+            border-bottom: none;
+        }
+
+        .action-item:active {
+            background: rgba(111, 166, 248, 0.08);
+        }
+
+        .action-item strong {
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .action-item span {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .logout-button {
+            margin-top: 20px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-app-bar glass">
+        <div class="title">账号管理</div>
+    </div>
+
+    <div class="content">
+        <div class="card account-hero">
+            <h2 id="currentAccount">未登录</h2>
+            <p id="accountStatus">登录以同步孩子信息和会员权益</p>
+            <div class="account-pill" id="accountPill">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 6v6l3 3" />
+                </svg>
+                当前账号状态
+            </div>
+        </div>
+
+        <div class="section-title">已登录账号</div>
+        <div class="card">
+            <div class="account-list" id="accountList">
+                <div class="account-item">
+                    <div class="account-meta">
+                        <strong id="accountLabel">游客</strong>
+                        <span id="accountDesc">未登录</span>
+                    </div>
+                    <span class="status-badge pending" id="accountBadge">未登录</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-title">常用操作</div>
+        <div class="card action-card">
+            <div class="action-item" onclick="switchAccount()">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <img src="icons/switch-account.svg" alt="切换账号" class="management-icon">
+                    <div>
+                        <strong>切换/新增账号</strong>
+                        <span>使用其他手机号或微信重新登录</span>
+                    </div>
+                </div>
+                <svg class="chevron-icon" viewBox="0 0 24 24">
+                    <path d="M9 6l6 6-6 6" />
+                </svg>
+            </div>
+            <div class="action-item" onclick="manageChildInfo()">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <img src="icons/child-management.svg" alt="孩子管理" class="management-icon">
+                    <div>
+                        <strong>孩子信息管理</strong>
+                        <span>进入孩子档案管理页</span>
+                    </div>
+                </div>
+                <svg class="chevron-icon" viewBox="0 0 24 24">
+                    <path d="M9 6l6 6-6 6" />
+                </svg>
+            </div>
+        </div>
+
+        <button class="btn btn-secondary logout-button" onclick="logoutAccount()">
+            退出当前账号
+        </button>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        function updateAccountInfo() {
+            const profile = getUserProfile ? getUserProfile() : {};
+            const isLoggedIn = !!profile.isLoggedIn;
+            const phone = profile.phone || '';
+            const masked = isLoggedIn && phone ? phone.slice(0,3) + '****' + phone.slice(-4) : '未登录';
+
+            document.getElementById('currentAccount').textContent = masked;
+            document.getElementById('accountStatus').textContent = isLoggedIn
+                ? '已登录，可继续使用当前账号'
+                : '登录以同步孩子信息和会员权益';
+            document.getElementById('accountLabel').textContent = masked;
+            document.getElementById('accountDesc').textContent = isLoggedIn ? '已登录 · 同步中' : '未登录状态';
+            const badge = document.getElementById('accountBadge');
+            if (isLoggedIn) {
+                badge.textContent = '已登录';
+                badge.classList.remove('pending');
+            } else {
+                badge.textContent = '未登录';
+                badge.classList.add('pending');
+            }
+        }
+
+        function switchAccount() {
+            window.location.href = 'auth.html';
+        }
+
+        function logoutAccount() {
+            if (window.Android && Android.logoutAccount) {
+                Android.logoutAccount();
+            }
+            setTimeout(() => {
+                window.location.href = 'auth.html';
+            }, 300);
+        }
+
+        function manageChildInfo() {
+            if (window.Android && Android.openChildManagement) {
+                Android.openChildManagement();
+            } else {
+                window.location.href = 'child_info.html';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', updateAccountInfo);
+    </script>
+</body>
+</html>
+

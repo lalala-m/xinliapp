@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>登录</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .auth-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 32px 16px;
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .auth-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #333333;
+            margin-bottom: 8px;
+        }
+
+        .auth-subtitle {
+            font-size: 16px;
+            color: #666666;
+        }
+
+        .input-group {
+            margin-bottom: 24px;
+        }
+
+        .code-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        .code-input {
+            flex: 1;
+        }
+
+        .code-btn {
+            padding: 14px 24px;
+            white-space: nowrap;
+            min-width: 120px;
+        }
+
+        .login-btn {
+            width: 100%;
+            margin-top: 32px;
+        }
+
+
+        .error-message {
+            color: #FF5252;
+            font-size: 14px;
+            margin-top: 8px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .register-link {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 14px;
+            color: #666666;
+        }
+
+        .register-link a {
+            color: #6FA6F8;
+            text-decoration: none;
+        }
+
+        .register-link a:active {
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-header">
+            <div class="auth-title">欢迎来到童康源</div>
+            <div class="auth-subtitle">为孩子提供温柔守护</div>
+        </div>
+
+        <div style="max-width: 400px; margin: 0 auto; width: 100%;">
+            <div class="input-group">
+                <label class="input-label">手机号</label>
+                <input type="tel" class="input-field" id="phoneInput" placeholder="请输入11位手机号" maxlength="11">
+                <div class="error-message" id="phoneError"></div>
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">验证码</label>
+                <div class="code-group">
+                    <input type="text" class="input-field code-input" id="codeInput" placeholder="请输入6位验证码" maxlength="6">
+                    <button class="btn btn-secondary code-btn" id="sendCodeBtn" onclick="sendCode()">获取验证码</button>
+                </div>
+                <div class="error-message" id="codeError"></div>
+            </div>
+
+            <button class="btn btn-primary login-btn" onclick="handleLogin()">
+                登录 / 注册
+            </button>
+
+            <div class="register-link">
+                还没有账号？<a href="register.html">立即注册</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        let countdownTimer = null;
+        let countdownSeconds = 60;
+
+        function sendCode() {
+            const phone = document.getElementById('phoneInput').value.trim();
+            if (phone.length !== 11) {
+                showError('phoneError', '请填写11位手机号');
+                return;
+            }
+
+            hideError('phoneError');
+            startCountdown();
+            showToast('验证码已发送');
+        }
+
+        function startCountdown() {
+            const btn = document.getElementById('sendCodeBtn');
+            btn.disabled = true;
+            countdownSeconds = 60;
+
+            countdownTimer = setInterval(() => {
+                countdownSeconds--;
+                if (countdownSeconds > 0) {
+                    btn.textContent = `重新获取(${countdownSeconds}s)`;
+                } else {
+                    clearInterval(countdownTimer);
+                    btn.disabled = false;
+                    btn.textContent = '获取验证码';
+                }
+            }, 1000);
+        }
+
+        function handleLogin() {
+            const phone = document.getElementById('phoneInput').value.trim();
+            const code = document.getElementById('codeInput').value.trim();
+
+            if (phone.length !== 11) {
+                showError('phoneError', '请填写11位手机号');
+                return;
+            }
+
+            if (code.length !== 6) {
+                showError('codeError', '请填写6位验证码');
+                return;
+            }
+
+            hideError('phoneError');
+            hideError('codeError');
+
+            if (window.Android && typeof Android.loginWithPhone === 'function') {
+                showToast('正在登录...');
+                Android.loginWithPhone(phone, code);
+            } else {
+                showToast('环境错误：未检测到原生接口');
+            }
+        }
+
+        function showError(elementId, message) {
+            const errorEl = document.getElementById(elementId);
+            errorEl.textContent = message;
+            errorEl.classList.add('show');
+        }
+
+        function hideError(elementId) {
+            const errorEl = document.getElementById(elementId);
+            errorEl.classList.remove('show');
+        }
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.jslh.rjd.dao.RjdDailyWorkAuditRecordDao">
+
+    <resultMap type="com.jslh.rjd.entity.RjdDailyWorkAuditRecordEntity" id="rjdDailyWorkAuditRecordMap">
+        <result property="id" column="id"/>
+        <result property="dailyRecordId" column="daily_record_id"/>
+        <result property="auditNode" column="audit_node"/>
+        <result property="auditOrder" column="audit_order"/>
+        <result property="systemConfigId" column="system_config_id"/>
+        <result property="auditRuleDetail" column="audit_rule_detail"/>
+        <result property="allocatedAuditDetail" column="allocated_audit_detail"/>
+        <result property="auditType" column="audit_type"/>
+        <result property="auditStatus" column="audit_status"/>
+        <result property="auditorId" column="auditor_id"/>
+        <result property="auditorName" column="auditor_name"/>
+        <result property="auditTime" column="audit_time"/>
+        <result property="auditRemark" column="audit_remark"/>
+        <result property="tenantCode" column="tenant_code"/>
+        <result property="creator" column="creator"/>
+        <result property="createDate" column="create_date"/>
+        <result property="delFlag" column="del_flag"/>
+    </resultMap>
+
+</mapper>

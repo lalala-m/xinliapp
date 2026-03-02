@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测评进行中 - 童养园</title>
+    <link rel="stylesheet" href="css/common.css">
+    <style>
+        body { background: #f5f7fa; padding: 20px; }
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            min-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .progress-header {
+            margin-bottom: 30px;
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+        .question-card {
+            flex: 1;
+        }
+        .question-text {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 25px;
+            color: #333;
+            line-height: 1.5;
+        }
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .option-item {
+            padding: 15px 20px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .option-item:hover {
+            background: #f0f7ff;
+            border-color: #6FA6F8;
+        }
+        .option-item.selected {
+            background: #6FA6F8;
+            color: white;
+            border-color: #6FA6F8;
+        }
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+        .btn-nav {
+            padding: 10px 30px;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-prev { background: #eee; color: #666; }
+        .btn-next { background: #6FA6F8; color: white; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="progress-header">
+            进度: <span id="currentNum">1</span> / <span id="totalNum">--</span>
+        </div>
+
+        <div class="question-card" id="questionArea">
+            <div class="question-text" id="qText">题目加载中...</div>
+            <div class="options-list" id="qOptions">
+                <!-- 选项 -->
+            </div>
+        </div>
+
+        <div class="nav-buttons">
+            <button class="btn-nav btn-prev" onclick="TestRunner.prev()" id="btnPrev" style="visibility: hidden;">上一题</button>
+            <button class="btn-nav btn-next" onclick="TestRunner.next()" id="btnNext">下一题</button>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/test-runner.js"></script>
+</body>
+</html>

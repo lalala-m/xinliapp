@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>语音通话</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            background-color: #222;
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .background-blur {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            filter: blur(30px) brightness(0.6);
+            z-index: -1;
+            /* 默认背景，实际应使用对方头像 */
+            background-image: linear-gradient(135deg, #6FA6F8, #BDEBC8);
+        }
+        
+        .call-header {
+            padding-top: 60px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+        }
+        
+        .avatar-container {
+            width: 120px;
+            height: 120px;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            background: #eee;
+        }
+        
+        .avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .user-name {
+            font-size: 24px;
+            font-weight: 500;
+            margin-bottom: 12px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .call-status {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .video-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            display: none;
+            background: black;
+        }
+
+        .remote-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .local-video {
+            position: absolute;
+            top: 60px;
+            right: 20px;
+            width: 100px;
+            height: 150px;
+            background: #333;
+            border-radius: 8px;
+            object-fit: cover;
+            z-index: 10;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: all 0.3s;
+        }
+        
+        .call-controls {
+            padding: 40px 40px 60px;
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            background: linear-gradient(to top, rgba(0,0,0,0.5), transparent);
+        }
+        
+        .control-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .control-item:active {
+            opacity: 0.7;
+            transform: scale(0.95);
+        }
+        
+        .control-btn {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .control-btn svg {
+            width: 32px;
+            height: 32px;
+            color: white;
+        }
+        
+        .control-label {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .btn-hangup {
+            background: #FF3B30;
+            width: 72px;
+            height: 72px;
+        }
+        
+        .btn-answer {
+            background: #34C759;
+            width: 72px;
+            height: 72px;
+        }
+        
+        .btn-mute.active {
+            background: white;
+        }
+        
+        .btn-mute.active svg {
+            color: #333;
+        }
+
+        .btn-speaker.active {
+            background: white;
+        }
+        
+        .btn-speaker.active svg {
+            color: #333;
+        }
+        
+        /* Incoming call specific styles */
+        .incoming-controls {
+            display: none;
+            width: 100%;
+            justify-content: space-around;
+        }
+        
+        .active-call-controls {
+            display: flex;
+            width: 100%;
+            justify-content: space-around;
+        }
+
+        /* Video mode adjustments */
+        .video-mode .background-blur {
+            display: none;
+        }
+        
+        .video-mode .avatar-container {
+            display: none;
+        }
+        
+        .video-mode .user-name, 
+        .video-mode .call-status {
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .switch-camera {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 44px;
+            height: 44px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            display: none; /* Only in video mode */
+        }
+    </style>
+</head>
+<body>
+    <div class="background-blur" id="bgBlur"></div>
+    
+    <div class="video-container" id="videoContainer">
+        <video id="remoteVideo" class="remote-video" autoplay playsinline></video>
+        <video id="localVideo" class="local-video" autoplay playsinline muted></video>
+        <div class="switch-camera" onclick="switchCamera()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                <path d="M20 5H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/>
+                <path d="M16 11l-4 4-4-4"/>
+                <path d="M12 15V3"/>
+            </svg>
+        </div>
+    </div>
+
+    <div class="call-header">
+        <div class="avatar-container">
+            <img src="" id="avatarImg" class="avatar-img" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23ccc%22><rect width=%2224%22 height=%2224%22/></svg>'">
+        </div>
+        <div class="user-name" id="userName">咨询师</div>
+        <div class="call-status" id="callStatus">正在等待对方接受邀请...</div>
+    </div>
+
+    <div class="call-controls">
+        <!-- Active Call Controls -->
+        <div class="active-call-controls" id="activeControls">
+            <div class="control-item" onclick="toggleMute()" id="muteBtn">
+                <div class="control-btn btn-mute">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                        <line x1="12" y1="19" x2="12" y2="23"></line>
+                        <line x1="8" y1="23" x2="16" y2="23"></line>
+                    </svg>
+                </div>
+                <div class="control-label">麦克风已开</div>
+            </div>
+
+            <div class="control-item" onclick="endCall()">
+                <div class="control-btn btn-hangup">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"></path>
+                        <line x1="23" y1="1" x2="1" y2="23"></line>
+                    </svg>
+                </div>
+                <div class="control-label">挂断</div>
+            </div>
+
+            <div class="control-item" onclick="toggleSpeaker()" id="speakerBtn">
+                <div class="control-btn btn-speaker">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                    </svg>
+                </div>
+                <div class="control-label">扬声器已关</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        // 获取URL参数
+        const urlParams = new URLSearchParams(window.location.search);
+        const type = urlParams.get('type') || 'audio'; // 'audio' or 'video'
+        const name = urlParams.get('name') || '咨询师';
+        const avatar = urlParams.get('avatar') || '';
+        
+        let isMuted = false;
+        let isSpeakerOn = false;
+        let localStream = null;
+        let peerConnection = null;
+
+        // 初始化UI
+        document.getElementById('userName').textContent = name;
+        if (avatar) {
+            document.getElementById('avatarImg').src = avatar;
+            document.getElementById('bgBlur').style.backgroundImage = `url(${avatar})`;
+        } else {
+            // 生成默认头像颜色
+            const colors = ['#6FA6F8', '#FF6B6B', '#4ECDC4', '#FFA07A'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            document.getElementById('avatarImg').style.backgroundColor = color;
+            document.getElementById('bgBlur').style.backgroundColor = color;
+            document.getElementById('bgBlur').style.backgroundImage = 'none';
+        }
+
+        // 视频模式处理
+        if (type === 'video') {
+            document.body.classList.add('video-mode');
+            document.getElementById('videoContainer').style.display = 'block';
+            document.querySelector('.switch-camera').style.display = 'flex';
+            document.title = '视频通话';
+            startCamera();
+        } else {
+            // 音频模式也可能需要获取麦克风权限
+            startMicrophone();
+        }
+
+        async function startCamera() {
+            try {
+                const constraints = {
+                    video: { facingMode: 'user' },
+                    audio: true
+                };
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                document.getElementById('localVideo').srcObject = localStream;
+                updateStatus('正在等待对方接听...');
+            } catch (e) {
+                console.error('无法获取摄像头/麦克风权限:', e);
+                updateStatus('无法访问设备：' + e.message);
+                if (window.Android) {
+                    window.Android.showToast('请授予摄像头和麦克风权限');
+                }
+            }
+        }
+
+        async function startMicrophone() {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                updateStatus('正在呼叫...');
+            } catch (e) {
+                console.error('无法获取麦克风权限:', e);
+                updateStatus('无法访问麦克风：' + e.message);
+            }
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            const btn = document.querySelector('.btn-mute');
+            const label = document.querySelector('#muteBtn .control-label');
+            
+            if (localStream) {
+                localStream.getAudioTracks().forEach(track => track.enabled = !isMuted);
+            }
+
+            if (isMuted) {
+                btn.classList.add('active');
+                label.textContent = '麦克风已关';
+                // SVG change could happen here
+            } else {
+                btn.classList.remove('active');
+                label.textContent = '麦克风已开';
+            }
+        }
+
+        function toggleSpeaker() {
+            isSpeakerOn = !isSpeakerOn;
+            const btn = document.querySelector('.btn-speaker');
+            const label = document.querySelector('#speakerBtn .control-label');
+            
+            if (isSpeakerOn) {
+                btn.classList.add('active');
+                label.textContent = '扬声器已开';
+            } else {
+                btn.classList.remove('active');
+                label.textContent = '扬声器已关';
+            }
+        }
+
+        function switchCamera() {
+            // 简单的切换逻辑，实际需要停止当前track并重新请求
+            if (localStream) {
+                const videoTrack = localStream.getVideoTracks()[0];
+                const currentFacing = videoTrack.getSettings().facingMode;
+                const newFacing = currentFacing === 'user' ? 'environment' : 'user';
+                
+                videoTrack.stop();
+                
+                navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: newFacing },
+                    audio: true
+                }).then(stream => {
+                    localStream = stream;
+                    document.getElementById('localVideo').srcObject = stream;
+                    // TODO: 更新 peer connection
+                });
+            }
+        }
+
+        function endCall() {
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+            }
+            updateStatus('通话结束');
+            setTimeout(() => {
+                if (window.history.length > 1) {
+                    window.history.back();
+                } else {
+                    window.close();
+                }
+            }, 1000);
+        }
+
+        function updateStatus(text) {
+            document.getElementById('callStatus').textContent = text;
+        }
+
+        // 模拟接通
+        setTimeout(() => {
+            if (document.getElementById('callStatus').textContent.includes('等待')) {
+                updateStatus('00:00');
+                startTimer();
+            }
+        }, 3000);
+
+        let seconds = 0;
+        function startTimer() {
+            setInterval(() => {
+                seconds++;
+                const min = Math.floor(seconds / 60).toString().padStart(2, '0');
+                const sec = (seconds % 60).toString().padStart(2, '0');
+                updateStatus(`${min}:${sec}`);
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

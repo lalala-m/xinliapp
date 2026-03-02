@@ -1,0 +1,147 @@
+version: '3.3'
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.5.0
+    container_name: elasticsearch
+    restart: always
+    ports:
+      - 9200:9200
+    environment:
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+  skywalking-oap:
+    image: apache/skywalking-oap-server:6.6.0-es7
+    container_name: skywalking-oap
+    depends_on:
+      - elasticsearch
+    links:
+      - elasticsearch
+    restart: always
+    ports:
+      - 11800:11800
+      - 12800:12800
+    environment:
+      - SW_STORAGE=elasticsearch
+      - SW_STORAGE_ES_CLUSTER_NODES=elasticsearch:9200
+  skywalking-ui:
+    image: apache/skywalking-ui:6.6.0
+    container_name: skywalking-ui
+    depends_on:
+      - skywalking-oap
+    links:
+      - skywalking-oap
+    restart: always
+    ports:
+      - 8480:8080
+    environment:
+      - SW_OAP_ADDRESS=skywalking-oap:12800
+  jslh-monitor:
+    image: jslh_io:2.0
+    container_name: jslh-monitor
+    env_file:
+      - common.env
+    volumes:
+      - /data/jslh-cloud/jslh-monitor.jar:/app/app.jar
+  jslh-gateway:
+    image: jslh_io:2.0
+    container_name: jslh-gateway
+    ports:
+      - "18080:18080"
+    links:
+      - skywalking-oap
+    environment:
+      - SW_AGENT_NAME=jslh-gateway
+      - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
+    env_file:
+      - common.env
+    volumes:
+      - /data/jslh-cloud/jslh-gateway.jar:/app/app.jar
+  jslh-admin:
+    image: jslh_io:2.0
+    container_name: jslh-admin-server
+    links:
+      - skywalking-oap
+    environment:
+      - SW_AGENT_NAME=jslh-admin
+      - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
+    env_file:
+      - common.env
+    volumes:
+      - /data/jslh-cloud/jslh-admin-server.jar:/app/app.jar
+  jslh-oss:
+    image: jslh_io:2.0
+    container_name: jslh-oss-server
+    links:
+      - skywalking-oap
+    environment:
+      - SW_AGENT_NAME=jslh-oss-server
+      - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
+    env_file:
+      - common.env
+    volumes:
+      - /data/jslh-cloud/jslh-oss-server.jar:/app/app.jar
+  jslh-job:
+    image: jslh_io:2.0
+    container_name: jslh-job-server
+    links:
+      - skywalking-oap
+    environment:
+      - SW_AGENT_NAME=jslh-job-server
+      - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
+    env_file:
+      - common.env
+    volumes:
+      - /data/jslh-cloud/jslh-job-server.jar:/app/app.jar
+  jslh-message:
+    image: jslh_io:2.0
+    container_name: jslh-message-server
+    links:
+      - skywalking-oap
+    environment:
+      - SW_AGENT_NAME=jslh-message-server
+      - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
+    env_file:
+      - common.env
+    volumes:
+      - /data/jslh-cloud/jslh-message-server.jar:/app/app.jar
+  jslh-flow:
+    image: jslh_io:2.0
+    container_name: jslh-flow-server
+    links:
+      - skywalking-oap
+    environment:
+      - SW_AGENT_NAME=jslh-flow-server
+      - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
+    env_file:
+      - common.env
+    volumes:
+      - /data/jslh-cloud/jslh-flow-server.jar:/app/app.jar
+  jslh-jmreport:
+    image: jslh_io:2.0
+    container_name: jslh-jmreport
+    links:
+      - skywalking-oap
+    environment:
+      - SW_AGENT_NAME=jslh-jmreport
+      - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
+    env_file:
+      - common.env
+    volumes:
+      - /data/jslh-cloud/jslh-jmreport.jar:/app/app.jar
+  jslh-api:
+    image: jslh_io:2.0
+    container_name: jslh-api-server
+    links:
+      - skywalking-oap
+    environment:
+      - SW_AGENT_NAME=jslh-api-server
+      - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking-oap:11800
+    env_file:
+      - common.env
+    volumes:
+      - /data/jslh-cloud/jslh-api-server.jar:/app/app.jar

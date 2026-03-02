@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>指导师资格考试</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .exam-container {
+            padding: 16px;
+        }
+
+        .exam-header {
+            background: linear-gradient(135deg, rgba(111, 166, 248, 0.15), rgba(189, 235, 200, 0.25));
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .exam-header h2 {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .exam-header p {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .exam-info {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .exam-info-item {
+            text-align: center;
+        }
+
+        .exam-info-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .exam-info-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .question-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .question-number {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .question-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1.6;
+            flex: 1;
+            margin-left: 12px;
+        }
+
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .option-item {
+            padding: 16px;
+            border: 2px solid #E0E0E0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .option-item:hover {
+            border-color: var(--primary-color);
+            background: rgba(111, 166, 248, 0.05);
+        }
+
+        .option-item.selected {
+            border-color: var(--primary-color);
+            background: rgba(111, 166, 248, 0.15);
+        }
+
+        .option-item.correct {
+            border-color: #4CAF50;
+            background: rgba(76, 175, 80, 0.1);
+        }
+
+        .option-item.wrong {
+            border-color: #FF5252;
+            background: rgba(255, 82, 82, 0.1);
+        }
+
+        .option-label {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #F5F5F5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: var(--text-primary);
+            flex-shrink: 0;
+        }
+
+        .option-item.selected .option-label {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .option-text {
+            flex: 1;
+            font-size: 15px;
+            color: var(--text-primary);
+        }
+
+        .exam-actions {
+            position: sticky;
+            bottom: 0;
+            background: white;
+            padding: 16px;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+            display: flex;
+            gap: 12px;
+        }
+
+        .exam-actions .btn {
+            flex: 1;
+        }
+
+        .result-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .result-modal.show {
+            display: flex;
+        }
+
+        .result-content {
+            background: white;
+            border-radius: 24px;
+            padding: 32px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .result-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+        }
+
+        .result-icon.pass {
+            background: linear-gradient(135deg, #4CAF50, #81C784);
+            color: white;
+        }
+
+        .result-icon.fail {
+            background: linear-gradient(135deg, #FF5252, #FF8A80);
+            color: white;
+        }
+
+        .result-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .result-score {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .result-badge {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 165, 0, 0.2));
+            border: 2px solid #FFD700;
+            border-radius: 16px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .badge-icon-large {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 28px;
+            margin: 0 auto 12px;
+        }
+
+        .badge-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .badge-desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-app-bar glass">
+        <div class="title">指导师资格考试</div>
+    </div>
+
+    <div class="exam-container">
+        <div class="exam-header">
+            <h2>童康源指导师资格考试</h2>
+            <p>通过考试后获得「智慧妈妈」徽章，成为对应小类问题的童康源指导师</p>
+            <div class="exam-info">
+                <div class="exam-info-item">
+                    <div class="exam-info-label">题目数量</div>
+                    <div class="exam-info-value" id="totalQuestions">10</div>
+                </div>
+                <div class="exam-info-item">
+                    <div class="exam-info-label">当前进度</div>
+                    <div class="exam-info-value" id="currentProgress">1/10</div>
+                </div>
+                <div class="exam-info-item">
+                    <div class="exam-info-label">及格分数</div>
+                    <div class="exam-info-value">60分</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="questionsContainer">
+            <!-- 题目将动态生成 -->
+        </div>
+
+        <div class="exam-actions" id="examActions">
+            <button class="btn btn-secondary" onclick="previousQuestion()" id="prevButton" style="display: none;">上一题</button>
+            <button class="btn btn-primary" onclick="nextQuestion()" id="nextButton">下一题</button>
+            <button class="btn btn-primary" onclick="submitExam()" id="submitButton" style="display: none;">提交试卷</button>
+        </div>
+    </div>
+
+    <!-- 考试结果模态框 -->
+    <div class="result-modal" id="resultModal">
+        <div class="result-content">
+            <div class="result-icon" id="resultIcon">
+                <span id="resultIconText">✓</span>
+            </div>
+            <div class="result-title" id="resultTitle">考试通过</div>
+            <div class="result-score" id="resultScore">得分: 85分</div>
+            <div class="result-badge" id="resultBadge" style="display: none;">
+                <div class="badge-icon-large">智</div>
+                <div class="badge-title">「智慧妈妈」徽章</div>
+                <div class="badge-desc">恭喜您通过考试！您已成为童康源指导师，可以开始为其他家庭提供咨询服务。</div>
+            </div>
+            <button class="btn btn-primary" onclick="closeResult()" style="width: 100%; margin-top: 20px;">
+                确定
+            </button>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        const questions = [
+            {
+                id: 1,
+                question: '儿童心理发展的关键期理论是谁提出的？',
+                options: ['A. 皮亚杰', 'B. 弗洛伊德', 'C. 维果茨基', 'D. 埃里克森'],
+                correct: 0
+            },
+            {
+                id: 2,
+                question: '以下哪种方法最适合处理儿童的分离焦虑？',
+                options: ['A. 立即离开，让孩子自己适应', 'B. 逐步分离，建立安全感', 'C. 严厉批评，让孩子坚强', 'D. 完全避免分离'],
+                correct: 1
+            },
+            {
+                id: 3,
+                question: 'ADHD（注意力缺陷多动障碍）的主要特征不包括？',
+                options: ['A. 注意力不集中', 'B. 多动', 'C. 冲动行为', 'D. 智力低下'],
+                correct: 3
+            },
+            {
+                id: 4,
+                question: '在处理儿童情绪问题时，最重要的是？',
+                options: ['A. 立即制止情绪表达', 'B. 理解并接纳孩子的情绪', 'C. 转移注意力', 'D. 讲道理'],
+                correct: 1
+            },
+            {
+                id: 5,
+                question: '以下哪个年龄段是儿童语言发展的关键期？',
+                options: ['A. 0-1岁', 'B. 1-3岁', 'C. 3-6岁', 'D. 6-12岁'],
+                correct: 1
+            },
+            {
+                id: 6,
+                question: '当孩子出现攻击性行为时，最合适的处理方式是？',
+                options: ['A. 立即惩罚', 'B. 了解原因，引导正确表达', 'C. 忽视不管', 'D. 以暴制暴'],
+                correct: 1
+            },
+            {
+                id: 7,
+                question: '儿童自闭症的核心症状不包括？',
+                options: ['A. 社交障碍', 'B. 沟通障碍', 'C. 重复行为', 'D. 智力正常'],
+                correct: 3
+            },
+            {
+                id: 8,
+                question: '建立良好亲子关系的基础是？',
+                options: ['A. 严格管教', 'B. 无条件爱和接纳', 'C. 物质奖励', 'D. 放任自由'],
+                correct: 1
+            },
+            {
+                id: 9,
+                question: '儿童睡眠问题的常见原因不包括？',
+                options: ['A. 作息不规律', 'B. 过度刺激', 'C. 焦虑情绪', 'D. 正常发育'],
+                correct: 3
+            },
+            {
+                id: 10,
+                question: '作为童康源指导师，最重要的职业素养是？',
+                options: ['A. 专业知识', 'B. 同理心和责任心', 'C. 沟通技巧', 'D. 以上都是'],
+                correct: 3
+            }
+        ];
+
+        let currentQuestionIndex = 0;
+        let answers = {};
+        let examSubmitted = false;
+
+        function initExam() {
+            // 尝试从localStorage恢复答案
+            loadAnswers();
+            renderQuestion();
+            updateProgress();
+        }
+
+        function saveAnswers() {
+            // 保存答案到localStorage，防止刷新丢失
+            try {
+                localStorage.setItem('examAnswers', JSON.stringify(answers));
+                localStorage.setItem('examCurrentIndex', currentQuestionIndex.toString());
+            } catch (e) {
+                console.warn('Save answers failed', e);
+            }
+        }
+
+        function loadAnswers() {
+            // 从localStorage加载答案
+            try {
+                const savedAnswers = localStorage.getItem('examAnswers');
+                if (savedAnswers) {
+                    answers = JSON.parse(savedAnswers);
+                }
+                const savedIndex = localStorage.getItem('examCurrentIndex');
+                if (savedIndex) {
+                    const index = parseInt(savedIndex, 10);
+                    if (index >= 0 && index < questions.length) {
+                        currentQuestionIndex = index;
+                    }
+                }
+            } catch (e) {
+                console.warn('Load answers failed', e);
+                answers = {};
+            }
+        }
+
+        function clearSavedAnswers() {
+            // 清除保存的答案（考试提交后）
+            try {
+                localStorage.removeItem('examAnswers');
+                localStorage.removeItem('examCurrentIndex');
+            } catch (e) {
+                console.warn('Clear answers failed', e);
+            }
+        }
+
+        function renderQuestion() {
+            const question = questions[currentQuestionIndex];
+            if (!question) return;
+            
+            const container = document.getElementById('questionsContainer');
+            // 确保从answers对象中读取已保存的答案
+            const selectedAnswer = answers.hasOwnProperty(question.id) ? answers[question.id] : null;
+
+            container.innerHTML = `
+                <div class="question-card">
+                    <div class="question-header">
+                        <div class="question-number">第 ${question.id} 题</div>
+                        <div class="question-text">${question.question}</div>
+                    </div>
+                    <div class="options-list">
+                        ${question.options.map((option, index) => {
+                            const isSelected = selectedAnswer !== null && selectedAnswer === index;
+                            return `
+                            <div class="option-item ${isSelected ? 'selected' : ''}" 
+                                 onclick="selectOption(${index})">
+                                <div class="option-label">${String.fromCharCode(65 + index)}</div>
+                                <div class="option-text">${option}</div>
+                            </div>
+                        `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+
+            // 更新按钮状态
+            updateButtons();
+        }
+
+        function selectOption(index) {
+            if (examSubmitted) return;
+            
+            const question = questions[currentQuestionIndex];
+            if (!question) return;
+            
+            // 保存答案
+            answers[question.id] = index;
+            // 立即保存到localStorage
+            saveAnswers();
+            // 重新渲染以更新选中状态
+            renderQuestion();
+        }
+
+        function previousQuestion() {
+            if (currentQuestionIndex > 0) {
+                // 先保存当前答案（确保数据不丢失）
+                saveAnswers();
+                currentQuestionIndex--;
+                saveAnswers(); // 保存新的索引
+                renderQuestion();
+                updateProgress();
+            }
+        }
+
+        function nextQuestion() {
+            if (currentQuestionIndex < questions.length - 1) {
+                // 先保存当前答案（确保数据不丢失）
+                saveAnswers();
+                currentQuestionIndex++;
+                saveAnswers(); // 保存新的索引
+                renderQuestion();
+                updateProgress();
+            }
+        }
+
+        function updateProgress() {
+            document.getElementById('currentProgress').textContent = `${currentQuestionIndex + 1}/${questions.length}`;
+            document.getElementById('totalQuestions').textContent = questions.length;
+            updateButtons();
+        }
+
+        function updateButtons() {
+            const prevButton = document.getElementById('prevButton');
+            const nextButton = document.getElementById('nextButton');
+            const submitButton = document.getElementById('submitButton');
+
+            prevButton.style.display = currentQuestionIndex > 0 ? 'block' : 'none';
+            
+            if (currentQuestionIndex === questions.length - 1) {
+                nextButton.style.display = 'none';
+                submitButton.style.display = 'block';
+            } else {
+                nextButton.style.display = 'block';
+                submitButton.style.display = 'none';
+            }
+        }
+
+        function submitExam() {
+            // 确保保存所有答案
+            saveAnswers();
+            
+            const answeredCount = Object.keys(answers).length;
+            if (answeredCount < questions.length) {
+                const confirmSubmit = confirm(`您还有 ${questions.length - answeredCount} 题未作答，确定要提交吗？`);
+                if (!confirmSubmit) return;
+            }
+
+            examSubmitted = true;
+            // 清除保存的答案
+            clearSavedAnswers();
+            calculateScore();
+        }
+
+        function calculateScore() {
+            let correctCount = 0;
+            questions.forEach(q => {
+                if (answers[q.id] === q.correct) {
+                    correctCount++;
+                }
+            });
+
+            const score = Math.round((correctCount / questions.length) * 100);
+            const passed = score >= 60;
+
+            showResult(score, passed, correctCount);
+        }
+
+        function showResult(score, passed, correctCount) {
+            const modal = document.getElementById('resultModal');
+            const icon = document.getElementById('resultIcon');
+            const iconText = document.getElementById('resultIconText');
+            const title = document.getElementById('resultTitle');
+            const scoreEl = document.getElementById('resultScore');
+            const badge = document.getElementById('resultBadge');
+
+            if (passed) {
+                icon.className = 'result-icon pass';
+                iconText.textContent = '✓';
+                title.textContent = '恭喜通过考试！';
+                scoreEl.textContent = `得分: ${score}分 (正确 ${correctCount}/${questions.length} 题)`;
+                badge.style.display = 'block';
+
+                // 授予徽章
+                grantBadge();
+            } else {
+                icon.className = 'result-icon fail';
+                iconText.textContent = '✗';
+                title.textContent = '很遗憾，未通过考试';
+                scoreEl.textContent = `得分: ${score}分 (正确 ${correctCount}/${questions.length} 题)，需要60分以上才能通过`;
+                badge.style.display = 'none';
+            }
+
+            modal.classList.add('show');
+        }
+
+        function grantBadge() {
+            // 保存徽章状态
+            if (window.Android && typeof Android.grantBadge === 'function') {
+                Android.grantBadge('wisdom_mom', '智慧妈妈');
+            } else {
+                localStorage.setItem('hasWisdomMomBadge', 'true');
+            }
+
+            // 保存指导师认证状态
+            if (window.Android && typeof Android.becomeConsultant === 'function') {
+                Android.becomeConsultant();
+            }
+        }
+
+        function closeResult() {
+            const modal = document.getElementById('resultModal');
+            modal.classList.remove('show');
+
+            // 如果通过考试，返回培训页面或消息页面
+            if (document.getElementById('resultIcon').classList.contains('pass')) {
+                setTimeout(() => {
+                    if (window.Android && typeof Android.goBack === 'function') {
+                        Android.goBack();
+                    } else {
+                        window.location.href = 'consultant_training.html';
+                    }
+                }, 500);
+            }
+        }
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initExam();
+        });
+    </script>
+</body>
+</html>
+

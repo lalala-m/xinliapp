@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>消息</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .message-hero {
+            background: linear-gradient(135deg, rgba(111, 166, 248, 0.12), rgba(189, 235, 200, 0.4));
+            border-radius: 22px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .message-hero h3 {
+            margin: 0;
+            font-size: 18px;
+            color: var(--text-primary);
+        }
+
+        .message-hero p {
+            margin: 8px 0 0;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .filter-pills {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            overflow-x: auto;
+            padding-bottom: 6px;
+        }
+
+        .filter-pill {
+            padding: 8px 16px;
+            border-radius: 999px;
+            border: 1px solid rgba(111, 166, 248, 0.2);
+            background: white;
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .filter-pill.active {
+            background: rgba(111, 166, 248, 0.15);
+            color: var(--primary-color);
+            border-color: transparent;
+        }
+
+        .appointment-card {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .appointment-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .chip-btn {
+            border: none;
+            border-radius: 999px;
+            padding: 6px 14px;
+            font-size: 12px;
+            background: rgba(111, 166, 248, 0.12);
+            color: var(--primary-color);
+            cursor: pointer;
+        }
+
+        .chip-btn:active {
+            transform: scale(0.96);
+        }
+
+        .child-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 10px;
+            border-radius: 999px;
+            background: rgba(111, 166, 248, 0.12);
+            color: var(--primary-color);
+            font-size: 12px;
+            margin-left: 8px;
+        }
+
+        .appointment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .consultant-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #6FA6F8;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            background: #BDEBC8;
+            color: #333;
+        }
+
+        .status-badge.wait-confirm {
+            background: #FFEBEE;
+            color: #C62828;
+        }
+
+        .status-badge.to-chat {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ab6800;
+        }
+
+        .appointment-time {
+            font-size: 14px;
+            color: #666666;
+        }
+
+        .appointment-desc {
+            font-size: 14px;
+            color: #999999;
+            display: -webkit-box;
+            line-clamp: 2;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .appointment-card.pinned {
+            background-color: #F8F9FA;
+            border-left: 4px solid #B0BEC5;
+        }
+
+        .confirm-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .confirm-dialog {
+            background: #FFFFFF;
+            border-radius: 16px;
+            padding: 20px;
+            width: 80%;
+            max-width: 320px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+        }
+
+        .confirm-text {
+            font-size: 15px;
+            color: #333333;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .confirm-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .chip-btn.danger {
+            background: rgba(244, 67, 54, 0.12);
+            color: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-app-bar glass">
+        <div class="title">消息</div>
+    </div>
+
+    <div class="content">
+        <div class="message-hero">
+            <h3>沟通进度 · 一目了然</h3>
+            <p>预约提醒、咨询方案通知都会同步在此</p>
+        </div>
+
+        <div class="filter-pills">
+            <button class="filter-pill active" data-filter="all">全部</button>
+            <button class="filter-pill" data-filter="pending">待沟通</button>
+            <button class="filter-pill" data-filter="done">已沟通</button>
+        </div>
+
+        <div id="appointments-list"></div>
+        <div id="empty-state" class="empty-state" style="display: none;">
+            <div class="empty-state-icon">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+                </svg>
+            </div>
+            <div>暂无预约记录</div>
+        </div>
+    </div>
+
+        <div id="delete-confirm-overlay" class="confirm-overlay">
+        <div class="confirm-dialog">
+            <div class="confirm-text" id="delete-confirm-text">结束订阅前请确认：完成本次咨询并完成评价后，才会删除记录。</div>
+            <div class="confirm-actions">
+                <button id="cancel-delete-btn" class="chip-btn">取消</button>
+                <button id="confirm-delete-btn" class="chip-btn danger">确认结束并删除</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        let filterType = 'all';
+        let appointmentsCache = [];
+        let cacheInitialized = false;
+        let pendingDelete = null;
+
+        function loadAppointments(forceReload = false) {
+            // 如果是强制重新加载，或者缓存未初始化，从数据源加载
+            if (forceReload || !cacheInitialized) {
+                // 从Android接口或本地存储加载数据
+                const appointments = (window.getAppointments && window.getAppointments()) || [];
+                const newAppointments = Array.isArray(appointments) ? appointments : [];
+                
+                // 尝试从localStorage加载（非Android环境）
+                if (!window.Android) {
+                    try {
+                        const saved = localStorage.getItem('appointmentsCache');
+                        if (saved) {
+                            const parsed = JSON.parse(saved);
+                            if (Array.isArray(parsed) && parsed.length > 0) {
+                                appointmentsCache = parsed;
+                                cacheInitialized = true;
+                                renderAppointments();
+                                return;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Load from localStorage failed', e);
+                    }
+                }
+                
+                // 更新缓存
+                appointmentsCache = newAppointments;
+                cacheInitialized = true;
+            }
+            
+            renderAppointments();
+        }
+
+        function saveAppointmentsCache() {
+            // 保存到localStorage（非Android环境）
+            if (!window.Android) {
+                try {
+                    localStorage.setItem('appointmentsCache', JSON.stringify(appointmentsCache));
+                } catch (e) {
+                    console.warn('Save to localStorage failed', e);
+                }
+            }
+        }
+
+        function renderAppointments() {
+            const filtered = appointmentsCache.filter(apt => {
+                const status = String(apt.status || '').toUpperCase();
+                const isCompleted = status === 'COMPLETED';
+                const isCancelled = status === 'CANCELLED';
+                const isPending = !status || status === 'PENDING';
+                const isChatted = !!apt.hasChatted || isCompleted;
+                if (filterType === 'pending') {
+                    return !isChatted && !isPending && !isCancelled;
+                }
+                if (filterType === 'done') {
+                    return isChatted;
+                }
+                return true;
+            });
+            const listContainer = document.getElementById('appointments-list');
+            const emptyState = document.getElementById('empty-state');
+
+            if (filtered.length === 0) {
+                listContainer.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            filtered.sort((a, b) => {
+                if (a.pinned && !b.pinned) return -1;
+                if (!a.pinned && b.pinned) return 1;
+                return 0;
+            });
+            listContainer.innerHTML = filtered.map((apt, index) => {
+                // 转义ID中的特殊字符，防止XSS和解析错误
+                const safeId = String(apt.id || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const safeName = String(apt.consultantName || apt.consultant?.name || '咨询师').replace(/"/g, '&quot;');
+                const safeChildName = String(apt.childName || '未指定孩子').replace(/"/g, '&quot;');
+                const safeDate = String(apt.date || '').replace(/"/g, '&quot;');
+                const safeTimeSlot = String(apt.timeSlot || '').replace(/"/g, '&quot;');
+                const safeDesc = String(apt.description || '').replace(/"/g, '&quot;').replace(/'/g, "&#39;");
+                const pinnedClass = apt.pinned ? 'pinned' : '';
+                const status = String(apt.status || '').toUpperCase();
+                const isCompleted = status === 'COMPLETED';
+                const isCancelled = status === 'CANCELLED';
+                const isPending = !status || status === 'PENDING';
+                const isChatted = !!apt.hasChatted || isCompleted;
+
+                let badgeText = '';
+                let badgeClass = 'status-badge';
+                if (isChatted) {
+                    badgeText = '已沟通';
+                } else if (isPending) {
+                    badgeText = '待确认';
+                    badgeClass += ' wait-confirm';
+                } else if (status === 'IN_PROGRESS') {
+                    badgeText = '进行中';
+                    badgeClass += ' to-chat';
+                } else if (isCancelled) {
+                    badgeText = '已取消';
+                    badgeClass += ' wait-confirm';
+                } else {
+                    badgeText = '待沟通';
+                    badgeClass += ' to-chat';
+                }
+                
+                return `
+                <div class="list-item appointment-card ${pinnedClass}" data-appointment-id="${safeId}" onclick="openChat('${safeId}')">
+                    <div class="appointment-header">
+                        <div class="consultant-name">
+                            ${safeName}
+                            <span class="child-chip">${safeChildName}</span>
+                        </div>
+                        <div class="${badgeClass}">${badgeText}</div>
+                    </div>
+                    <div class="appointment-time">${safeDate} ${safeTimeSlot}</div>
+                    <div class="appointment-desc">${safeDesc}</div>
+                    <div class="appointment-actions">
+                        <button class="chip-btn" onclick="togglePin('${safeId}', ${apt.pinned ? 'true' : 'false'}, arguments[0]);">
+                            ${apt.pinned ? '取消置顶' : '置顶咨询'}
+                        </button>
+                        <button class="chip-btn delete-btn" data-delete-id="${safeId}">
+                            删除记录
+                        </button>
+                    </div>
+                </div>
+            `;
+            }).join('');
+            
+            const deleteButtons = listContainer.querySelectorAll('.delete-btn');
+            deleteButtons.forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const card = this.closest('.appointment-card');
+                    const id = (card && card.getAttribute('data-appointment-id')) || this.getAttribute('data-delete-id');
+                    deleteConversation(id, this, e);
+                });
+            });
+        }
+
+        function togglePin(id, currentlyPinned, event) {
+            if (event) {
+                event.stopPropagation();
+                event.preventDefault();
+            }
+            if (window.Android && typeof Android.pinAppointment === 'function') {
+                Android.pinAppointment(id, !currentlyPinned);
+                // Android端删除后需要重新加载
+                setTimeout(() => loadAppointments(true), 300);
+            } else {
+                updateLocalAppointment(id, { pinned: !currentlyPinned });
+                saveAppointmentsCache();
+                renderAppointments();
+            }
+        }
+
+        function showDeleteConfirm() {
+            const overlay = document.getElementById('delete-confirm-overlay');
+            if (overlay) {
+                overlay.style.display = 'flex';
+            }
+            if (window.Android && typeof Android.setBottomNavDimmed === 'function') {
+                try {
+                    Android.setBottomNavDimmed(true);
+                } catch (e) {
+                    console.warn('setBottomNavDimmed(true) failed', e);
+                }
+            }
+        }
+
+        function hideDeleteConfirm() {
+            const overlay = document.getElementById('delete-confirm-overlay');
+            if (overlay) {
+                overlay.style.display = 'none';
+            }
+            if (window.Android && typeof Android.setBottomNavDimmed === 'function') {
+                try {
+                    Android.setBottomNavDimmed(false);
+                } catch (e) {
+                    console.warn('setBottomNavDimmed(false) failed', e);
+                }
+            }
+        }
+
+        function deleteConversation(id, btnElement, event) {
+            if (event) {
+                event.stopPropagation();
+                event.stopImmediatePropagation();
+                event.preventDefault();
+            }
+
+            if (!id) {
+                console.error('删除失败：ID为空');
+                showToast('删除失败：ID无效');
+                return;
+            }
+            
+            pendingDelete = { id: String(id), btnElement: btnElement || null };
+            showDeleteConfirm();
+        }
+
+        function canDeleteAppointmentNow(id) {
+            if (window.Android && typeof Android.isConsultationEnded === 'function') {
+                try {
+                    return !!Android.isConsultationEnded(String(id));
+                } catch (e) {
+                    console.error('检查咨询结束状态失败:', e);
+                }
+            }
+            return true;
+        }
+
+        function confirmDeleteConversation() {
+            if (!pendingDelete) {
+                hideDeleteConfirm();
+                return;
+            }
+            const id = pendingDelete.id;
+            if (!canDeleteAppointmentNow(id)) {
+                hideDeleteConfirm();
+                showToast('请先在咨询聊天页点击“结束咨询并评价”，完成评价后再删除订阅。');
+                openChat(id);
+                return;
+            }
+            executeDeleteConversation(id, pendingDelete.btnElement);
+            pendingDelete = null;
+            hideDeleteConfirm();
+        }
+
+        function executeDeleteConversation(id, btnElement) {
+            let cardRemoved = false;
+            if (btnElement && btnElement instanceof Element) {
+                const card = btnElement.closest('.appointment-card');
+                if (card) {
+                    card.remove();
+                    cardRemoved = true;
+                }
+            }
+            
+            if (!cardRemoved) {
+                const card = document.querySelector(`.appointment-card[data-appointment-id="${id}"]`);
+                if (card) {
+                    card.remove();
+                }
+            }
+            
+            const idStr = String(id);
+            appointmentsCache = appointmentsCache.filter(item => String(item.id || '') !== idStr);
+            saveAppointmentsCache();
+            
+            if (appointmentsCache.length === 0) {
+                renderAppointments();
+            }
+            
+            if (window.Android && typeof Android.deleteAppointment === 'function') {
+                try {
+                    Android.deleteAppointment(idStr);
+                    showToast('删除成功');
+                    setTimeout(() => loadAppointments(true), 300);
+                } catch (e) {
+                    console.error('Android删除失败:', e);
+                }
+            } else {
+                showToast('删除成功');
+            }
+        }
+
+        function updateLocalAppointment(id, patch) {
+            appointmentsCache = appointmentsCache.map(item => {
+                if (item.id === id) {
+                    return { ...item, ...patch };
+                }
+                return item;
+            });
+            saveAppointmentsCache();
+        }
+
+        function openChat(appointmentId) {
+            if (window.Android) {
+                Android.navigateToChat(appointmentId);
+            }
+        }
+
+        document.querySelectorAll('.filter-pill').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                filterType = btn.dataset.filter || 'all';
+                loadAppointments(true);
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const cancelBtn = document.getElementById('cancel-delete-btn');
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    pendingDelete = null;
+                    hideDeleteConfirm();
+                });
+            }
+            const confirmBtn = document.getElementById('confirm-delete-btn');
+            if (confirmBtn) {
+                confirmBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    confirmDeleteConversation();
+                });
+            }
+            loadAppointments(true);
+        });
+
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                loadAppointments(true);
+            }
+        });
+    </script>
+</body>
+</html>
