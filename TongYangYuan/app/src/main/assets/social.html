@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>社交广场</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body {
+            background-color: #F7F9FC;
+        }
+        .post-card {
+            background: #fff;
+            margin-bottom: 12px;
+            padding: 16px;
+        }
+        .post-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #eee;
+            margin-right: 12px;
+            overflow: hidden;
+        }
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .user-info {
+            flex: 1;
+        }
+        .user-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+        .post-time {
+            font-size: 12px;
+            color: #999;
+            margin-top: 2px;
+        }
+        .post-content {
+            font-size: 15px;
+            color: #333;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+        .post-images {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
+            margin-bottom: 12px;
+        }
+        .post-image {
+            aspect-ratio: 1;
+            background: #f0f0f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .post-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .post-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 12px;
+            border-top: 1px solid #f0f0f0;
+        }
+        .action-btn {
+            display: flex;
+            align-items: center;
+            color: #666;
+            font-size: 14px;
+            gap: 6px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        
+        /* 点赞动画 */
+        .heart-icon {
+            transition: transform 0.2s;
+        }
+        .action-btn.liked .heart-icon {
+            color: #ff4d4f;
+            animation: heartPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .action-btn.liked {
+            color: #ff4d4f;
+        }
+        
+        @keyframes heartPop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
+
+        .fab {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            background: #6FA6F8;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(111, 166, 248, 0.4);
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 100;
+        }
+        .fab:active {
+            transform: scale(0.95);
+        }
+
+        /* 评论弹窗样式 */
+        .comment-sheet {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        .comment-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .comment-panel {
+            background: white;
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            height: 70vh;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            z-index: 201;
+        }
+
+        .comment-sheet.visible {
+            pointer-events: auto;
+        }
+
+        .comment-sheet.visible .comment-backdrop {
+            opacity: 1;
+        }
+
+        .comment-sheet.visible .comment-panel {
+            transform: translateY(0);
+        }
+
+        .sheet-header {
+            padding: 16px;
+            text-align: center;
+            font-weight: 600;
+            border-bottom: 1px solid #eee;
+            position: relative;
+        }
+
+        .close-sheet {
+            position: absolute;
+            right: 16px;
+            top: 16px;
+            color: #999;
+            cursor: pointer;
+        }
+
+        .comments-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .comment-item {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .comment-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #eee;
+            overflow: hidden;
+        }
+
+        .comment-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .comment-content-box {
+            flex: 1;
+        }
+
+        .comment-user {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .comment-text {
+            font-size: 15px;
+            color: #333;
+            line-height: 1.5;
+        }
+
+        .comment-time {
+            font-size: 12px;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        .comment-input-area {
+            padding: 12px 16px;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            padding-bottom: calc(12px + env(safe-area-inset-bottom));
+        }
+
+        .comment-input {
+            flex: 1;
+            background: #f5f5f5;
+            border: none;
+            border-radius: 20px;
+            padding: 10px 16px;
+            font-size: 14px;
+        }
+
+        .comment-input:focus {
+            outline: none;
+            background: #eee;
+        }
+
+        .send-comment-btn {
+            color: #6FA6F8;
+            font-weight: 600;
+            font-size: 15px;
+            padding: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-app-bar glass">
+        <div class="title">社交广场</div>
+    </div>
+
+    <div class="content" style="padding-top: 60px;">
+        <div id="postsList">
+            <!-- 帖子列表 -->
+        </div>
+    </div>
+
+    <div class="fab" onclick="navigateToCreatePost()">+</div>
+
+    <!-- 评论弹窗 -->
+    <div class="comment-sheet" id="commentSheet">
+        <div class="comment-backdrop" onclick="closeComments()"></div>
+        <div class="comment-panel">
+            <div class="sheet-header">
+                评论 <span id="commentCountTitle">0</span>
+                <div class="close-sheet" onclick="closeComments()">✕</div>
+            </div>
+            <div class="comments-list" id="commentsList">
+                <!-- 评论内容 -->
+            </div>
+            <div class="comment-input-area">
+                <input type="text" class="comment-input" id="commentInput" placeholder="说点什么...">
+                <div class="send-comment-btn" onclick="submitComment()">发送</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        // 模拟帖子数据
+        let posts = [
+            {
+                id: 1,
+                userName: "张医生",
+                avatar: "",
+                time: "10分钟前",
+                content: "今天分享关于儿童专注力培养的小技巧：\n1. 创造安静的环境\n2. 分段完成任务\n3. 及时给予鼓励",
+                likes: 128,
+                comments: 32,
+                liked: false,
+                images: []
+            },
+            {
+                id: 2,
+                userName: "小明妈妈",
+                avatar: "",
+                time: "30分钟前",
+                content: "感谢童养园的老师，孩子最近情绪稳定多了，愿意和我们沟通了！",
+                likes: 45,
+                comments: 12,
+                liked: false,
+                images: []
+            },
+            {
+                id: 3,
+                userName: "李医生",
+                avatar: "",
+                time: "1小时前",
+                content: "【科普】青春期孩子的心理变化：\n家长要学会倾听，而不是一味的说教。理解是沟通的前提。",
+                likes: 256,
+                comments: 68,
+                liked: false,
+                images: []
+            }
+        ];
+
+        let currentPostId = null;
+        let commentsData = {
+            1: [
+                { id: 101, userName: "李妈妈", content: "太实用了，收藏了！", time: "5分钟前", avatar: "" },
+                { id: 102, userName: "王爸爸", content: "我家孩子就是坐不住，试试这个方法。", time: "2分钟前", avatar: "" }
+            ],
+            2: [
+                { id: 201, userName: "张医生", content: "很高兴看到孩子的进步，继续加油！", time: "10分钟前", avatar: "" }
+            ]
+        };
+
+        function openComments(postId) {
+            currentPostId = postId;
+            const sheet = document.getElementById('commentSheet');
+            const list = document.getElementById('commentsList');
+            const countTitle = document.getElementById('commentCountTitle');
+            
+            // 获取该帖子的评论数据
+            const comments = commentsData[postId] || [];
+            countTitle.textContent = comments.length;
+            
+            renderCommentsList(comments);
+            
+            sheet.classList.add('visible');
+            
+            // 聚焦输入框 (可选)
+            // document.getElementById('commentInput').focus();
+        }
+
+        function closeComments() {
+            const sheet = document.getElementById('commentSheet');
+            sheet.classList.remove('visible');
+            document.getElementById('commentInput').blur();
+            currentPostId = null;
+        }
+
+        function renderCommentsList(comments) {
+            const list = document.getElementById('commentsList');
+            if (comments.length === 0) {
+                list.innerHTML = '<div style="text-align:center;color:#999;padding:20px;">暂无评论，快来抢沙发吧~</div>';
+                return;
+            }
+            
+            list.innerHTML = comments.map(c => `
+                <div class="comment-item">
+                    <div class="comment-avatar">
+                         ${c.avatar ? `<img src="${c.avatar}">` : `<div style="width:100%;height:100%;background:#eee;display:flex;align-items:center;justify-content:center;color:#666;font-size:12px;">${c.userName[0]}</div>`}
+                    </div>
+                    <div class="comment-content-box">
+                        <div class="comment-user">${c.userName}</div>
+                        <div class="comment-text">${c.content}</div>
+                        <div class="comment-time">${c.time}</div>
+                    </div>
+                </div>
+            `).join('');
+            
+            // 滚动到底部
+            list.scrollTop = list.scrollHeight;
+        }
+
+        function submitComment() {
+            const input = document.getElementById('commentInput');
+            const content = input.value.trim();
+            if (!content) return;
+            
+            if (!currentPostId) return;
+            
+            // 模拟发送评论
+            const newComment = {
+                id: Date.now(),
+                userName: "我", // 实际应获取当前用户信息
+                content: content,
+                time: "刚刚",
+                avatar: ""
+            };
+            
+            if (!commentsData[currentPostId]) {
+                commentsData[currentPostId] = [];
+            }
+            commentsData[currentPostId].push(newComment);
+            
+            // 更新UI
+            renderCommentsList(commentsData[currentPostId]);
+            document.getElementById('commentCountTitle').textContent = commentsData[currentPostId].length;
+            
+            // 清空输入框
+            input.value = '';
+            
+            // 更新列表页的评论数显示
+            const postIndex = posts.findIndex(p => p.id === currentPostId);
+            if (postIndex !== -1) {
+                posts[postIndex].comments += 1;
+                renderPosts(posts); // 简单重新渲染整个列表，实际可优化
+            }
+            
+            showToast('评论成功');
+        }
+
+        function loadPosts() {
+            // 合并本地发布的帖子
+            const localPosts = JSON.parse(localStorage.getItem('local_posts') || '[]');
+            // 将本地帖子插在最前面
+            const allPosts = [...localPosts, ...posts];
+            
+            // 去重（简单根据id，虽然实际开发id应该唯一）
+            const seen = new Set();
+            const uniquePosts = allPosts.filter(el => {
+                const duplicate = seen.has(el.id);
+                seen.add(el.id);
+                return !duplicate;
+            });
+
+            renderPosts(uniquePosts);
+        }
+
+        function renderPosts(displayPosts) {
+            const list = document.getElementById('postsList');
+            list.innerHTML = displayPosts.map(post => `
+                <div class="post-card">
+                    <div class="post-header">
+                        <div class="user-avatar">
+                            ${post.avatar ? `<img src="${post.avatar}">` : `<div style="width:100%;height:100%;background:#BDEBC8;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;">${post.userName[0]}</div>`}
+                        </div>
+                        <div class="user-info">
+                            <div class="user-name">${post.userName}</div>
+                            <div class="post-time">${post.time}</div>
+                        </div>
+                    </div>
+                    <div class="post-content">${post.content.replace(/\n/g, '<br>')}</div>
+                    ${post.images && post.images.length > 0 ? `
+                        <div class="post-images">
+                            ${post.images.map(img => `
+                                <div class="post-image">
+                                    <img src="${img}">
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                    <div class="post-footer">
+                        <div class="action-btn ${post.liked ? 'liked' : ''}" onclick="toggleLike(${post.id}, this)">
+                            <span class="heart-icon">${post.liked ? '❤️' : '🤍'}</span> 
+                            <span class="like-count">${post.likes}</span>
+                        </div>
+                        <div class="action-btn" onclick="openComments(${post.id})">
+                            <span>💬</span> ${post.comments}
+                        </div>
+                        <div class="action-btn">
+                            <span>🔗</span> 分享
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function toggleLike(postId, btnElement) {
+            // 在实际应用中，这里应该查找数据源并更新，然后发送网络请求
+            // 这里我们仅做 UI 效果演示
+            
+            // 找到对应的帖子对象（这里简化处理，只更新 UI）
+            const likeIcon = btnElement.querySelector('.heart-icon');
+            const likeCount = btnElement.querySelector('.like-count');
+            
+            const isLiked = btnElement.classList.contains('liked');
+            
+            if (isLiked) {
+                btnElement.classList.remove('liked');
+                likeIcon.textContent = '🤍';
+                likeCount.textContent = parseInt(likeCount.textContent) - 1;
+            } else {
+                btnElement.classList.add('liked');
+                likeIcon.textContent = '❤️';
+                likeCount.textContent = parseInt(likeCount.textContent) + 1;
+            }
+        }
+
+        function navigateToCreatePost() {
+            window.location.href = 'create_post.html';
+        }
+
+        function showToast(msg) {
+            if (window.Android && window.Android.showToast) {
+                window.Android.showToast(msg);
+            } else {
+                alert(msg);
+            }
+        }
+
+        // 页面加载时渲染
+        loadPosts();
+        
+        // 每次页面显示时（例如从发布页返回）重新加载，以显示新发布的帖子
+        // 注意：WebView 的 onResume 可能不会触发页面刷新，除非手动 reload
+        // 但如果是在单页应用或使用 history.back()，可能需要监听 visibilitychange
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible') {
+                loadPosts();
+            }
+        });
+    </script>
+</body>
+</html>

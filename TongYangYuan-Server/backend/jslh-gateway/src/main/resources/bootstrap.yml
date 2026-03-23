@@ -1,0 +1,63 @@
+server:
+  port: 18080
+
+spring:
+  application:
+    name: jslh-gateway-server
+  #环境 dev|test|prod
+  profiles:
+    active: dev
+  messages:
+    encoding: UTF-8
+    basename: i18n/messages_common
+  main:
+    allow-bean-definition-overriding: true
+  cloud:
+    gateway:
+      server:
+        webflux:
+          metrics:
+            enabled: true
+          discovery:
+            locator:
+              enabled: true
+    nacos:
+      discovery:
+        metadata:
+          management:
+            context-path: /actuator
+        server-addr: ${nacos_host:nacos-host}:${nacos_port:8848}
+        namespace: ${nacos_namespace:}
+      config:
+        server-addr: ${spring.cloud.nacos.discovery.server-addr}
+        namespace: ${nacos_namespace:}
+      username: ${nacos_username:nacos}
+      password: ${nacos_password:nacos}
+  config:
+    import:
+      - optional:nacos:datasource.yaml?group=JSLH_CLOUD_GROUP&namespace=${nacos_namespace:}&refreshEnabled=true
+      - optional:nacos:common.yaml?group=JSLH_CLOUD_GROUP&namespace=${nacos_namespace:}&refreshEnabled=true
+
+knife4j:
+  gateway:
+    enabled: true
+    strategy: manual
+    routes:
+      - name: Admin服务
+        url: /sys/v3/api-docs/default
+        context-path: /sys
+      - name: OSS服务
+        url: /oss/v3/api-docs/default
+        context-path: /oss
+      - name: 消息服务
+        url: /message/v3/api-docs/default
+        context-path: /message
+      - name: 工作流服务
+        url: /flow/v3/api-docs/default
+        context-path: /flow
+      - name: 代码生成器
+        url: /devtools/v3/api-docs/default
+        context-path: /devtools
+      - name: APP流服务
+        url: /api/v3/api-docs/default
+        context-path: /api

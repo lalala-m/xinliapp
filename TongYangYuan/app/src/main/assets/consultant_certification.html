@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>黄V咨询师认证</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .cert-hero {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            border-radius: 22px;
+            padding: 24px;
+            margin: 16px;
+            text-align: center;
+            color: white;
+        }
+
+        .cert-hero h2 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .cert-hero p {
+            font-size: 14px;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+
+        .form-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #E0E0E0;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .form-input:focus {
+            border-color: #FFA500;
+        }
+
+        .upload-area {
+            border: 2px dashed #E0E0E0;
+            border-radius: 12px;
+            padding: 32px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        .upload-area:hover {
+            border-color: #FFA500;
+        }
+
+        .upload-icon {
+            font-size: 32px;
+            color: #999;
+            margin-bottom: 8px;
+        }
+
+        .upload-text {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 200px;
+            margin-top: 16px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .status-steps {
+            display: flex;
+            justify-content: space-between;
+            margin: 24px 0;
+            position: relative;
+        }
+
+        .status-steps::before {
+            content: '';
+            position: absolute;
+            top: 12px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #E0E0E0;
+            z-index: 0;
+        }
+
+        .step-item {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            flex: 1;
+        }
+
+        .step-circle {
+            width: 24px;
+            height: 24px;
+            background: #E0E0E0;
+            border-radius: 50%;
+            margin: 0 auto 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .step-item.active .step-circle {
+            background: #FFA500;
+        }
+
+        .step-item.completed .step-circle {
+            background: #4CAF50;
+        }
+
+        .step-text {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .step-item.active .step-text {
+            color: #FFA500;
+            font-weight: bold;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(255, 165, 0, 0.3);
+        }
+
+        .submit-btn:disabled {
+            background: #CCC;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+        
+        .pay-btn {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+            margin-top: 12px;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="back-btn" onclick="history.back()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </div>
+    <h1>黄V咨询师认证</h1>
+</div>
+
+<div class="cert-hero">
+    <h2>申请成为黄V咨询师</h2>
+    <p>仅限指导对应专业领域<br>需上传相关资质证书并缴纳保证金</p>
+</div>
+
+<div class="form-card">
+    <div class="status-steps">
+        <div class="step-item active" id="step1">
+            <div class="step-circle">1</div>
+            <div class="step-text">提交申请</div>
+        </div>
+        <div class="step-item" id="step2">
+            <div class="step-circle">2</div>
+            <div class="step-text">缴纳保证金</div>
+        </div>
+        <div class="step-item" id="step3">
+            <div class="step-circle">3</div>
+            <div class="step-text">等待审核</div>
+        </div>
+        <div class="step-item" id="step4">
+            <div class="step-circle">4</div>
+            <div class="step-text">认证完成</div>
+        </div>
+    </div>
+
+    <div id="applicationForm">
+        <div class="form-group">
+            <label class="form-label">擅长领域 (必填)</label>
+            <input type="text" id="specialtyInput" class="form-input" placeholder="例如：家庭教育, 青少年心理 (用逗号分隔)">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">上传资质证书 (图片)</label>
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <div class="upload-icon">📷</div>
+                <div class="upload-text">点击上传证书照片</div>
+                <input type="file" id="fileInput" accept="image/*" style="display: none" onchange="handleFileSelect(event)">
+                <img id="imagePreview" class="preview-image">
+            </div>
+        </div>
+
+        <button class="submit-btn" onclick="submitApplication()">提交认证申请</button>
+    </div>
+
+    <div id="paymentSection" style="display: none; padding-top: 20px;">
+        <div class="payment-header-small" style="text-align: center; margin-bottom: 24px;">
+            <div class="payment-amount" style="font-size: 40px; font-weight: 800; color: #333; margin-bottom: 4px;">¥500.00</div>
+            <div class="payment-desc" style="font-size: 14px; color: #666;">黄V认证保证金</div>
+        </div>
+
+        <div class="payment-methods-container" style="background: white; border-radius: 16px; padding: 0; box-shadow: none; margin-bottom: 24px;">
+            <div class="section-title" style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 16px;">选择支付方式</div>
+            
+            <div class="payment-method selected" data-method="wechat" onclick="selectCertPaymentMethod('wechat')" style="
+                position: relative;
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                padding: 16px;
+                border: 2px solid #667eea;
+                border-radius: 12px;
+                background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+                cursor: pointer;
+                margin-bottom: 12px;
+                transition: all 0.3s;
+            ">
+                <div class="payment-icon-wrapper" style="
+                    width: 48px;
+                    height: 48px;
+                    border-radius: 10px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: white;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+                ">
+                    <img src="images/WeChat.webp" alt="微信支付" style="width: 32px; height: 32px; object-fit: contain;">
+                </div>
+                <div class="payment-info" style="flex: 1;">
+                    <div class="payment-name" style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 2px;">微信支付</div>
+                    <div class="payment-subtitle" style="font-size: 12px; color: #999;">推荐使用微信支付</div>
+                </div>
+                <div class="payment-check" style="
+                    width: 24px;
+                    height: 24px;
+                    border-radius: 50%;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                ">
+                    <svg viewBox="0 0 24 24" fill="none" style="width: 14px; height: 14px; stroke: white; stroke-width: 3;">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="payment-method" data-method="alipay" onclick="selectCertPaymentMethod('alipay')" style="
+                position: relative;
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                padding: 16px;
+                border: 2px solid transparent;
+                border-radius: 12px;
+                background: #F8F9FA;
+                cursor: pointer;
+                margin-bottom: 12px;
+                transition: all 0.3s;
+            ">
+                <div class="payment-icon-wrapper" style="
+                    width: 48px;
+                    height: 48px;
+                    border-radius: 10px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: white;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+                ">
+                    <img src="images/ZFB.webp" alt="支付宝" style="width: 32px; height: 32px; object-fit: contain;">
+                </div>
+                <div class="payment-info" style="flex: 1;">
+                    <div class="payment-name" style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 2px;">支付宝</div>
+                    <div class="payment-subtitle" style="font-size: 12px; color: #999;">数亿用户的选择</div>
+                </div>
+                <div class="payment-check" style="
+                    width: 24px;
+                    height: 24px;
+                    border-radius: 50%;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    opacity: 0;
+                    transform: scale(0);
+                ">
+                    <svg viewBox="0 0 24 24" fill="none" style="width: 14px; height: 14px; stroke: white; stroke-width: 3;">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <button class="submit-btn" onclick="payDeposit()" style="
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+            border-radius: 16px;
+            padding: 16px;
+            font-size: 18px;
+        ">立即支付 ¥500.00</button>
+    </div>
+
+    <div id="waitingSection" style="display: none; text-align: center;">
+        <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
+        <h3>等待审核中</h3>
+        <p style="color: #666;">您的申请和保证金已收到，管理员正在审核中。<br>请耐心等待。</p>
+    </div>
+    
+    <div id="approvedSection" style="display: none; text-align: center;">
+        <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
+        <h3>认证已通过</h3>
+        <p style="color: #666;">恭喜您成为黄V认证咨询师！<br>您现在可以指导对应领域的用户。</p>
+    </div>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+    let currentStatus = {};
+    let selectedFile = null;
+    let selectedPaymentMethod = 'wechat';
+
+    document.addEventListener('DOMContentLoaded', () => {
+        checkStatus();
+    });
+
+    function selectCertPaymentMethod(method) {
+        selectedPaymentMethod = method;
+        document.querySelectorAll('.payment-method').forEach(el => {
+            el.style.border = '2px solid transparent';
+            el.style.background = '#F8F9FA';
+            el.classList.remove('selected');
+            const check = el.querySelector('.payment-check');
+            check.style.opacity = '0';
+            check.style.transform = 'scale(0)';
+            check.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'; // Reset background
+        });
+
+        const selectedEl = document.querySelector(`.payment-method[data-method="${method}"]`);
+        selectedEl.classList.add('selected');
+        selectedEl.style.border = '2px solid #667eea';
+        selectedEl.style.background = 'linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%)';
+        
+        const check = selectedEl.querySelector('.payment-check');
+        check.style.opacity = '1';
+        check.style.transform = 'scale(1)';
+    }
+
+    function handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (file) {
+            selectedFile = file;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.getElementById('imagePreview');
+                img.src = e.target.result;
+                img.style.display = 'block';
+                document.querySelector('.upload-text').style.display = 'none';
+                document.querySelector('.upload-icon').style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    async function checkStatus() {
+        try {
+            const response = await fetchWithAuth('/api/consultant/certification/status');
+            if (response.ok) {
+                currentStatus = await response.json();
+                updateUI(currentStatus);
+            }
+        } catch (error) {
+            console.error('Failed to fetch status:', error);
+        }
+    }
+
+    function updateUI(status) {
+        // 重置所有步骤状态
+        document.querySelectorAll('.step-item').forEach(el => {
+            el.classList.remove('active', 'completed');
+        });
+
+        // 根据状态显示对应区域
+        document.getElementById('applicationForm').style.display = 'none';
+        document.getElementById('paymentSection').style.display = 'none';
+        document.getElementById('waitingSection').style.display = 'none';
+        document.getElementById('approvedSection').style.display = 'none';
+        
+        // 填充表单回显
+        if (status.specialty) {
+            document.getElementById('specialtyInput').value = status.specialty;
+        }
+
+        if (status.identityTier === 'SILVER' || status.identityTier === 'GOLD' || status.identityTier === 'PLATINUM') {
+             // 已认证
+             document.getElementById('step1').classList.add('completed');
+             document.getElementById('step2').classList.add('completed');
+             document.getElementById('step3').classList.add('completed');
+             document.getElementById('step4').classList.add('completed');
+             document.getElementById('approvedSection').style.display = 'block';
+             return;
+        }
+
+        if (!status.isApplied) {
+            // 未申请
+            document.getElementById('step1').classList.add('active');
+            document.getElementById('applicationForm').style.display = 'block';
+        } else if (!status.isDepositPaid) {
+            // 已申请，未交保证金
+            document.getElementById('step1').classList.add('completed');
+            document.getElementById('step2').classList.add('active');
+            document.getElementById('paymentSection').style.display = 'block';
+        } else if (!status.isVerified) {
+            // 已交保证金，待审核
+            document.getElementById('step1').classList.add('completed');
+            document.getElementById('step2').classList.add('completed');
+            document.getElementById('step3').classList.add('active');
+            document.getElementById('waitingSection').style.display = 'block';
+        } else {
+             // 应该是已通过，但identityTier未更新？或者是被驳回？
+             // 简单处理为待审核
+             document.getElementById('waitingSection').style.display = 'block';
+        }
+    }
+
+    async function submitApplication() {
+        const specialty = document.getElementById('specialtyInput').value.trim();
+        if (!specialty) {
+            showToast('请填写擅长领域');
+            return;
+        }
+        if (!selectedFile && !currentStatus.certificateUrl) { // 如果已有URL则不需要重新上传
+            showToast('请上传资质证书');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('specialty', specialty);
+        if (selectedFile) {
+            formData.append('file', selectedFile);
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/consultant/certification/apply`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    // Do NOT set Content-Type header when using FormData, browser does it automatically with boundary
+                },
+                body: formData
+            });
+
+            if (response.ok) {
+                showToast('申请提交成功');
+                checkStatus();
+            } else {
+                const err = await response.json();
+                showToast(err.error || '提交失败');
+            }
+        } catch (error) {
+            showToast('网络错误');
+        }
+    }
+
+    async function payDeposit() {
+        if (!confirm(`确定使用 ${selectedPaymentMethod === 'wechat' ? '微信' : '支付宝'} 支付 ¥500.00 保证金吗？(模拟支付)`)) return;
+
+        try {
+            const response = await fetchWithAuth('/api/consultant/certification/pay', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ amount: 500, method: selectedPaymentMethod })
+            });
+
+            if (response.ok) {
+                showToast('保证金缴纳成功');
+                checkStatus();
+            } else {
+                const err = await response.json();
+                showToast(err.error || '支付失败');
+            }
+        } catch (error) {
+            showToast('网络错误');
+        }
+    }
+</script>
+
+</body>
+</html>

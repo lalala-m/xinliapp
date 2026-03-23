@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>咨询会员充值</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .content {
+            padding: 16px;
+            padding-bottom: 100px;
+        }
+
+        .plan-card {
+            padding: 24px;
+            border: 3px solid transparent;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .plan-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .plan-icon {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .plan-content {
+            flex: 1;
+        }
+
+        .plan-card:active {
+            transform: scale(0.98);
+        }
+
+        .plan-card.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.25);
+        }
+
+        .plan-card.selected::before {
+            opacity: 1;
+        }
+
+        .plan-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .plan-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2C3345;
+        }
+
+        .plan-price {
+            font-size: 24px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .plan-desc {
+            font-size: 14px;
+            color: #627089;
+        }
+
+        .plan-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .plan-card.selected .plan-badge {
+            opacity: 1;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 16px;
+            margin-top: 24px;
+        }
+
+        .payment-methods {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .payment-btn {
+            padding: 20px;
+            border: 3px solid transparent;
+            border-radius: 16px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            position: relative;
+        }
+
+        .payment-btn:active {
+            transform: scale(0.96);
+        }
+
+        .payment-btn.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.25);
+        }
+
+        .payment-icon-wrapper {
+            width: 64px;
+            height: 64px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #F5F5F5;
+        }
+
+        .payment-icon {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+        }
+
+        .payment-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2C3345;
+        }
+
+        .payment-check {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .payment-btn.selected .payment-check {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+
+        .confirm-btn {
+            width: calc(100% - 32px);
+            margin: 16px;
+            padding: 18px;
+            border-radius: 16px;
+            border: none;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: fixed;
+            bottom: 16px;
+            left: 16px;
+            right: 16px;
+            max-width: 488px;
+            margin: 0 auto;
+        }
+
+        .confirm-btn:active {
+            transform: scale(0.98);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .confirm-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .top-app-bar {
+            background: transparent;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .top-app-bar .title {
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-app-bar glass">
+        <div class="title">会员充值</div>
+    </div>
+
+    <div class="content">
+        <div class="section-title">选择会员套餐</div>
+        <div class="plan-card" onclick="selectPlan('month', 99, event)">
+            <div class="plan-icon">月</div>
+            <div class="plan-content">
+                <div class="plan-header">
+                    <div class="plan-name">月度会员</div>
+                    <div class="plan-price">¥99</div>
+                </div>
+                <div class="plan-desc">30天无限次咨询服务</div>
+            </div>
+            <div class="plan-badge">已选择</div>
+        </div>
+        <div class="plan-card" onclick="selectPlan('quarter', 269, event)">
+            <div class="plan-icon">季</div>
+            <div class="plan-content">
+                <div class="plan-header">
+                    <div class="plan-name">季度会员</div>
+                    <div class="plan-price">¥269</div>
+                </div>
+                <div class="plan-desc">90天无限次咨询服务 · 省30元</div>
+            </div>
+            <div class="plan-badge">已选择</div>
+        </div>
+
+        <div class="section-title">选择支付方式</div>
+        <div class="payment-methods">
+            <div class="payment-btn" onclick="selectPayment('alipay', event)">
+                <div class="payment-icon-wrapper">
+                    <img class="payment-icon" src="images/ZFB.webp" alt="支付宝">
+                </div>
+                <div class="payment-name">支付宝</div>
+                <div class="payment-check">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M13.5 4L6 11.5L2.5 8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="payment-btn" onclick="selectPayment('wechat', event)">
+                <div class="payment-icon-wrapper">
+                    <img class="payment-icon" src="images/WeChat.webp" alt="微信支付">
+                </div>
+                <div class="payment-name">微信支付</div>
+                <div class="payment-check">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M13.5 4L6 11.5L2.5 8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="qr-container" id="qrContainer" onclick="handleQRClick()">
+            <div class="qr-title">扫码支付</div>
+            <div class="qr-amount" id="qrAmount">¥0</div>
+            <div class="qr-hint">请使用<span id="paymentName">支付宝</span>扫描二维码完成支付</div>
+            <div class="qr-placeholder" id="qrPlaceholder">
+                <span>请选择套餐和支付方式</span>
+            </div>
+            <div class="qr-actions">
+                <button class="qr-btn" onclick="refreshQR(event)">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style="display: inline-block; vertical-align: middle; margin-right: 4px;">
+                        <path d="M13.65 2.35C12.2 0.9 10.21 0 8 0 3.58 0 0 3.58 0 8h2c0-3.31 2.69-6 6-6 1.66 0 3.14.69 4.22 1.78L9 7h7V0l-2.35 2.35z"/>
+                        <path d="M14 8c0 3.31-2.69 6-6 6-1.66 0-3.14-.69-4.22-1.78L7 9H0v7l2.35-2.35C3.8 15.1 5.79 16 8 16c4.42 0 8-3.58 8-8h-2z"/>
+                    </svg>
+                    刷新二维码
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <button class="btn btn-primary confirm-btn" onclick="confirmPay()">
+        确认支付
+    </button>
+
+    <script src="js/app.js"></script>
+    <script>
+        let selectedPlan = '';
+        let selectedPayment = '';
+        let selectedAmount = 0;
+
+        function selectPlan(plan, amount, evt) {
+            selectedPlan = plan;
+            selectedAmount = amount;
+            document.querySelectorAll('.plan-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            if (evt && evt.currentTarget) {
+                evt.currentTarget.classList.add('selected');
+            }
+            
+        }
+
+        function selectPayment(payment, evt) {
+            selectedPayment = payment;
+            document.querySelectorAll('.payment-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            if (evt && evt.currentTarget) {
+                evt.currentTarget.classList.add('selected');
+            }
+
+            
+        }
+
+        function updateQRCode() {}
+
+        function refreshQR(event) {
+            return;
+        }
+
+        function handleQRClick() {
+            return;
+        }
+
+        function confirmPay() {
+            if (!selectedPlan) {
+                showToast('请先选择会员套餐');
+                return;
+            }
+
+            // 跳转到统一支付页面
+            const planNames = {
+                'month': '月度会员',
+                'quarter': '季度会员'
+            };
+            
+            const params = new URLSearchParams({
+                amount: selectedAmount,
+                desc: planNames[selectedPlan] || '会员套餐',
+                productName: planNames[selectedPlan],
+                planId: selectedPlan,
+                orderNumber: generateOrderNumber()
+            });
+
+            window.location.href = `payment.html?${params.toString()}`;
+        }
+
+        function generateOrderNumber() {
+            const timestamp = Date.now();
+            const random = Math.floor(Math.random() * 10000);
+            return `TYY${timestamp}${random}`;
+        }
+    </script>
+</body>
+</html>
+

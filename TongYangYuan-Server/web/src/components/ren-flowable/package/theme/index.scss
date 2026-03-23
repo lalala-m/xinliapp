@@ -1,0 +1,11 @@
+@use "./process-designer.scss";
+@use "./process-panel.scss";
+
+.el-form {
+	.el-select,.el-date-editor.el-input, .el-range-editor.el-input__inner {
+			width: 100%;
+	}
+}
+//a.bjs-powered-by {
+//	display: none
+//}

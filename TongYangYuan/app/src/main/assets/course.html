@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>课程详情</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .video-container {
+            width: 100%;
+            background: #000;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .video-container video {
+            width: 100%;
+            max-height: 40vh;
+            display: block;
+        }
+        .course-body {
+            padding: 16px;
+        }
+        .course-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 6px;
+        }
+        .course-desc {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 12px;
+        }
+        .progress-bar-wrapper {
+            background: #e5e7eb;
+            height: 6px;
+            border-radius: 999px;
+            overflow: hidden;
+            margin-top: 4px;
+            margin-bottom: 4px;
+        }
+        .progress-bar-inner {
+            height: 100%;
+            width: 0%;
+            background: #22c55e;
+            transition: width 0.3s;
+        }
+        .progress-text {
+            font-size: 12px;
+            color: #9ca3af;
+            text-align: right;
+            margin-bottom: 12px;
+        }
+        .video-list {
+            margin-top: 4px;
+            border-radius: 16px;
+            background: #fff;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+        .video-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 14px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .video-item:last-child {
+            border-bottom: none;
+        }
+        .video-status {
+            width: 26px;
+            height: 26px;
+            border-radius: 999px;
+            border: 2px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-size: 12px;
+            color: #6b7280;
+        }
+        .video-item.active .video-status {
+            border-color: #60a5fa;
+            color: #3b82f6;
+        }
+        .video-item.completed .video-status {
+            background: #22c55e;
+            border-color: #22c55e;
+            color: #fff;
+        }
+        .video-info {
+            flex: 1;
+        }
+        .video-title {
+            font-size: 14px;
+            color: #111827;
+            margin-bottom: 2px;
+        }
+        .video-duration {
+            font-size: 12px;
+            color: #9ca3af;
+        }
+        .video-extra {
+            font-size: 11px;
+            color: #22c55e;
+        }
+        .empty-text {
+            text-align: center;
+            color: #9ca3af;
+            font-size: 13px;
+            padding: 32px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="video-container">
+        <video id="videoPlayer" controls playsinline></video>
+    </div>
+
+    <div class="course-body">
+        <div class="course-title" id="packageTitle">加载中...</div>
+        <div class="course-desc" id="packageDesc"></div>
+        <div class="progress-bar-wrapper">
+            <div class="progress-bar-inner" id="totalProgress"></div>
+        </div>
+        <div class="progress-text">
+            已完成 <span id="progressText">0%</span>
+        </div>
+
+        <div class="video-list" id="videoList">
+            <div class="empty-text">正在加载视频列表...</div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        let packageId = null;
+        let videos = [];
+        let currentVideo = null;
+        let packageProgress = {};
+        let progressMap = {};
+
+        function getApiBase() {
+            if (window.Android && typeof Android.getBaseUrl === "function") {
+                return Android.getBaseUrl();
+            }
+            if (window.API_BASE_URL) {
+                return window.API_BASE_URL + "/api";
+            }
+            return "http://10.0.2.2:8080/api";
+        }
+
+        function getAuthToken() {
+            try {
+                if (window.Android && typeof Android.getToken === "function") {
+                    const t = Android.getToken();
+                    if (t) return t;
+                }
+            } catch (e) {}
+            const saved = localStorage.getItem("token");
+            return saved || "";
+        }
+
+        async function apiGet(path) {
+            const base = getApiBase();
+            const token = getAuthToken();
+            const headers = {};
+            if (token) {
+                headers["Authorization"] = "Bearer " + token;
+            }
+            const res = await fetch(base + path, { headers: headers });
+            if (!res.ok) {
+                throw new Error("网络错误");
+            }
+            const json = await res.json();
+            if (json && typeof json.code !== "undefined") {
+                if (json.code === 200) {
+                    return json.data;
+                }
+                throw new Error(json.message || "请求失败");
+            }
+            return json;
+        }
+
+        async function apiPost(path, body) {
+            const base = getApiBase();
+            const token = getAuthToken();
+            const headers = { "Content-Type": "application/json" };
+            if (token) {
+                headers["Authorization"] = "Bearer " + token;
+            }
+            const res = await fetch(base + path, {
+                method: "POST",
+                headers: headers,
+                body: JSON.stringify(body)
+            });
+            if (!res.ok) {
+                throw new Error("网络错误");
+            }
+            const json = await res.json();
+            if (json && typeof json.code !== "undefined") {
+                if (json.code === 200) {
+                    return json.data;
+                }
+                throw new Error(json.message || "请求失败");
+            }
+            return json;
+        }
+
+        function parsePackageId() {
+            const params = new URLSearchParams(window.location.search);
+            const id = params.get("id");
+            if (!id) {
+                alert("参数错误");
+                window.history.back();
+                return;
+            }
+            packageId = id;
+        }
+
+        async function loadPackageDetail() {
+            try {
+                const data = await apiGet("/learning/packages/" + packageId);
+                const pkg = data.package || data;
+                document.getElementById("packageTitle").textContent = pkg.title || "";
+                document.getElementById("packageDesc").textContent = pkg.description || "";
+                videos = data.videos || [];
+                renderVideoList();
+            } catch (e) {
+                console.error(e);
+                document.getElementById("videoList").innerHTML = '<div class="empty-text">加载失败，请稍后重试</div>';
+            }
+        }
+
+        async function loadPackageProgress() {
+            try {
+                const data = await apiGet("/learning/packages/" + packageId + "/progress");
+                packageProgress = data || {};
+                const list = packageProgress.progressList || packageProgress.progress || [];
+                progressMap = {};
+                if (Array.isArray(list)) {
+                    list.forEach(function(p) {
+                        if (p && p.videoId) {
+                            progressMap[p.videoId] = p;
+                        }
+                    });
+                }
+                updateTotalProgress();
+                updateVideoItemsStatus();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function updateTotalProgress() {
+            const total = packageProgress.totalVideos || videos.length || 0;
+            const completed = packageProgress.completedVideos || 0;
+            let percent = 0;
+            if (total > 0) {
+                percent = Math.round(completed * 100 / total);
+            }
+            const bar = document.getElementById("totalProgress");
+            const text = document.getElementById("progressText");
+            bar.style.width = percent + "%";
+            text.textContent = percent + "%";
+        }
+
+        function renderVideoList() {
+            const listEl = document.getElementById("videoList");
+            if (!videos || videos.length === 0) {
+                listEl.innerHTML = '<div class="empty-text">暂无视频</div>';
+                return;
+            }
+            const html = videos.map(function(video, index) {
+                const progress = progressMap[video.id] || {};
+                const completed = progress.isCompleted || progress.completed || false;
+                const durationSeconds = video.duration || 0;
+                const minutes = Math.floor(durationSeconds / 60);
+                const seconds = durationSeconds % 60;
+                const durationText = minutes + "分" + seconds + "秒";
+                const extra = completed ? '<div class="video-extra">已完成</div>' : "";
+                const idAttr = "video-item-" + video.id;
+                const classes = ["video-item"];
+                if (completed) {
+                    classes.push("completed");
+                }
+                return (
+                    '<div class="' + classes.join(" ") + '" id="' + idAttr + '" onclick="playVideo(' + index + ')">' +
+                        '<div class="video-status">' + (completed ? "✓" : (index + 1)) + "</div>" +
+                        '<div class="video-info">' +
+                            '<div class="video-title">' + (video.title || "") + "</div>" +
+                            '<div class="video-duration">时长: " + durationText + "</div>" +
+                            extra +
+                        "</div>" +
+                    "</div>"
+                );
+            }).join("");
+            listEl.innerHTML = html;
+        }
+
+        function updateVideoItemsStatus() {
+            if (!videos || videos.length === 0) {
+                return;
+            }
+            videos.forEach(function(video, index) {
+                const el = document.getElementById("video-item-" + video.id);
+                if (!el) {
+                    return;
+                }
+                const progress = progressMap[video.id] || {};
+                const completed = progress.isCompleted || progress.completed || false;
+                el.classList.remove("completed");
+                el.classList.remove("active");
+                const statusEl = el.querySelector(".video-status");
+                if (completed) {
+                    el.classList.add("completed");
+                    if (statusEl) {
+                        statusEl.textContent = "✓";
+                    }
+                } else if (statusEl) {
+                    statusEl.textContent = String(videos.indexOf(video) + 1);
+                }
+            });
+        }
+
+        function playVideo(index) {
+            const video = videos[index];
+            if (!video) {
+                return;
+            }
+            currentVideo = video;
+            const player = document.getElementById("videoPlayer");
+            player.src = video.videoUrl || "";
+            player.play().catch(function() {});
+            document.querySelectorAll(".video-item").forEach(function(el) {
+                el.classList.remove("active");
+            });
+            const currentEl = document.getElementById("video-item-" + video.id);
+            if (currentEl) {
+                currentEl.classList.add("active");
+            }
+        }
+
+        async function reportProgress(position, isCompleted) {
+            if (!currentVideo || !packageId) {
+                return;
+            }
+            try {
+                const body = {
+                    packageId: Number(packageId),
+                    watchDuration: Math.floor(position),
+                    lastPosition: Math.floor(position)
+                };
+                await apiPost("/learning/videos/" + currentVideo.id + "/progress", body);
+                if (isCompleted) {
+                    await loadPackageProgress();
+                    renderVideoList();
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function bindPlayerEvents() {
+            const player = document.getElementById("videoPlayer");
+            player.addEventListener("pause", function() {
+                reportProgress(player.currentTime || 0, false);
+            });
+            player.addEventListener("ended", function() {
+                reportProgress(player.duration || 0, true);
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            parsePackageId();
+            bindPlayerEvents();
+            loadPackageDetail();
+            loadPackageProgress();
+        });
+    </script>
+</body>
+</html>
+

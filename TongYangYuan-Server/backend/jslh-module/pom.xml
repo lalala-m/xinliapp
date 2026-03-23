@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>com.jslh</groupId>
+		<artifactId>jslh-cloud-tenant</artifactId>
+		<version>4.7.0</version>
+	</parent>
+
+	<groupId>com.jslh</groupId>
+	<artifactId>jslh-module</artifactId>
+	<packaging>pom</packaging>
+
+	<modules>
+		<module>jslh-oss</module>
+		<module>jslh-job</module>
+		<module>jslh-xxl-job</module>
+		<module>jslh-message</module>
+		<module>jslh-flow</module>
+		<module>jslh-api</module>
+		<module>jslh-seata</module>
+		<module>jslh-devtools</module>
+		<module>jslh-shardingsphere-demo</module>
+		<module>jslh-rocketmq-demo</module>
+	</modules>
+
+</project>

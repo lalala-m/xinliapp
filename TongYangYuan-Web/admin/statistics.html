@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据统计 - 童养园管理后台</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h2>童养园管理后台</h2>
+            </div>
+            <nav class="nav-menu">
+                <a href="index.html" class="nav-item">
+                    <span class="icon">📊</span>
+                    <span>数据概览</span>
+                </a>
+                <a href="users.html" class="nav-item">
+                    <span class="icon">👥</span>
+                    <span>用户管理</span>
+                </a>
+                <a href="consultants.html" class="nav-item">
+                    <span class="icon">👨‍⚕️</span>
+                    <span>咨询师管理</span>
+                </a>
+                <a href="learning.html" class="nav-item">
+                    <span class="icon">📚</span>
+                    <span>学习资源</span>
+                </a>
+                <a href="appointments.html" class="nav-item">
+                    <span class="icon">📅</span>
+                    <span>预约管理</span>
+                </a>
+                <a href="statistics.html" class="nav-item active">
+                    <span class="icon">📈</span>
+                    <span>数据统计</span>
+                </a>
+                <a href="#" class="nav-item" id="logoutBtn">
+                    <span class="icon">🚪</span>
+                    <span>退出登录</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 顶部栏 -->
+            <header class="top-bar">
+                <div class="breadcrumb">
+                    <span>首页</span>
+                    <span class="separator">/</span>
+                    <span>数据统计</span>
+                </div>
+                <div class="user-info">
+                    <span id="adminName">管理员</span>
+                    <span class="badge">ADMIN</span>
+                </div>
+            </header>
+
+            <!-- 时间范围选择 -->
+            <div class="toolbar">
+                <div class="date-range">
+                    <label>统计时间：</label>
+                    <input type="date" id="startDate">
+                    <span>至</span>
+                    <input type="date" id="endDate">
+                    <button onclick="updateStatistics()">📊 更新统计</button>
+                </div>
+                <div class="quick-select">
+                    <button onclick="selectRange('today')">今日</button>
+                    <button onclick="selectRange('week')">本周</button>
+                    <button onclick="selectRange('month')">本月</button>
+                    <button onclick="selectRange('year')">本年</button>
+                </div>
+            </div>
+
+            <!-- 关键指标 -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <h3>总用户数</h3>
+                    <p class="metric-value" id="totalUsers">0</p>
+                    <span class="metric-change positive">+12.5%</span>
+                </div>
+                <div class="metric-card">
+                    <h3>活跃用户</h3>
+                    <p class="metric-value" id="activeUsers">0</p>
+                    <span class="metric-change positive">+8.3%</span>
+                </div>
+                <div class="metric-card">
+                    <h3>总预约数</h3>
+                    <p class="metric-value" id="totalAppointments">0</p>
+                    <span class="metric-change positive">+15.7%</span>
+                </div>
+                <div class="metric-card">
+                    <h3>总收入</h3>
+                    <p class="metric-value" id="totalRevenue">¥0</p>
+                    <span class="metric-change positive">+22.1%</span>
+                </div>
+            </div>
+
+            <!-- 图表区域 -->
+            <div class="charts-container">
+                <!-- 用户增长趋势 -->
+                <div class="chart-card">
+                    <h3>用户增长趋势</h3>
+                    <canvas id="userGrowthChart"></canvas>
+                </div>
+
+                <!-- 预约统计 -->
+                <div class="chart-card">
+                    <h3>预约统计</h3>
+                    <canvas id="appointmentChart"></canvas>
+                </div>
+
+                <!-- 收入统计 -->
+                <div class="chart-card">
+                    <h3>收入统计</h3>
+                    <canvas id="revenueChart"></canvas>
+                </div>
+
+                <!-- 咨询师排行 -->
+                <div class="chart-card">
+                    <h3>咨询师排行（按预约数）</h3>
+                    <canvas id="consultantRankChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 详细数据表 -->
+            <div class="data-summary">
+                <h3>详细数据汇总</h3>
+                <table class="summary-table">
+                    <thead>
+                        <tr>
+                            <th>指标</th>
+                            <th>今日</th>
+                            <th>本周</th>
+                            <th>本月</th>
+                            <th>总计</th>
+                        </tr>
+                    </thead>
+                    <tbody id="summaryTableBody">
+                        <tr>
+                            <td>新增用户</td>
+                            <td id="newUsersToday">-</td>
+                            <td id="newUsersWeek">-</td>
+                            <td id="newUsersMonth">-</td>
+                            <td id="newUsersTotal">-</td>
+                        </tr>
+                        <tr>
+                            <td>新增预约</td>
+                            <td id="newAppointmentsToday">-</td>
+                            <td id="newAppointmentsWeek">-</td>
+                            <td id="newAppointmentsMonth">-</td>
+                            <td id="newAppointmentsTotal">-</td>
+                        </tr>
+                        <tr>
+                            <td>完成咨询</td>
+                            <td id="completedToday">-</td>
+                            <td id="completedWeek">-</td>
+                            <td id="completedMonth">-</td>
+                            <td id="completedTotal">-</td>
+                        </tr>
+                        <tr>
+                            <td>收入金额</td>
+                            <td id="revenueToday">-</td>
+                            <td id="revenueWeek">-</td>
+                            <td id="revenueMonth">-</td>
+                            <td id="revenueTotal">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/config.js?v=2.1"></script>
+    <script src="js/admin-common.js?v=2.1"></script>
+    <script src="js/admin-statistics.js?v=1.1"></script>
+</body>
+</html>

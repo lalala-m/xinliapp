@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#1A1A2E">
+
+    <!-- 远程视频容器（占满全屏） -->
+    <FrameLayout
+        android:id="@+id/remote_video_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#1A1A2E">
+
+        <!-- 远程视频占位背景 -->
+        <TextView
+            android:id="@+id/remote_video_placeholder"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="等待对方视频..."
+            android:textColor="#AAAAAA"
+            android:textSize="18sp" />
+    </FrameLayout>
+
+    <!-- 本地视频容器（小窗口悬浮右上角） -->
+    <FrameLayout
+        android:id="@+id/local_video_container"
+        android:layout_width="110dp"
+        android:layout_height="160dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="16dp"
+        android:background="#333333"
+        android:elevation="8dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="本地预览"
+            android:textColor="#888888"
+            android:textSize="12sp" />
+    </FrameLayout>
+
+    <!-- 顶部状态文字 -->
+    <TextView
+        android:id="@+id/status_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="48dp"
+        android:background="#80000000"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="10dp"
+        android:text="正在连接..."
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <!-- 底部控制按钮 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginBottom="48dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:padding="16dp">
+
+        <!-- 静音按钮 -->
+        <ImageButton
+            android:id="@+id/btn_mute"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_marginEnd="20dp"
+            android:background="@drawable/circle_btn_bg"
+            android:contentDescription="静音"
+            android:padding="14dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_mic"
+            app:tint="#FFFFFF" />
+
+        <!-- 挂断按钮（红色大按钮） -->
+        <ImageButton
+            android:id="@+id/btn_hangup"
+            android:layout_width="68dp"
+            android:layout_height="68dp"
+            android:layout_marginEnd="20dp"
+            android:background="@drawable/circle_btn_red_bg"
+            android:contentDescription="挂断"
+            android:padding="16dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_phone_hangup"
+            app:tint="#FFFFFF" />
+
+        <!-- 开关摄像头按钮 -->
+        <ImageButton
+            android:id="@+id/btn_video"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="@drawable/circle_btn_bg"
+            android:contentDescription="开关摄像头"
+            android:padding="14dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_camera"
+            app:tint="#FFFFFF" />
+    </LinearLayout>
+
+</FrameLayout>

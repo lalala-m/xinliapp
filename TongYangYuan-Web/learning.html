@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线学习 - 童养园</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <style>
+        .learning-container {
+            padding: 20px;
+        }
+        .course-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .course-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+        .course-card:active {
+            transform: scale(0.98);
+        }
+        .course-cover {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            background: #eee;
+        }
+        .course-info {
+            padding: 15px;
+        }
+        .course-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        .course-desc {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 12px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .course-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #999;
+        }
+        .tag {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+        .tabs {
+            display: flex;
+            gap: 15px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .tab-item {
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: #f5f5f5;
+            color: #666;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        .tab-item.active {
+            background: #6FA6F8;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="dashboard-header">
+            <div class="header-content">
+                <div class="header-left" onclick="history.back()">
+                    <span style="font-size: 20px; margin-right: 10px;">←</span>
+                    <h1 class="header-title">在线学习中心</h1>
+                </div>
+            </div>
+        </header>
+
+        <main class="learning-container">
+            <div class="tabs" id="categoryTabs">
+                <div class="tab-item active" data-category="all">全部课程</div>
+                <div class="tab-item" data-category="情绪调节">情绪调节</div>
+                <div class="tab-item" data-category="人际沟通">人际沟通</div>
+                <div class="tab-item" data-category="亲子教育">亲子教育</div>
+                <div class="tab-item" data-category="职场心理">职场心理</div>
+            </div>
+
+            <div class="course-grid" id="courseList">
+                <!-- 动态加载课程 -->
+            </div>
+        </main>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/learning.js"></script>
+</body>
+</html>

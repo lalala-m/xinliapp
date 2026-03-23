@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.jslh.rjd.dao.RjdCompanyAffairInfoDao">
+
+    <resultMap type="com.jslh.rjd.entity.RjdCompanyAffairInfoEntity" id="rjdCompanyAffairInfoMap">
+        <result property="affairId" column="affair_id"/>
+        <result property="affairName" column="affair_name"/>
+        <result property="affairType" column="affair_type"/>
+        <result property="affairDate" column="affair_date"/>
+        <result property="deptId" column="dept_id"/>
+        <result property="tenantCode" column="tenant_code"/>
+        <result property="status" column="status"/>
+        <result property="syncTime" column="sync_time"/>
+        <result property="creator" column="creator"/>
+        <result property="createDate" column="create_date"/>
+        <result property="updater" column="updater"/>
+        <result property="updateDate" column="update_date"/>
+        <result property="delFlag" column="del_flag"/>
+    </resultMap>
+
+</mapper>

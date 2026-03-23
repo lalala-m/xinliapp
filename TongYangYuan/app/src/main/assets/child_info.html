@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>孩子信息管理</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333333;
+            margin-bottom: 12px;
+        }
+
+        .field-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .field-row .input-group {
+            flex: 1;
+        }
+
+        .radio-group,
+        .chips {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .radio {
+            padding: 10px 16px;
+            border: 2px solid #E0E0E0;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .radio.active {
+            border-color: #6FA6F8;
+            background: rgba(111, 166, 248, 0.1);
+            color: #6FA6F8;
+            font-weight: 600;
+        }
+
+        .chip {
+            padding: 8px 16px;
+            border-radius: 999px;
+            border: 2px solid #E0E0E0;
+            cursor: pointer;
+        }
+
+        .chip.active {
+            border-color: #6FA6F8;
+            background: rgba(111, 166, 248, 0.1);
+            color: #6FA6F8;
+        }
+
+        .child-card {
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .remove-child-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: transparent;
+            border: none;
+            color: #999999;
+            cursor: pointer;
+        }
+
+        .remove-child-btn:active {
+            color: #FF5252;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333333;
+        }
+
+        .add-child-btn {
+            margin: 16px;
+            width: calc(100% - 32px);
+        }
+    </style>
+</head>
+<body>
+    <div class="top-app-bar glass">
+        <div class="title">孩子信息管理</div>
+    </div>
+
+    <div class="content">
+        <p style="padding: 0 16px 16px; color: #666; line-height: 1.6;">
+            请完善孩子信息，至少填写一名孩子的资料，便于咨询师为您提供精准的陪伴方案。
+        </p>
+
+        <div id="childrenContainer"></div>
+
+        <button class="btn btn-secondary add-child-btn" onclick="addChild()">
+            + 添加孩子
+        </button>
+
+        <button class="btn btn-primary" style="width: calc(100% - 32px); margin: 16px;"
+                onclick="submitChildren()">保存孩子信息</button>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        const bodyStatusOptions = ["很好", "良好", "普通", "较差", "很差"];
+        const medicalOptions = ["无", "脑炎", "癫痫", "心脏病", "哮喘", "过敏", "肺结核", "其他"];
+        let childIndex = 0;
+        let birthTarget = null;
+
+        function addChild(data = null) {
+            childIndex += 1;
+            const container = document.createElement('div');
+            container.className = 'card child-card';
+            container.dataset.childId = data?.id || `child-${Date.now()}-${childIndex}`;
+
+            container.innerHTML = `
+                <button class="remove-child-btn" onclick="removeChildCard(this)">删除</button>
+                <div class="card-title">孩子 ${childIndex}</div>
+                ${renderInput('姓名', 'name', data?.name || '')}
+                ${renderGenderRow(data?.gender || 'BOY')}
+                ${renderDateRow(data?.birthDate || '')}
+                ${renderTwoColumnInputs([
+                    { label: '民族', name: 'ethnicity', value: data?.ethnicity || '' },
+                    { label: '籍贯', name: 'nativePlace', value: data?.nativePlace || '' }
+                ])}
+                ${renderTwoColumnInputs([
+                    { label: '家中排行', name: 'familyRank', value: data?.familyRank || '' },
+                    { label: '出生地', name: 'birthPlace', value: data?.birthPlace || '' }
+                ])}
+                ${renderInput('语言环境', 'languageEnv', data?.languageEnv || '')}
+                ${renderTwoColumnInputs([
+                    { label: '现就读学校（幼儿园）', name: 'school', value: data?.school || '' },
+                    { label: '现家庭住址', name: 'homeAddress', value: data?.homeAddress || '' }
+                ])}
+                ${renderInput('孩子兴趣爱好', 'interests', data?.interests || '')}
+                ${renderInput('孩子兴趣活动', 'activities', data?.activities || '')}
+
+                <div class="section-title" style="margin-top: 24px;">孩子身体状态</div>
+                <div class="radio-group">
+                    ${bodyStatusOptions.map(status => `
+                        <div class="radio ${data?.bodyStatus === status ? 'active' : ''}"
+                             onclick="selectBodyStatus('${container.dataset.childId}', '${status}', this)">
+                            ${status}
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="input-group" style="display: ${requiresStatusDetail(data?.bodyStatus) ? 'block' : 'none'};"
+                     data-role="bodyStatusDetail">
+                    <label class="input-label">身体状态描述</label>
+                    <textarea class="description-input" name="bodyStatusDetail"
+                        placeholder="请补充具体情况">${data?.bodyStatusDetail || ''}</textarea>
+                </div>
+
+                <div class="section-title" style="margin-top: 24px;">过往病史</div>
+                <div class="chips" data-role="medicalHistory">
+                    ${medicalOptions.map(opt => `
+                        <div class="chip ${data?.medicalHistory?.includes(opt) ? 'active' : ''}"
+                             onclick="toggleMedicalHistory('${container.dataset.childId}', '${opt}', this)">
+                            ${opt}
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="input-group" style="display: ${data?.medicalHistory?.includes('其他') ? 'block' : 'none'};"
+                     data-role="medicalHistoryOther">
+                    <label class="input-label">其他病史描述</label>
+                    <textarea class="description-input" name="medicalHistoryOther"
+                        placeholder="请填写其他病史">${data?.medicalHistoryOther || ''}</textarea>
+                </div>
+
+                ${renderThreePhones(data)}
+            `;
+
+            document.getElementById('childrenContainer').appendChild(container);
+            updateRemoveButtons();
+        }
+
+        function renderInput(label, name, value) {
+            return `
+                <div class="input-group">
+                    <label class="input-label">${label}</label>
+                    <input type="text" class="input-field" name="${name}" value="${value || ''}">
+                </div>
+            `;
+        }
+
+        function renderTwoColumnInputs(items) {
+            return `
+                <div class="field-row">
+                    ${items.map(item => `
+                        <div class="input-group">
+                            <label class="input-label">${item.label}</label>
+                            <input type="text" class="input-field" name="${item.name}" value="${item.value || ''}">
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function renderGenderRow(value) {
+            return `
+                <div class="section-title" style="margin-top: 16px;">孩子性别</div>
+                <div class="radio-group" data-role="gender">
+                    <div class="radio ${value === 'BOY' ? 'active' : ''}" onclick="selectGender(this, 'BOY')">男孩</div>
+                    <div class="radio ${value === 'GIRL' ? 'active' : ''}" onclick="selectGender(this, 'GIRL')">女孩</div>
+                </div>
+            `;
+        }
+
+        function renderDateRow(value) {
+            return `
+                <div class="input-group">
+                    <label class="input-label">出生年月</label>
+                    <div class="date-selector" style="margin: 0;" onclick="requestBirthDate(this.closest('.child-card'))">
+                        <div class="date-value" data-role="birthDate">
+                            ${value ? formatDateLabel(value) : '请选择日期'}
+                        </div>
+                    </div>
+                    <input type="hidden" name="birthDate" value="${value || ''}">
+                </div>
+            `;
+        }
+
+        function renderThreePhones(data) {
+            return `
+                <div class="field-row" style="margin-top: 24px;">
+                    <div class="input-group">
+                        <label class="input-label">父亲电话</label>
+                        <input type="tel" class="input-field" name="fatherPhone" maxlength="11" value="${data?.fatherPhone || ''}">
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">母亲电话</label>
+                        <input type="tel" class="input-field" name="motherPhone" maxlength="11" value="${data?.motherPhone || ''}">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">监护人电话</label>
+                    <input type="tel" class="input-field" name="guardianPhone" maxlength="11" value="${data?.guardianPhone || ''}">
+                </div>
+            `;
+        }
+
+        function selectGender(el, value) {
+            const group = el.parentElement;
+            group.querySelectorAll('.radio').forEach(item => item.classList.remove('active'));
+            el.classList.add('active');
+            group.dataset.value = value;
+        }
+
+        function requestBirthDate(card) {
+            birthTarget = card;
+            if (window.Android) {
+                Android.openDatePicker();
+            } else {
+                const today = new Date().toISOString().split('T')[0];
+                setBirthDate(today);
+            }
+        }
+
+        window.onDateSelected = function(date) {
+            if (birthTarget) {
+                setBirthDate(date);
+            } else if (typeof window.onAppointmentDateSelected === 'function') {
+                window.onAppointmentDateSelected(date);
+            }
+        }
+
+        function setBirthDate(date) {
+            if (!birthTarget) return;
+            const input = birthTarget.querySelector('input[name="birthDate"]');
+            const label = birthTarget.querySelector('[data-role="birthDate"]');
+            input.value = date;
+            label.textContent = formatDateLabel(date);
+            birthTarget = null;
+        }
+
+        function formatDateLabel(date) {
+            const d = new Date(date);
+            if (isNaN(d.getTime())) return date;
+            return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+        }
+
+        function selectBodyStatus(childId, status, el) {
+            const card = document.querySelector(`[data-child-id="${childId}"]`);
+            card.querySelectorAll('.radio-group')[1]
+                .querySelectorAll('.radio')
+                .forEach(btn => btn.classList.remove('active'));
+            el.classList.add('active');
+            card.dataset.bodyStatus = status;
+            const detail = card.querySelector('[data-role="bodyStatusDetail"]');
+            if (requiresStatusDetail(status)) {
+                detail.style.display = 'block';
+            } else {
+                detail.style.display = 'none';
+                detail.querySelector('textarea').value = '';
+            }
+        }
+
+        function requiresStatusDetail(status) {
+            return status === '较差' || status === '很差';
+        }
+
+        function toggleMedicalHistory(childId, value, el) {
+            const card = document.querySelector(`[data-child-id="${childId}"]`);
+            el.classList.toggle('active');
+            const other = card.querySelector('[data-role="medicalHistoryOther"]');
+            const selected = Array.from(card.querySelector('[data-role="medicalHistory"]').querySelectorAll('.chip.active'))
+                .map(chip => chip.textContent.trim());
+            if (selected.includes('其他')) {
+                other.style.display = 'block';
+            } else {
+                other.style.display = 'none';
+                other.querySelector('textarea').value = '';
+            }
+        }
+
+        function removeChildCard(btn) {
+            const container = document.getElementById('childrenContainer');
+            // 获取所在的卡片元素
+            const card = btn.closest('.child-card');
+            if (card) {
+                card.remove();
+                updateRemoveButtons();
+                
+                // 重新编号
+                childIndex = 0;
+                container.querySelectorAll('.child-card').forEach((card, index) => {
+                    childIndex = index + 1;
+                    const title = card.querySelector('.card-title');
+                    if (title) title.textContent = `孩子 ${childIndex}`;
+                });
+            }
+        }
+
+        function updateRemoveButtons() {
+            const container = document.getElementById('childrenContainer');
+            // 总是显示删除按钮
+            container.querySelectorAll('.remove-child-btn').forEach(btn => {
+                btn.style.display = 'block';
+            });
+        }
+
+        function submitChildren() {
+            const container = document.getElementById('childrenContainer');
+            // 允许提交空列表，用于清空孩子信息
+            const children = [];
+            let valid = true;
+            container.querySelectorAll('.child-card').forEach(card => {
+                if (!valid) return;
+                const data = collectChildData(card);
+                const errors = validateChild(data);
+                if (errors.length) {
+                    valid = false;
+                    showToast(errors[0]);
+                    return;
+                }
+                children.push(data);
+            });
+
+            if (!valid) {
+                return;
+            }
+            if (window.Android && typeof Android.saveChildInfo === 'function') {
+                Android.saveChildInfo(JSON.stringify(children));
+            } else {
+                showToast('孩子信息已保存');
+            }
+        }
+
+        function collectChildData(card) {
+            const getValue = name => card.querySelector(`[name="${name}"]`)?.value.trim() || '';
+            const medicalHistory = Array.from(card.querySelector('[data-role="medicalHistory"]').querySelectorAll('.chip.active'))
+                .map(chip => chip.textContent.trim());
+            if (medicalHistory.length === 0) medicalHistory.push('无');
+
+            const genderValue = card.querySelector('[data-role="gender"] .radio.active')?.textContent === '女孩' ? 'GIRL' : 'BOY';
+            return {
+                id: card.dataset.childId,
+                name: getValue('name'),
+                gender: genderValue,
+                birthDate: getValue('birthDate'),
+                ethnicity: getValue('ethnicity'),
+                nativePlace: getValue('nativePlace'),
+                familyRank: getValue('familyRank'),
+                birthPlace: getValue('birthPlace'),
+                languageEnv: getValue('languageEnv'),
+                school: getValue('school'),
+                homeAddress: getValue('homeAddress'),
+                interests: getValue('interests'),
+                activities: getValue('activities'),
+                bodyStatus: card.dataset.bodyStatus || '',
+                bodyStatusDetail: card.querySelector('[data-role="bodyStatusDetail"] textarea')?.value.trim() || '',
+                medicalHistory,
+                medicalHistoryOther: card.querySelector('[data-role="medicalHistoryOther"] textarea')?.value.trim() || '',
+                fatherPhone: getValue('fatherPhone'),
+                motherPhone: getValue('motherPhone'),
+                guardianPhone: getValue('guardianPhone')
+            };
+        }
+
+        function validateChild(child) {
+            const errors = [];
+            const requiredFields = [
+                { key: 'name', label: '姓名' },
+                { key: 'birthDate', label: '出生年月' },
+                { key: 'ethnicity', label: '民族' },
+                { key: 'nativePlace', label: '籍贯' },
+                { key: 'familyRank', label: '家中排行' },
+                { key: 'birthPlace', label: '出生地' },
+                { key: 'languageEnv', label: '语言环境' },
+                { key: 'school', label: '现就读学校（幼儿园）' },
+                { key: 'homeAddress', label: '现家庭住址' },
+                { key: 'interests', label: '孩子兴趣爱好' },
+                { key: 'activities', label: '孩子兴趣活动' },
+                { key: 'bodyStatus', label: '孩子身体状态' }
+            ];
+            requiredFields.forEach(field => {
+                if (!child[field.key]) {
+                    errors.push(`${field.label}不能为空`);
+                }
+            });
+            if (requiresStatusDetail(child.bodyStatus) && !child.bodyStatusDetail) {
+                errors.push('请填写身体状态描述');
+            }
+            if (child.medicalHistory.includes('其他') && !child.medicalHistoryOther) {
+                errors.push('请填写其他病史描述');
+            }
+            ['fatherPhone', 'motherPhone', 'guardianPhone'].forEach(key => {
+                if (!/^\d{11}$/.test(child[key] || '')) {
+                    errors.push('请填写11位有效的家长联系电话');
+                }
+            });
+            return errors;
+        }
+
+        function loadExistingChildren() {
+            if (!window.Android || typeof Android.getChildProfiles !== 'function') {
+                addChild();
+                return;
+            }
+            try {
+                // 如果是新页面加载，可能需要先同步一次服务器
+                if (Android.syncChildrenFromServer) {
+                    Android.syncChildrenFromServer();
+                }
+                
+                const json = Android.getChildProfiles();
+                if (!json || json === '[]') {
+                    addChild();
+                    return;
+                }
+                const children = JSON.parse(json);
+                if (!children.length) {
+                    addChild();
+                    return;
+                }
+                // 清空当前列表
+                document.getElementById('childrenContainer').innerHTML = '';
+                childIndex = 0;
+                children.forEach(child => addChild(child));
+            } catch (e) {
+                console.error('load existing children failed', e);
+                addChild();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadExistingChildren();
+        });
+    </script>
+</body>
+</html>
+
+

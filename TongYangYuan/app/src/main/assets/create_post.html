@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>发布动态</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body {
+            background-color: #fff;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        .content {
+            padding: 16px;
+            flex: 1;
+            padding-top: 60px;
+        }
+        .input-area {
+            width: 100%;
+            border: none;
+            resize: none;
+            font-size: 16px;
+            min-height: 150px;
+            outline: none;
+        }
+        .media-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 16px;
+        }
+        .media-item {
+            aspect-ratio: 1;
+            background: #f5f5f5;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .media-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .media-add {
+            background: #f5f5f5;
+            color: #999;
+            font-size: 32px;
+            cursor: pointer;
+        }
+        .post-header-btn {
+            font-size: 16px;
+            font-weight: 600;
+            color: #6FA6F8;
+            background: none;
+            border: none;
+            padding: 8px 16px;
+        }
+        .post-header-btn:disabled {
+            color: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-app-bar glass">
+        <button class="icon-btn" onclick="history.back()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 18l-6-6 6-6" />
+            </svg>
+        </button>
+        <div class="title">发布动态</div>
+        <button class="post-header-btn" id="btnPublish" onclick="publishPost()" disabled>发布</button>
+    </div>
+
+    <div class="content">
+        <textarea class="input-area" id="postContent" placeholder="分享孩子成长的点滴..."></textarea>
+        
+        <div class="media-grid" id="mediaGrid">
+            <div class="media-item media-add" onclick="pickImage()">+</div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        const postContent = document.getElementById('postContent');
+        const btnPublish = document.getElementById('btnPublish');
+        const mediaGrid = document.getElementById('mediaGrid');
+        let selectedImages = [];
+
+        postContent.addEventListener('input', () => {
+            btnPublish.disabled = !postContent.value.trim() && selectedImages.length === 0;
+        });
+
+        function pickImage() {
+            if (window.Android && window.Android.openImagePicker) {
+                window.Android.openImagePicker();
+            } else {
+                console.log("Image picker not available");
+            }
+        }
+
+        // 被 Android 回调
+        window.onMediaSelected = function(type, content, uri) {
+            if (type === 'image') {
+                // uri 可能是 data:image/jpeg;base64,... 或 file://...
+                selectedImages.push(uri);
+                renderImages();
+                btnPublish.disabled = false;
+            }
+        };
+
+        function renderImages() {
+            // 清除除了最后一个添加按钮以外的所有元素
+            const addBtn = mediaGrid.lastElementChild;
+            mediaGrid.innerHTML = '';
+            
+            selectedImages.forEach((img, index) => {
+                const div = document.createElement('div');
+                div.className = 'media-item';
+                div.innerHTML = `
+                    <img src="${img}">
+                    <div style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.5);color:white;width:20px;height:20px;border-radius:50%;text-align:center;line-height:20px;font-size:12px;" onclick="removeImage(${index}, event)">✕</div>
+                `;
+                mediaGrid.appendChild(div);
+            });
+            
+            if (selectedImages.length < 9) {
+                mediaGrid.appendChild(addBtn);
+            }
+        }
+
+        window.removeImage = function(index, event) {
+            event.stopPropagation();
+            selectedImages.splice(index, 1);
+            renderImages();
+            btnPublish.disabled = !postContent.value.trim() && selectedImages.length === 0;
+        }
+
+        function publishPost() {
+            const content = postContent.value;
+            const images = selectedImages;
+            
+            const post = {
+                id: Date.now(),
+                userName: "我", // 暂定当前用户
+                avatar: "",
+                time: "刚刚",
+                content: content,
+                images: images,
+                likes: 0,
+                comments: 0
+            };
+
+            // 这里由于没有真正的后端 API 来保存帖子，我们将其存入 localStorage 模拟
+            // 在实际项目中，这里应该调用 Android 接口发送网络请求
+            let posts = JSON.parse(localStorage.getItem('local_posts') || '[]');
+            posts.unshift(post);
+            localStorage.setItem('local_posts', JSON.stringify(posts));
+
+            if (window.Android && window.Android.showToast) {
+                window.Android.showToast('发布成功');
+            }
+            
+            // 返回上一页并刷新（通过 localStorage 通信或重新加载）
+            history.back();
+        }
+    </script>
+</body>
+</html>

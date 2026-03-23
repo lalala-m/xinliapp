@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>童康源 - 首页</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .hero-card {
+            background: radial-gradient(circle at top right, rgba(255,255,255,0.4), transparent),
+                        linear-gradient(135deg, #BDEBC8 0%, #A9C9FF 100%);
+            border-radius: 28px;
+            padding: 32px 28px 36px;
+            margin: 0 0 20px;
+            color: #1E2A3B;
+            box-shadow: 0 20px 40px rgba(111, 166, 248, 0.16);
+        }
+
+        .hero-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.2);
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+
+        .hero-title {
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+
+        .hero-subtitle {
+            font-size: 15px;
+            opacity: 0.85;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 28px;
+        }
+
+        .hero-actions .btn {
+            flex: 1;
+            min-height: 52px;
+        }
+
+        .stat-row {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 28px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 18px;
+            padding: 12px;
+            text-align: center;
+            position: relative;
+        }
+
+        .stat-card-icon {
+            width: 24px;
+            height: 24px;
+            margin: 0 auto 8px;
+            color: #6FA6F8;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: rgba(30, 42, 59, 0.7);
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 24px 0 12px;
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .quick-card {
+            border-radius: 20px;
+            padding: 18px;
+            background: var(--background);
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            position: relative;
+        }
+
+        .quick-card-icon {
+            width: 32px;
+            height: 32px;
+            margin-bottom: 4px;
+            color: #6FA6F8;
+        }
+
+        .quick-card small {
+            color: var(--text-secondary);
+        }
+
+        .consultant-highlight {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .consultant-item {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            padding: 16px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .consultant-item:last-child {
+            border-bottom: none;
+        }
+
+        .consultant-avatar {
+            width: 78px;
+            height: 78px;
+            border-radius: 24px;
+            background: linear-gradient(135deg, #6FA6F8, #BDEBC8);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 24px;
+            box-shadow: 0 14px 32px rgba(111, 166, 248, 0.25);
+        }
+
+        .consultant-meta {
+            flex: 1;
+        }
+
+        .consultant-meta h4 {
+            margin: 0;
+            font-size: 16px;
+            color: var(--text-primary);
+        }
+
+        .consultant-meta p {
+            margin: 4px 0 0;
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .consultant-score {
+            text-align: right;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="top-app-bar glass">
+        <div class="title">童康源</div>
+    </div>
+
+    <div class="content">
+        <div class="hero-card">
+            <div class="hero-chip">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 8v4l2.5 2.5" />
+                </svg>
+                今日在线导师
+            </div>
+            <div class="hero-title">童康源成长守护</div>
+            <div class="hero-subtitle">全链路家庭教育支持，定制孩子专属方案</div>
+
+            <div class="hero-actions">
+                <button class="btn btn-primary" onclick="navigateTo('consult')">立即匹配咨询师</button>
+                <button class="btn btn-secondary" onclick="openRechargePage()">开通会员</button>
+            </div>
+
+            <div class="stat-row">
+                <div class="stat-card">
+                    <img src="icons/family-witness.svg" alt="家庭见证" class="stat-card-icon">
+                    <div class="stat-value">680+</div>
+                    <div class="stat-label">家庭见证改变</div>
+                </div>
+                <div class="stat-card">
+                    <img src="icons/certified-mentor.svg" alt="认证导师" class="stat-card-icon">
+                    <div class="stat-value">30位</div>
+                    <div class="stat-label">童康源认证导师</div>
+                </div>
+                <div class="stat-card">
+                    <img src="icons/satisfaction-rate.svg" alt="满意度" class="stat-card-icon">
+                    <div class="stat-value">98%</div>
+                    <div class="stat-label">续费满意度</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-title">快捷入口</div>
+        <div class="quick-actions">
+            <div class="quick-card" onclick="navigateTo('consult')">
+                <img src="icons/consultation-plan.svg" alt="咨询计划" class="quick-card-icon">
+                <strong>今日咨询计划</strong>
+                <small>3条待跟进 · 点击查看</small>
+            </div>
+            <div class="quick-card" onclick="window.location.href='learning.html'">
+                <img src="icons/child-profile.svg" alt="在线学习" class="quick-card-icon">
+                <strong>在线学习</strong>
+                <small>家长视频课堂</small>
+            </div>
+            <!-- <div class="quick-card" onclick="window.location.href='diet.html'">
+                <img src="icons/camera.svg" alt="膳食分析" class="quick-card-icon" style="color: #4CAF50;">
+                <strong>膳食分析</strong>
+                <small>AI 识别营养成分</small>
+            </div>
+            <div class="quick-card" onclick="window.location.href='pose.html'">
+                <img src="icons/camera.svg" alt="体态矫正" class="quick-card-icon" style="color: #FF5252;">
+                <strong>体态矫正</strong>
+                <small>AI 识别不良体态</small>
+            </div> -->
+        </div>
+
+        <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
+            推荐导师
+            <span onclick="navigateTo('consult')" style="font-size: 13px; color: #6FA6F8; font-weight: normal; cursor: pointer;">全部导师 ></span>
+        </div>
+        <div class="card static-card consultant-highlight" id="consultantList">
+            <!-- 咨询师列表将动态加载 -->
+            <div style="text-align: center; padding: 20px; color: #999;">正在加载推荐导师...</div>
+        </div>
+
+        <div class="section-title">守护提醒</div>
+        <div class="card" style="line-height:1.6;">
+            · 本周亲子练习更新完成，记得查收<br>
+            · 孩子成长记录已生成，建议和导师复盘<br>
+            · 预约沟通后24小时内可开启免费加急通道
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        function loadConsultants() {
+            if (window.Android && Android.getConsultants) {
+                try {
+                    const json = Android.getConsultants();
+                    const consultants = JSON.parse(json);
+                    renderConsultants(consultants);
+                } catch (e) {
+                    console.error('加载咨询师失败', e);
+                    document.getElementById('consultantList').innerHTML = 
+                        '<div style="text-align: center; padding: 20px; color: #999;">加载失败</div>';
+                }
+            }
+        }
+
+        function renderConsultants(consultants) {
+            const container = document.getElementById('consultantList');
+            if (!consultants || consultants.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">暂无推荐导师</div>';
+                return;
+            }
+
+            // 只显示前2个
+            const displayList = consultants.slice(0, 2);
+            
+            let html = displayList.map(c => `
+                <div class="consultant-item" onclick="window.navigateToConsultantDetail && window.navigateToConsultantDetail('${c.name}')">
+                    <div class="consultant-avatar" style="background: ${c.avatarColor || 'linear-gradient(135deg, #6FA6F8, #BDEBC8)'}">
+                        ${c.name ? c.name.charAt(0) : '师'}
+                    </div>
+                    <div class="consultant-meta">
+                        <h4>${c.name || '咨询师'} · ${c.title || '导师'}</h4>
+                        <p>${c.specialty || '心理咨询'}</p>
+                    </div>
+                    <div class="consultant-score">
+                        ⭐️ ${c.rating || '5.0'}<br>${c.servedCount || '0'}家庭
+                    </div>
+                </div>
+            `).join('');
+
+            html += `
+                <button class="btn btn-secondary" style="margin-top: 8px; width: 100%;" onclick="navigateTo('consult')">
+                    查看更多导师并选择
+                </button>
+            `;
+            
+            container.innerHTML = html;
+        }
+
+        document.addEventListener('DOMContentLoaded', loadConsultants);
+    </script>
+</body>
+</html>

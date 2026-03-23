@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>加入咨询师团队</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .training-hero {
+            background: linear-gradient(135deg, rgba(111, 166, 248, 0.15), rgba(189, 235, 200, 0.25));
+            border-radius: 22px;
+            padding: 24px;
+            margin: 16px;
+            text-align: center;
+        }
+
+        .training-hero h2 {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .training-hero p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .progress-overview {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .progress-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .progress-percentage {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 8px;
+            background: #E0E0E0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #6FA6F8, #BDEBC8);
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+
+        .progress-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .badge-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px;
+            background: rgba(111, 166, 248, 0.1);
+            border-radius: 12px;
+            margin-top: 12px;
+        }
+
+        .badge-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .badge-text {
+            flex: 1;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .badge-text strong {
+            color: var(--primary-color);
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 24px 16px 16px;
+        }
+
+        .course-list {
+            padding: 0 16px;
+        }
+
+        .course-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .course-card:active {
+            transform: scale(0.98);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .course-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .course-info {
+            flex: 1;
+        }
+
+        .course-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .course-desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .course-status {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .course-status.locked {
+            background: #F5F5F5;
+            color: #999999;
+        }
+
+        .course-status.in-progress {
+            background: rgba(111, 166, 248, 0.15);
+            color: var(--primary-color);
+        }
+
+        .course-status.completed {
+            background: rgba(189, 235, 200, 0.3);
+            color: #4CAF50;
+        }
+
+        .course-meta {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 12px;
+        }
+
+        .course-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .exam-button {
+            width: calc(100% - 32px);
+            margin: 24px 16px;
+            background: linear-gradient(135deg, #6FA6F8, #BDEBC8);
+            color: white;
+            font-weight: 600;
+        }
+
+        .exam-button:disabled {
+            background: #E0E0E0;
+            color: #999999;
+            cursor: not-allowed;
+        }
+
+        .video-player-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+        }
+
+        .video-player-container.show {
+            display: flex;
+        }
+
+        .video-player-header {
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .video-player-title {
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .video-close-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-player-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .video-placeholder {
+            width: 100%;
+            max-width: 800px;
+            aspect-ratio: 16/9;
+            background: #1a1a1a;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            gap: 16px;
+        }
+
+        .video-placeholder svg {
+            width: 64px;
+            height: 64px;
+            opacity: 0.5;
+        }
+
+        .play-button {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: 3px solid white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .play-button:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+    <div class="top-app-bar glass">
+        <div class="title">加入咨询师团队</div>
+    </div>
+
+    <div class="content">
+        <div class="training-hero">
+            <h2>成为童康源指导师</h2>
+            <p>学习领域内视频课程 → 完成考试 → 通过后获得「智慧妈妈」徽章，成为对应小类问题的童康源指导师</p>
+        </div>
+
+        <div class="progress-overview">
+            <div class="progress-header">
+                <div class="progress-title">学习进度</div>
+                <div class="progress-percentage" id="progressPercentage">0%</div>
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progressBar" style="width: 0%;"></div>
+            </div>
+            <div class="progress-stats">
+                <span>已完成: <strong id="completedCount">0</strong> / <strong id="totalCount">0</strong> 课程</span>
+                <span id="examStatus">考试未解锁</span>
+            </div>
+            <div class="badge-status" id="badgeStatus" style="display: none;">
+                <div class="badge-icon">智</div>
+                <div class="badge-text">
+                    <strong>「智慧妈妈」徽章</strong> 已获得<br>
+                    <span style="font-size: 12px; color: var(--text-secondary);">您已成为童康源指导师</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-title">课程列表</div>
+        <div class="course-list" id="courseList">
+            <!-- 课程卡片将动态生成 -->
+        </div>
+
+        <button class="btn btn-primary exam-button" id="examButton" onclick="startExam()" disabled>
+            开始考试
+        </button>
+    </div>
+
+    <!-- 视频播放器 -->
+    <div class="video-player-container" id="videoPlayer">
+        <div class="video-player-header">
+            <div class="video-player-title" id="videoTitle">视频课程</div>
+            <button class="video-close-btn" onclick="closeVideoPlayer()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <div class="video-player-content">
+            <div class="video-placeholder" id="videoPlaceholder">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+                <div>视频播放器</div>
+                <div style="font-size: 14px; opacity: 0.7;">点击播放按钮开始学习</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        const courses = [
+            {
+                id: 'course-1',
+                title: '儿童心理健康基础',
+                description: '了解儿童心理发展规律，掌握基础心理健康知识',
+                duration: '45分钟',
+                videoUrl: '',
+                category: '基础课程',
+                locked: false
+            },
+            {
+                id: 'course-2',
+                title: '情绪管理与疏导',
+                description: '学习如何识别和疏导儿童情绪问题，建立良好的情绪管理机制',
+                duration: '60分钟',
+                videoUrl: '',
+                category: '核心课程',
+                locked: false
+            },
+            {
+                id: 'course-3',
+                title: '行为问题干预',
+                description: '掌握常见儿童行为问题的识别和干预方法',
+                duration: '50分钟',
+                videoUrl: '',
+                category: '核心课程',
+                locked: false
+            },
+            {
+                id: 'course-4',
+                title: '家庭沟通技巧',
+                description: '学习有效的家庭沟通方式，改善亲子关系',
+                duration: '55分钟',
+                videoUrl: '',
+                category: '进阶课程',
+                locked: false
+            },
+            {
+                id: 'course-5',
+                title: '特殊问题处理',
+                description: '了解ADHD、自闭症等特殊问题的识别和初步干预',
+                duration: '70分钟',
+                videoUrl: '',
+                category: '进阶课程',
+                locked: false
+            }
+        ];
+
+        let learningProgress = {};
+        let hasBadge = false;
+
+        function loadLearningProgress() {
+            // 从本地存储或Android接口加载学习进度
+            if (window.Android && typeof Android.getLearningProgress === 'function') {
+                try {
+                    const progressJson = Android.getLearningProgress();
+                    learningProgress = JSON.parse(progressJson || '{}');
+                } catch (e) {
+                    console.error('Load learning progress failed', e);
+                    learningProgress = {};
+                }
+            } else {
+                // 从localStorage加载
+                const saved = localStorage.getItem('learningProgress');
+                if (saved) {
+                    learningProgress = JSON.parse(saved);
+                }
+            }
+
+            // 检查是否已获得徽章
+            if (window.Android && typeof Android.hasBadge === 'function') {
+                try {
+                    hasBadge = Android.hasBadge('wisdom_mom');
+                } catch (e) {
+                    hasBadge = false;
+                }
+            } else {
+                hasBadge = localStorage.getItem('hasWisdomMomBadge') === 'true';
+            }
+
+            updateUI();
+        }
+
+        function saveLearningProgress() {
+            if (window.Android && typeof Android.saveLearningProgress === 'function') {
+                Android.saveLearningProgress(JSON.stringify(learningProgress));
+            } else {
+                localStorage.setItem('learningProgress', JSON.stringify(learningProgress));
+            }
+        }
+
+        function markCourseCompleted(courseId) {
+            learningProgress[courseId] = {
+                completed: true,
+                completedAt: new Date().toISOString(),
+                progress: 100
+            };
+            saveLearningProgress();
+            updateUI();
+        }
+
+        function updateUI() {
+            // 更新进度条
+            const completedCourses = courses.filter(c => learningProgress[c.id]?.completed).length;
+            const totalCourses = courses.length;
+            const percentage = totalCourses > 0 ? Math.round((completedCourses / totalCourses) * 100) : 0;
+
+            document.getElementById('progressPercentage').textContent = percentage + '%';
+            document.getElementById('progressBar').style.width = percentage + '%';
+            document.getElementById('completedCount').textContent = completedCourses;
+            document.getElementById('totalCount').textContent = totalCourses;
+
+            // 更新考试按钮状态
+            const allCompleted = completedCourses === totalCourses;
+            const examButton = document.getElementById('examButton');
+            examButton.disabled = !allCompleted || hasBadge;
+            
+            if (hasBadge) {
+                examButton.textContent = '已通过考试';
+            } else if (allCompleted) {
+                examButton.textContent = '开始考试';
+            } else {
+                examButton.textContent = `完成所有课程后解锁 (${completedCourses}/${totalCourses})`;
+            }
+
+            // 更新考试状态
+            const examStatus = document.getElementById('examStatus');
+            if (hasBadge) {
+                examStatus.textContent = '考试已通过';
+                examStatus.style.color = '#4CAF50';
+            } else if (allCompleted) {
+                examStatus.textContent = '可以参加考试';
+                examStatus.style.color = '#6FA6F8';
+            } else {
+                examStatus.textContent = '考试未解锁';
+                examStatus.style.color = '#627089';
+            }
+
+            // 显示/隐藏徽章状态
+            const badgeStatus = document.getElementById('badgeStatus');
+            if (hasBadge) {
+                badgeStatus.style.display = 'flex';
+            } else {
+                badgeStatus.style.display = 'none';
+            }
+
+            // 渲染课程列表
+            renderCourses();
+        }
+
+        function renderCourses() {
+            const container = document.getElementById('courseList');
+            container.innerHTML = courses.map(course => {
+                const progress = learningProgress[course.id];
+                const isCompleted = progress?.completed || false;
+                const isLocked = course.locked || false;
+
+                let statusClass = 'locked';
+                let statusText = '未开始';
+                if (isCompleted) {
+                    statusClass = 'completed';
+                    statusText = '已完成';
+                } else if (progress && progress.progress > 0) {
+                    statusClass = 'in-progress';
+                    statusText = '学习中';
+                }
+
+                return `
+                    <div class="course-card" onclick="openCourse('${course.id}')">
+                        <div class="course-header">
+                            <div class="course-info">
+                                <div class="course-title">${course.title}</div>
+                                <div class="course-desc">${course.desc || course.description}</div>
+                            </div>
+                            <div class="course-status ${statusClass}">${statusText}</div>
+                        </div>
+                        <div class="course-meta">
+                            <div class="course-meta-item">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <polyline points="12 6 12 12 16 14"/>
+                                </svg>
+                                ${course.duration}
+                            </div>
+                            <div class="course-meta-item">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                                    <line x1="8" y1="21" x2="16" y2="21"/>
+                                    <line x1="12" y1="17" x2="12" y2="21"/>
+                                </svg>
+                                ${course.category}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openCourse(courseId) {
+            const course = courses.find(c => c.id === courseId);
+            if (!course) return;
+
+            if (course.locked) {
+                showToast('该课程尚未解锁');
+                return;
+            }
+
+            // 打开视频播放器
+            document.getElementById('videoTitle').textContent = course.title;
+            document.getElementById('videoPlayer').classList.add('show');
+
+            // 标记开始学习
+            if (!learningProgress[courseId]) {
+                learningProgress[courseId] = {
+                    started: true,
+                    startedAt: new Date().toISOString(),
+                    progress: 0
+                };
+                saveLearningProgress();
+                updateUI();
+            }
+
+            // 模拟视频播放（实际应该使用真实的视频播放器）
+            if (window.Android && typeof Android.playTrainingVideo === 'function') {
+                Android.playTrainingVideo(courseId, course.videoUrl || '');
+            } else {
+                // 模拟播放完成
+                setTimeout(() => {
+                    showToast('视频播放完成');
+                    markCourseCompleted(courseId);
+                    closeVideoPlayer();
+                }, 2000);
+            }
+        }
+
+        function closeVideoPlayer() {
+            document.getElementById('videoPlayer').classList.remove('show');
+        }
+
+        function startExam() {
+            const allCompleted = courses.every(c => learningProgress[c.id]?.completed);
+            if (!allCompleted) {
+                showToast('请先完成所有课程');
+                return;
+            }
+
+            if (hasBadge) {
+                showToast('您已通过考试并获得徽章');
+                return;
+            }
+
+            // 跳转到考试页面
+            if (window.Android && typeof Android.navigateToExam === 'function') {
+                Android.navigateToExam();
+            } else {
+                window.location.href = 'consultant_exam.html';
+            }
+        }
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadLearningProgress();
+        });
+
+        // 监听视频播放完成事件（从Android端）
+        window.onVideoCompleted = function(courseId) {
+            markCourseCompleted(courseId);
+            closeVideoPlayer();
+        };
+    </script>
+</body>
+</html>
+

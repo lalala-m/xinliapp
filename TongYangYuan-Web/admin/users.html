@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户管理 - 童养园管理后台</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+    <div class="admin-container">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h2>童养园管理后台</h2>
+            </div>
+            <nav class="nav-menu">
+                <a href="index.html" class="nav-item">
+                    <span class="icon">📊</span>
+                    <span>数据概览</span>
+                </a>
+                <a href="users.html" class="nav-item active">
+                    <span class="icon">👥</span>
+                    <span>用户管理</span>
+                </a>
+                <a href="consultants.html" class="nav-item">
+                    <span class="icon">👨‍⚕️</span>
+                    <span>咨询师管理</span>
+                </a>
+                <a href="learning.html" class="nav-item">
+                    <span class="icon">📚</span>
+                    <span>学习资源</span>
+                </a>
+                <a href="appointments.html" class="nav-item">
+                    <span class="icon">📅</span>
+                    <span>预约管理</span>
+                </a>
+                <a href="statistics.html" class="nav-item">
+                    <span class="icon">📈</span>
+                    <span>数据统计</span>
+                </a>
+                <a href="#" class="nav-item" id="logoutBtn">
+                    <span class="icon">🚪</span>
+                    <span>退出登录</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 顶部栏 -->
+            <header class="top-bar">
+                <div class="breadcrumb">
+                    <span>首页</span>
+                    <span class="separator">/</span>
+                    <span>用户管理</span>
+                </div>
+                <div class="user-info">
+                    <span id="adminName">管理员</span>
+                    <span class="badge">ADMIN</span>
+                </div>
+            </header>
+
+            <!-- 搜索和筛选 -->
+            <div class="toolbar">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="搜索用户（手机号、姓名）">
+                    <button onclick="searchUsers()">🔍 搜索</button>
+                </div>
+                <div class="filter-box">
+                    <!-- 移除角色筛选，只显示家长 -->
+                    <!-- <select id="roleFilter" onchange="filterUsers()">
+                        <option value="">全部角色</option>
+                        <option value="PARENT">家长</option>
+                        <option value="CONSULTANT">咨询师</option>
+                        <option value="ADMIN">管理员</option>
+                    </select> -->
+                    <select id="statusFilter" onchange="filterUsers()">
+                        <option value="">全部状态</option>
+                        <option value="true">启用</option>
+                        <option value="false">禁用</option>
+                    </select>
+                    <button class="add-btn" onclick="showAddUserModal()">➕ 新增用户</button>
+                    <button onclick="refreshUsers()">🔄 刷新</button>
+                </div>
+            </div>
+
+            <!-- 用户列表 -->
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>手机号</th>
+                            <th>姓名</th>
+                            <th>孩子信息</th>
+                            <th>重点问题</th>
+                            <th>当前咨询师</th>
+                            <th>状态</th>
+                            <th>注册时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTableBody">
+                        <!-- 数据将通过JS加载 -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 分页 -->
+            <div class="pagination" id="pagination">
+                <button onclick="prevPage()" id="prevBtn">上一页</button>
+                <span id="pageInfo">第 1 页 / 共 1 页</span>
+                <button onclick="nextPage()" id="nextBtn">下一页</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- 用户详情模态框 -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>用户详情</h2>
+            <div id="userDetails"></div>
+            <div class="modal-actions">
+                <button class="btn-primary" onclick="editUser()">编辑</button>
+                <button class="btn-danger" onclick="toggleUserStatus()">禁用/启用</button>
+                <button class="btn-secondary" onclick="closeModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增用户模态框 -->
+    <div id="addUserModal" class="modal" style="z-index: 2000;">
+        <div class="modal-content">
+            <span class="close" onclick="closeAddUserModal()">&times;</span>
+            <h2 id="addUserModalTitle">新增用户</h2>
+            <form id="addUserForm" onsubmit="event.preventDefault(); saveUser();">
+                <input type="hidden" id="userId">
+                <div class="form-group">
+                    <label for="newPhone">手机号</label>
+                    <input type="text" id="newPhone" required placeholder="请输入手机号">
+                </div>
+                <div class="form-group">
+                    <label for="newNickname">姓名/昵称</label>
+                    <input type="text" id="newNickname" placeholder="请输入姓名">
+                </div>
+                <div class="form-group">
+                    <label for="newPassword">密码</label>
+                    <input type="password" id="newPassword" placeholder="默认密码: 123456">
+                </div>
+                <div class="form-group">
+                    <label for="newRole">角色</label>
+                    <select id="newRole" required>
+                        <option value="PARENT">家长</option>
+                        <option value="CONSULTANT">咨询师</option>
+                        <option value="ADMIN">管理员</option>
+                    </select>
+                </div>
+                <div class="modal-actions" style="margin-top: 20px; text-align: right;">
+                    <button type="button" class="btn-secondary" onclick="closeAddUserModal()">取消</button>
+                    <button type="submit" class="btn-primary" style="background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/config.js"></script>
+    <script src="js/admin-common.js"></script>
+    <script src="js/admin-users.js?v=1.2.2"></script>
+</body>
+</html>

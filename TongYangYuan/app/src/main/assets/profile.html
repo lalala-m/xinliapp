@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>我的</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .profile-card {
+            margin-top: 16px;
+        }
+
+        .profile-card .info-item {
+            cursor: default;
+        }
+
+        .info-item {
+            padding: 16px 0;
+            border-bottom: 1px solid #F0F0F0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-size: 16px;
+            color: #333333;
+        }
+
+        .info-value {
+            font-size: 16px;
+            color: #666666;
+        }
+
+        .management-card {
+            margin-top: 12px;
+            padding: 0;
+        }
+
+        .management-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            border-bottom: 1px solid #F0F0F0;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .management-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 12px;
+            color: #6FA6F8;
+            flex-shrink: 0;
+        }
+
+        .management-item-content {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+
+        .quick-stat-icon {
+            width: 32px;
+            height: 32px;
+            margin-bottom: 8px;
+            color: #6FA6F8;
+        }
+
+        .management-item:last-child {
+            border-bottom: none;
+        }
+
+        .management-item:active {
+            background: rgba(111, 166, 248, 0.06);
+        }
+
+        .management-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .management-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333333;
+        }
+
+        .management-desc {
+            font-size: 13px;
+            color: #999999;
+        }
+
+        .chevron-icon {
+            width: 20px;
+            height: 20px;
+            stroke: #C0C0C0;
+            stroke-width: 2;
+            fill: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-app-bar glass">
+        <div class="title">我的</div>
+    </div>
+
+    <div class="content">
+        <div class="card profile-hero">
+            <div class="hero-avatar" id="heroAvatar">访</div>
+            <div class="hero-title" id="heroTitle">欢迎来到童康源</div>
+            <div class="hero-subtitle" id="heroSubtitle">登录后获取个性化成长方案</div>
+            <div class="status-pill" id="heroStatusPill">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/>
+                </svg>
+                <span id="pillText">未开通会员</span>
+            </div>
+            <button class="btn hero-action" id="heroActionBtn">立即登录</button>
+        </div>
+
+        <div class="section-title">账户总览</div>
+        <div class="card profile-card">
+            <div class="info-item">
+                <span class="info-label">手机号</span>
+                <span class="info-value" id="phone">未登录</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">登录状态</span>
+                <span class="info-value" id="loginStatus">未登录</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">会员权益</span>
+                <span class="info-value" id="memberStatus">未开通</span>
+            </div>
+        </div>
+
+        <div class="section-title">快捷数据</div>
+        <div class="quick-stats">
+            <div class="quick-stat-card">
+                <img src="icons/membership-status.svg" alt="会员状态" class="quick-stat-icon">
+                <div class="quick-stat-label">会员状态</div>
+                <div class="quick-stat-value" id="statMember">未开通</div>
+                <div class="quick-stat-sub" id="statMemberHint">开通后解锁专属咨询</div>
+            </div>
+            <div class="quick-stat-card" onclick="openChildManagement()">
+                <img src="icons/child-profile.svg" alt="孩子档案" class="quick-stat-icon">
+                <div class="quick-stat-label">孩子档案</div>
+                <div class="quick-stat-value" id="statChild">未完善</div>
+                <div class="quick-stat-sub" id="statChildHint">完成后推荐更精准</div>
+            </div>
+            <div class="quick-stat-card" id="badgeCard" style="display:none;">
+                <img src="icons/certified-mentor.svg" alt="智慧妈妈徽章" class="quick-stat-icon">
+                <div class="quick-stat-label">成长勋章</div>
+                <div class="quick-stat-value" id="statBadge">未获得</div>
+                <div class="quick-stat-sub" id="statBadgeHint">通过指导师考试后解锁</div>
+            </div>
+        </div>
+
+        <div class="section-title">常用功能</div>
+        <div class="card management-card">
+            <div class="management-item" onclick="openAccountManagement()">
+                <div class="management-item-content">
+                    <img src="icons/account-management.svg" alt="账号管理" class="management-icon">
+                    <div class="management-info">
+                        <span class="management-title">账号管理</span>
+                        <span class="management-desc">调整登录方式、更新手机号</span>
+                    </div>
+                </div>
+                <svg class="chevron-icon" viewBox="0 0 24 24">
+                    <path d="M9 6l6 6-6 6" />
+                </svg>
+            </div>
+            <div class="management-item" onclick="openChildManagement()">
+                <div class="management-item-content">
+                    <img src="icons/child-management.svg" alt="孩子管理" class="management-icon">
+                    <div class="management-info">
+                        <span class="management-title">孩子管理</span>
+                        <span class="management-desc">完善或新增孩子信息</span>
+                    </div>
+                </div>
+                <svg class="chevron-icon" viewBox="0 0 24 24">
+                    <path d="M9 6l6 6-6 6" />
+                </svg>
+            </div>
+            <div class="management-item" onclick="openRechargePage()">
+                <div class="management-item-content">
+                    <img src="icons/membership-center.svg" alt="会员中心" class="management-icon">
+                    <div class="management-info">
+                        <span class="management-title">会员中心</span>
+                        <span class="management-desc">查看权益 / 立即开通</span>
+                    </div>
+                </div>
+                <svg class="chevron-icon" viewBox="0 0 24 24">
+                    <path d="M9 6l6 6-6 6" />
+                </svg>
+            </div>
+            <div class="management-item" onclick="window.location.href='my_consultations.html'">
+                <div class="management-item-content">
+                    <img src="icons/consultation-plan.svg" alt="我的咨询" class="management-icon">
+                    <div class="management-info">
+                        <span class="management-title">我的咨询</span>
+                        <span class="management-desc">查看历史咨询记录</span>
+                    </div>
+                </div>
+                <svg class="chevron-icon" viewBox="0 0 24 24">
+                    <path d="M9 6l6 6-6 6" />
+                </svg>
+            </div>
+        </div>
+
+        <div class="section-title">咨询师中心</div>
+        <div class="card management-card">
+            <div class="management-item" onclick="window.location.href='consultant_training.html'">
+                <div class="management-item-content">
+                    <img src="icons/certified-mentor.svg" alt="加入咨询师" class="management-icon">
+                    <div class="management-info">
+                        <span class="management-title">加入咨询师团队</span>
+                        <span class="management-desc">蓝V认证通道</span>
+                    </div>
+                </div>
+                <svg class="chevron-icon" viewBox="0 0 24 24">
+                    <path d="M9 6l6 6-6 6" />
+                </svg>
+            </div>
+            <div class="management-item" onclick="window.location.href='consultant_certification.html'">
+                <div class="management-item-content">
+                    <img src="icons/satisfaction-rate.svg" alt="黄V认证" class="management-icon">
+                    <div class="management-info">
+                        <span class="management-title">黄V认证中心</span>
+                        <span class="management-desc">资质认证 / 保证金管理</span>
+                    </div>
+                </div>
+                <svg class="chevron-icon" viewBox="0 0 24 24">
+                    <path d="M9 6l6 6-6 6" />
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        function openAccountManagement() {
+            if (window.Android && Android.openAccountManagement) {
+                Android.openAccountManagement();
+            } else {
+                window.location.href = 'account_manage.html';
+            }
+        }
+
+        function openChildManagement() {
+            if (window.Android && Android.openChildManagement) {
+                Android.openChildManagement();
+            } else {
+                window.location.href = 'child_info.html';
+            }
+        }
+
+        function maskPhone(phone) {
+            if (!phone || phone.length < 7) {
+                return phone || '未登录';
+            }
+            return phone.slice(0, 3) + '****' + phone.slice(-4);
+        }
+
+        function hydrateProfile() {
+            const user = getUserProfile ? getUserProfile() : {};
+            const isLoggedIn = !!user.isLoggedIn;
+            const phone = user.phone || '';
+            const isPaid = !!user.isPaid;
+            const hasChildProfile = !!user.hasChildProfile;
+
+            document.getElementById('phone').textContent = isLoggedIn ? maskPhone(phone) : '未登录';
+            document.getElementById('loginStatus').textContent = isLoggedIn ? '已登录' : '未登录';
+            document.getElementById('memberStatus').textContent = isPaid ? '会员已开通' : '未开通';
+            document.getElementById('statMember').textContent = isPaid ? '已激活' : '未开通';
+            document.getElementById('statMemberHint').textContent = isPaid ? '可随时预约咨询师' : '开通后可预约专属咨询';
+            document.getElementById('statChild').textContent = hasChildProfile ? '已完善' : '未完善';
+            document.getElementById('statChildHint').textContent = hasChildProfile ? '已生成成长档案' : '完善后推荐更精准';
+
+            let hasWisdomMomBadge = false;
+            if (window.Android && Android.hasBadge) {
+                try {
+                    hasWisdomMomBadge = Android.hasBadge('wisdom_mom');
+                } catch (e) {
+                    hasWisdomMomBadge = false;
+                }
+            } else {
+                hasWisdomMomBadge = localStorage.getItem('hasWisdomMomBadge') === 'true';
+            }
+            const badgeCard = document.getElementById('badgeCard');
+            if (hasWisdomMomBadge) {
+                badgeCard.style.display = 'block';
+                document.getElementById('statBadge').textContent = '智慧妈妈';
+                document.getElementById('statBadgeHint').textContent = '已通过指导师考试，获得成长勋章';
+            } else {
+                badgeCard.style.display = 'none';
+            }
+
+            const heroAvatar = document.getElementById('heroAvatar');
+            const heroTitle = document.getElementById('heroTitle');
+            const heroSubtitle = document.getElementById('heroSubtitle');
+            const pillText = document.getElementById('pillText');
+            const heroActionBtn = document.getElementById('heroActionBtn');
+
+            heroAvatar.textContent = isLoggedIn && phone ? phone.slice(-2) : '访';
+            heroTitle.textContent = isLoggedIn ? `Hi, ${maskPhone(phone)}` : '欢迎来到童康源';
+            heroSubtitle.textContent = isPaid ? '感谢加入会员，享受专属守护' : '登录并开通会员，获得孩子成长方案';
+            pillText.textContent = isPaid ? '童康源会员 · 有效' : '未开通会员';
+
+            if (!isLoggedIn) {
+                heroActionBtn.textContent = '立即登录';
+                heroActionBtn.onclick = openAccountManagement;
+            } else if (!isPaid) {
+                heroActionBtn.textContent = '开通会员';
+                heroActionBtn.onclick = openRechargePage;
+            } else {
+                heroActionBtn.textContent = '管理账号';
+                heroActionBtn.onclick = openAccountManagement;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', hydrateProfile);
+    </script>
+</body>
+</html>

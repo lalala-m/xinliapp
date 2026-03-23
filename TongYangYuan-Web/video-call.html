@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>视频通话 - 童养园咨询师端</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/video-call.css">
+</head>
+<body>
+    <div class="video-call-container">
+        <!-- 远程视频 -->
+        <div class="remote-video-placeholder" id="remoteVideoPlaceholder">
+            <div class="remote-video-icon">📹</div>
+            <div class="remote-video-text">等待客户接入...</div>
+        </div>
+        <video class="remote-video" id="remoteVideo" style="display: none;" autoplay playsinline></video>
+
+        <!-- 本地视频 -->
+        <div class="local-video-container">
+            <div class="local-video-placeholder" id="localVideoPlaceholder">
+                👤
+            </div>
+            <video class="local-video" id="localVideo" style="display: none;" autoplay playsinline muted></video>
+        </div>
+
+        <!-- 通话信息 -->
+        <div class="call-info">
+            <div class="call-client-name" id="callClientName">王女士</div>
+            <div class="call-duration" id="callDuration">00:00</div>
+        </div>
+
+        <!-- 控制按钮 -->
+        <div class="call-controls">
+            <button class="control-btn mute" id="muteBtn" onclick="VideoCall.toggleMute()" title="静音">
+                🎤
+            </button>
+            <button class="control-btn end-call" id="endCallBtn" onclick="VideoCall.endCall()" title="挂断">
+                📞
+            </button>
+            <button class="control-btn switch-camera" onclick="VideoCall.switchCamera()" title="切换摄像头">
+                🔄
+            </button>
+        </div>
+
+        <!-- 连接状态 -->
+        <div class="connection-status" id="connectionStatus" style="display: none;">
+            <div class="connection-spinner"></div>
+            <div class="connection-text">正在连接...</div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/mock-data.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+    <script src="js/video-call.js?v=1.0.3"></script>
+</body>
+</html>

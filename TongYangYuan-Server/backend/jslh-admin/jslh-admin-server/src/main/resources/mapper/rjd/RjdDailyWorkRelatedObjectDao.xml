@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.jslh.rjd.dao.RjdDailyWorkRelatedObjectDao">
+
+    <resultMap type="com.jslh.rjd.entity.RjdDailyWorkRelatedObjectEntity" id="rjdDailyWorkRelatedObjectMap">
+        <result property="id" column="id"/>
+        <result property="dailyRecordId" column="daily_record_id"/>
+        <result property="relatedTypeId" column="related_type_id"/>
+        <result property="relatedObjectId" column="related_object_id"/>
+        <result property="relatedObjectName" column="related_object_name"/>
+        <result property="allocatedHours" column="allocated_hours"/>
+        <result property="allocatedRatio" column="allocated_ratio"/>
+        <result property="allocatedRemark" column="allocated_remark"/>
+        <result property="tenantCode" column="tenant_code"/>
+        <result property="creator" column="creator"/>
+        <result property="createDate" column="create_date"/>
+        <result property="updater" column="updater"/>
+        <result property="updateDate" column="update_date"/>
+        <result property="delFlag" column="del_flag"/>
+    </resultMap>
+
+</mapper>

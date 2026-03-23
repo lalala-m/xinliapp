@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>咨询师登录 - 童养园</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/login.css">
+    <link rel="stylesheet" href="css/anti-flicker.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-logo">童</div>
+                <h1 class="login-title">童养园咨询师端</h1>
+                <p class="login-subtitle">专业儿童心理咨询服务平台</p>
+            </div>
+
+            <form class="login-form" id="loginForm">
+                <div class="input-group">
+                    <label class="input-label" for="phone">手机号</label>
+                    <input
+                        type="tel"
+                        id="phone"
+                        class="input-field"
+                        placeholder="请输入手机号"
+                        maxlength="11"
+                        required
+                    >
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label" for="password">密码</label>
+                    <input
+                        type="password"
+                        id="password"
+                        class="input-field"
+                        placeholder="请输入密码"
+                        required
+                    >
+                </div>
+
+                <div class="login-options">
+                    <label class="remember-me">
+                        <input type="checkbox" id="rememberMe" checked>
+                        <span>记住我</span>
+                    </label>
+                    <a href="#" class="forgot-password">忘记密码？</a>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    登录
+                </button>
+            </form>
+
+            <div class="login-footer">
+                <p class="login-footer-text">
+                    还没有账号？<a href="register.html" style="color: #6FA6F8; text-decoration: none;">立即注册</a>
+                </p>
+
+                <div class="test-accounts">
+                    <div class="test-accounts-title">测试账号</div>
+                    <div class="test-account">手机号: 13800000001</div>
+                    <div class="test-account">密码: 123456</div>
+                    <div class="test-account">咨询师: 张医生</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/mock-data.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+</body>
+</html>

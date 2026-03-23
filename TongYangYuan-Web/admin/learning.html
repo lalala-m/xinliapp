@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学习资源管理 - 童养园管理后台</title>
+    <link rel="stylesheet" href="../css/common.css?v=2.0">
+    <link rel="stylesheet" href="css/admin.css?v=2.0">
+    <style>
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .video-list {
+            margin-top: 20px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+
+        .video-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #f9f9f9;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+
+        .action-btn {
+            padding: 5px 10px;
+            margin-left: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            color: white;
+        }
+
+        .edit-btn { background-color: #2196F3; }
+        .delete-btn { background-color: #f44336; }
+        .add-btn { background-color: #4CAF50; }
+        
+        .tabs {
+            margin-bottom: 20px;
+        }
+        
+        .tab-btn {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background: #f1f1f1;
+            margin-right: 5px;
+        }
+        
+        .tab-btn.active {
+            background: #2196F3;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h2>童养园管理后台</h2>
+            </div>
+            <nav class="nav-menu">
+                <a href="index.html" class="nav-item">
+                    <span class="icon">📊</span>
+                    <span>数据概览</span>
+                </a>
+                <a href="users.html" class="nav-item">
+                    <span class="icon">👥</span>
+                    <span>用户管理</span>
+                </a>
+                <a href="consultants.html" class="nav-item">
+                    <span class="icon">👨‍⚕️</span>
+                    <span>咨询师管理</span>
+                </a>
+                <a href="learning.html" class="nav-item active">
+                    <span class="icon">📚</span>
+                    <span>学习资源</span>
+                </a>
+                <a href="appointments.html" class="nav-item">
+                    <span class="icon">📅</span>
+                    <span>预约管理</span>
+                </a>
+                <a href="statistics.html" class="nav-item">
+                    <span class="icon">📈</span>
+                    <span>数据统计</span>
+                </a>
+                <a href="#" class="nav-item" id="logoutBtn">
+                    <span class="icon">🚪</span>
+                    <span>退出登录</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 顶部栏 -->
+            <header class="top-bar">
+                <div class="breadcrumb">
+                    <span>首页</span>
+                    <span class="separator">/</span>
+                    <span>学习资源管理</span>
+                </div>
+                <div class="user-info">
+                    <span id="adminName">管理员</span>
+                    <span class="badge">ADMIN</span>
+                </div>
+            </header>
+
+            <!-- 搜索和筛选 -->
+            <div class="toolbar">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="搜索学习包标题">
+                    <button onclick="searchPackages()">🔍 搜索</button>
+                </div>
+                <div class="filter-box">
+                    <select id="categoryFilter" onchange="filterPackages()">
+                        <option value="">全部分类</option>
+                    </select>
+                    <button id="btnAddPackage" class="add-btn">➕ 新增学习包</button>
+                    <button id="btnRefresh">🔄 刷新</button>
+                </div>
+            </div>
+
+            <!-- 学习包列表 -->
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>封面</th>
+                            <th>标题</th>
+                            <th>分类</th>
+                            <th>视频数</th>
+                            <th>总时长(分)</th>
+                            <th>状态</th>
+                            <th>排序</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="packageTableBody">
+                        <tr>
+                            <td colspan="9" class="loading">加载中...</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="pagination" id="pagination"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 学习包编辑弹窗 -->
+    <div id="packageModal" class="modal">
+        <div class="modal-content large">
+            <span class="close" onclick="closePackageModal()">&times;</span>
+            <h3 id="modalTitle">新增学习包</h3>
+            <form id="packageForm">
+                <input type="hidden" id="packageId">
+                <div class="form-group">
+                    <label>标题</label>
+                    <input type="text" id="pkgTitle" required>
+                </div>
+                <div class="form-group">
+                    <label>分类</label>
+                    <input type="text" id="pkgCategory" list="categoryList" required>
+                    <datalist id="categoryList"></datalist>
+                </div>
+                <div class="form-group">
+                    <label>描述</label>
+                    <textarea id="pkgDescription" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>封面图片</label>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <input type="file" id="pkgCoverFile" accept="image/*">
+                        <button type="button" class="action-btn edit-btn" onclick="uploadCoverImage()">上传封面</button>
+                    </div>
+                    <div id="coverUploadStatus" style="margin-top: 6px; font-size: 12px; color: #666;"></div>
+                    <input type="hidden" id="pkgCoverImage">
+                    <div style="margin-top: 10px;">
+                        <img id="coverPreview" src="" alt="封面预览" style="display:none;width:120px;height:80px;object-fit:cover;border-radius:4px;border:1px solid #eee;">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>标签 (逗号分隔)</label>
+                    <input type="text" id="pkgTags" placeholder="例如: 情绪管理,亲子沟通">
+                </div>
+                <div class="form-group">
+                    <label>排序 (数字越小越靠前)</label>
+                    <input type="number" id="pkgSortOrder" value="0">
+                </div>
+                <div class="form-group">
+                    <label>状态</label>
+                    <select id="pkgStatus">
+                        <option value="true">启用</option>
+                        <option value="false">禁用</option>
+                    </select>
+                </div>
+                
+                <div class="video-list">
+                    <h4>视频列表</h4>
+                    <div id="videoContainer"></div>
+                    <div style="margin-top: 10px;">
+                        <button type="button" class="action-btn add-btn" onclick="showAddVideoModal()">+ 添加视频</button>
+                    </div>
+                </div>
+
+                <div class="form-actions" style="margin-top: 20px; text-align: right;">
+                    <button type="button" class="btn-cancel" onclick="closePackageModal()">取消</button>
+                    <button type="button" class="btn-save" onclick="savePackage()">保存学习包</button>
+                </div>
+            </form>
+        </div>
+        </div>
+    </div>
+
+    <!-- 视频上传/添加弹窗 -->
+    <div id="videoModal" class="modal" style="z-index: 2001;">
+        <div class="modal-content" style="width: 500px;">
+            <span class="close" onclick="closeVideoModal()">&times;</span>
+            <h3 id="videoModalTitle">添加视频</h3>
+            <div class="form-group">
+                <label>视频文件</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="file" id="videoFile" accept="video/*">
+                    <button class="action-btn edit-btn" onclick="uploadVideoFile()">上传</button>
+                </div>
+                <div id="uploadProgress" style="display: none; color: #666; font-size: 12px; margin-top: 5px;">上传中...</div>
+                <input type="hidden" id="videoUrl">
+            </div>
+            <div class="form-group">
+                <label for="videoTitle">视频标题</label>
+                <input type="text" id="videoTitle" placeholder="请输入视频标题">
+            </div>
+            <div class="form-group">
+                <label for="videoDuration">时长（秒）</label>
+                <input type="number" id="videoDuration" placeholder="例如：120">
+            </div>
+            <div class="form-group">
+                <label for="videoDescription">视频简介</label>
+                <textarea id="videoDescription" rows="2"></textarea>
+            </div>
+            <div class="form-actions" style="text-align: right;">
+                <button class="btn-cancel" onclick="closeVideoModal()">取消</button>
+                <button class="btn-save" onclick="saveVideoToPackage()">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/config.js?v=2.1"></script>
+    <script src="js/admin-common.js?v=2.1"></script>
+    <script src="js/admin-learning.js?v=11.4"></script>
+</body>
+</html>

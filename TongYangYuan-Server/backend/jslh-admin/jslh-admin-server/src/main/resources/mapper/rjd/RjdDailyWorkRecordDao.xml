@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.jslh.rjd.dao.RjdDailyWorkRecordDao">
+
+    <resultMap type="com.jslh.rjd.entity.RjdDailyWorkRecordEntity" id="rjdDailyWorkRecordMap">
+        <result property="id" column="id"/>
+        <result property="postId" column="post_id"/>
+        <result property="postName" column="post_name"/>
+        <result property="deptId" column="dept_id"/>
+        <result property="deptName" column="dept_name"/>
+        <result property="workDate" column="work_date"/>
+        <result property="workItemType" column="work_item_type"/>
+        <result property="relatedTypeId" column="related_type_id"/>
+        <result property="relatedTypeName" column="related_type_name"/>
+        <result property="relatedSourceTable" column="related_source_table"/>
+        <result property="relatedObjectName" column="related_object_name"/>
+        <result property="relatedObject" column="related_object"/>
+        <result property="fillContent" column="fill_content"/>
+        <result property="workingHours" column="working_hours"/>
+        <result property="allocatedHoursSum" column="allocated_hours_sum"/>
+        <result property="allocatedCheckStatus" column="allocated_check_status"/>
+        <result property="modifyCount" column="modify_count"/>
+        <result property="latestRejectReason" column="latest_reject_reason"/>
+        <result property="commuteActualHours" column="commute_actual_hours"/>
+        <result property="systemAuditStatus" column="system_audit_status"/>
+        <result property="manualAuditStatus" column="manual_audit_status"/>
+        <result property="latestAuditNode" column="latest_audit_node"/>
+        <result property="fillerId" column="filler_id"/>
+        <result property="fillerName" column="filler_name"/>
+        <result property="fillDatetime" column="fill_datetime"/>
+        <result property="tenantCode" column="tenant_code"/>
+        <result property="status" column="status"/>
+        <result property="creator" column="creator"/>
+        <result property="createDate" column="create_date"/>
+        <result property="updater" column="updater"/>
+        <result property="updateDate" column="update_date"/>
+        <result property="delFlag" column="del_flag"/>
+    </resultMap>
+
+</mapper>

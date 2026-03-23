@@ -1,0 +1,48 @@
+# OpenIM Server 配置
+# 部署时请根据实际情况修改
+
+api:
+  openImApiPort: [10002]
+  
+ws:
+  openImWsPort: [10001]
+
+# 用户注册配置
+user:
+  Nickname: "系统管理员"
+  FaceUrl: "http://106.120.183.117/uploads/avatar.jpg"
+
+# 认证配置  
+auth:
+  openImAdminUserID: [openIMAdmin]
+  openImAdminSecret: OpenIMAdmin@2026
+
+# MySQL 配置
+db:
+  mongoDB:
+    Uri: ""
+  mysql:
+    openImMysql:
+      DB: openim_v2
+      Tables:
+        - conversation
+        - friend_request
+        - black
+        - user
+      Address:
+        - mysql:3306
+      Username: root
+      Password: TongYuan@2026
+
+# Redis 配置
+redis:
+  openImRedis:
+    Username: ""
+    Password: Redis@2026
+    Address:
+      - redis:6379
+
+# 日志配置
+log:
+  StorageLocation: /tmp/openim
+  MaxSize: 10000

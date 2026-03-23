@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.jslh.rjd.dao.RjdSystemAuditConfigDao">
+
+    <resultMap type="com.jslh.rjd.entity.RjdSystemAuditConfigEntity" id="rjdSystemAuditConfigMap">
+        <result property="configId" column="config_id"/>
+        <result property="configName" column="config_name"/>
+        <result property="postId" column="post_id"/>
+        <result property="postName" column="post_name"/>
+        <result property="deptId" column="dept_id"/>
+        <result property="deptName" column="dept_name"/>
+        <result property="requiredFields" column="required_fields"/>
+        <result property="workingHoursMin" column="working_hours_min"/>
+        <result property="workingHoursMax" column="working_hours_max"/>
+        <result property="relatedObjectCheck" column="related_object_check"/>
+        <result property="actualHoursMatch" column="actual_hours_match"/>
+        <result property="autoPass" column="auto_pass"/>
+        <result property="fillContentMinLength" column="fill_content_min_length"/>
+        <result property="allocatedCheck" column="allocated_check"/>
+        <result property="modifyLimit" column="modify_limit"/>
+        <result property="relatedObjectMinCount" column="related_object_min_count"/>
+        <result property="tenantCode" column="tenant_code"/>
+        <result property="status" column="status"/>
+        <result property="creator" column="creator"/>
+        <result property="createDate" column="create_date"/>
+        <result property="updater" column="updater"/>
+        <result property="updateDate" column="update_date"/>
+        <result property="delFlag" column="del_flag"/>
+    </resultMap>
+
+</mapper>
