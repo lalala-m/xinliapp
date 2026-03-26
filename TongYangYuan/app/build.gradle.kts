@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
 }
 
 android {
@@ -32,6 +33,9 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+    kotlinOptions {
+        jvmTarget = "17"
+    }
 }
 
 dependencies {
@@ -46,13 +50,16 @@ dependencies {
     implementation(libs.room.runtime)
     annotationProcessor(libs.room.compiler)
     implementation(libs.gson)
+    implementation(libs.kotlin.stdlib)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.lifecycle.runtime.ktx)
 
     // OpenIM Android SDK - 即时通讯
     implementation("io.openim:android-sdk:3.8.3.2@aar") {
         isTransitive = true
     }
     // LiveKit Android SDK - 音视频通话
-    implementation("io.livekit:livekit-android:2.18.2")
+    implementation(libs.livekit)
 
     // AgentWeb for WebView
     implementation("com.github.Justson.AgentWeb:agentweb-core:v5.0.0-alpha.1-androidx")

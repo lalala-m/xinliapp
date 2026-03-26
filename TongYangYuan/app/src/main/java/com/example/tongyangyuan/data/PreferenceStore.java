@@ -21,6 +21,12 @@ public class PreferenceStore {
     private static final String KEY_USER_ID = "user_id";
     private static final String KEY_BADGES = "badges";
     private static final String KEY_AVATAR_URL = "avatar_url";
+    private static final String KEY_CURRENT_CHILD_ID = "current_child_id";
+    private static final String KEY_CURRENT_CHILD_NAME = "current_child_name";
+    // 咨询师相关
+    private static final String KEY_CONSULTANT_TOKEN = "consultant_token";
+    private static final String KEY_USER_TYPE = "user_type";
+    private static final String KEY_NICKNAME = "nickname";
 
     private final SharedPreferences sharedPreferences;
     private static PreferenceStore instance;
@@ -90,6 +96,22 @@ public class PreferenceStore {
 
     public void setAvatarUrl(String avatarUrl) {
         sharedPreferences.edit().putString(KEY_AVATAR_URL, avatarUrl).apply();
+    }
+
+    public long getCurrentChildId() {
+        return sharedPreferences.getLong(KEY_CURRENT_CHILD_ID, -1);
+    }
+
+    public void setCurrentChildId(long childId) {
+        sharedPreferences.edit().putLong(KEY_CURRENT_CHILD_ID, childId).apply();
+    }
+
+    public String getCurrentChildName() {
+        return sharedPreferences.getString(KEY_CURRENT_CHILD_NAME, "");
+    }
+
+    public void setCurrentChildName(String childName) {
+        sharedPreferences.edit().putString(KEY_CURRENT_CHILD_NAME, childName).apply();
     }
 
     public boolean hasBadge(String badgeId) {
@@ -162,5 +184,51 @@ public class PreferenceStore {
             return "guest";
         }
         return phone;
+    }
+
+    // ========== 咨询师相关 ==========
+
+    public String getConsultantToken() {
+        return sharedPreferences.getString(KEY_CONSULTANT_TOKEN, "");
+    }
+
+    public void saveConsultantToken(String token) {
+        sharedPreferences.edit().putString(KEY_CONSULTANT_TOKEN, token).apply();
+    }
+
+    public void clearConsultantToken() {
+        sharedPreferences.edit().remove(KEY_CONSULTANT_TOKEN).apply();
+    }
+
+    public String getUserType() {
+        return sharedPreferences.getString(KEY_USER_TYPE, "");
+    }
+
+    public void saveUserType(String userType) {
+        sharedPreferences.edit().putString(KEY_USER_TYPE, userType). apply();
+    }
+
+    public String getNickname() {
+        return sharedPreferences.getString(KEY_NICKNAME, "");
+    }
+
+    public void saveNickname(String nickname) {
+        sharedPreferences.edit().putString(KEY_NICKNAME, nickname).apply();
+    }
+
+    public long getLastLoginUserId() {
+        return sharedPreferences.getLong(KEY_USER_ID, -1);
+    }
+
+    public void saveLastLoginUserId(long userId) {
+        sharedPreferences.edit().putLong(KEY_USER_ID, userId).apply();
+    }
+
+    public void saveLastLoginPhone(String phone) {
+        sharedPreferences.edit().putString(KEY_LAST_LOGIN_PHONE, phone).apply();
+    }
+
+    public void saveAvatarUrl(String url) {
+        sharedPreferences.edit().putString(KEY_AVATAR_URL, url).apply();
     }
 }

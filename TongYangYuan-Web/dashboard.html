@@ -7,9 +7,587 @@
     <link rel="stylesheet" href="css/common.css">
     <link rel="stylesheet" href="css/dashboard.css">
     <link rel="stylesheet" href="css/anti-flicker.css">
+    <style>
+        /* =============================================
+           登录页面样式（覆盖 dashboard 原有样式）
+           ============================================= */
+        .login-page {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FF8C00 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+        }
+
+        .login-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+            padding: 48px 40px;
+            width: 420px;
+            max-width: 90%;
+        }
+
+        .login-logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .login-logo .icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 16px;
+            box-shadow: 0 8px 24px rgba(255,165,0,0.35);
+        }
+
+        .login-logo h1 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 6px;
+        }
+
+        .login-logo p {
+            font-size: 14px;
+            color: #888;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 8px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e8e8e8;
+            border-radius: 12px;
+            font-size: 15px;
+            transition: all 0.25s;
+            outline: none;
+        }
+
+        .form-group input:focus {
+            border-color: #FFA500;
+            box-shadow: 0 0 0 3px rgba(255,165,0,0.12);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.25s;
+            margin-top: 8px;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(255,165,0,0.4);
+        }
+
+        .btn-login:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .login-error {
+            background: #fff2f0;
+            color: #cf1322;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            margin-bottom: 20px;
+            display: none;
+            border: 1px solid #ffa39e;
+        }
+
+        .login-error.show { display: block; }
+
+        .login-footer {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        .login-footer a {
+            color: #FFA500;
+            text-decoration: none;
+        }
+
+        /* 登录加载遮罩 */
+        .login-spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid rgba(255,165,0,0.2);
+            border-top-color: #FFA500;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* =============================================
+           资料编辑模态框样式
+           ============================================= */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .profile-modal {
+            background: white;
+            border-radius: 20px;
+            padding: 0;
+            width: 720px;
+            max-width: 95%;
+            max-height: 92vh;
+            overflow-y: auto;
+            transform: scale(0.9);
+            transition: transform 0.3s;
+        }
+
+        .modal-overlay.show .profile-modal {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            padding: 24px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-radius: 20px 20px 0 0;
+        }
+
+        .modal-header h2 {
+            color: white;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            background: rgba(255,255,255,0.3);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .modal-close:hover { background: rgba(255,255,255,0.45); }
+
+        .modal-body {
+            padding: 28px 32px;
+        }
+
+        /* 模态框内头像 */
+        .modal-avatar-section {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .modal-avatar-wrap {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+        }
+
+        .modal-avatar-circle {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 4px solid #FFD700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: white;
+            font-size: 40px;
+            font-weight: 700;
+        }
+
+        .modal-avatar-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .modal-avatar-badge {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            width: 28px;
+            height: 28px;
+            background: #FFA500;
+            border-radius: 50%;
+            border: 2px solid white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .modal-avatar-hint {
+            font-size: 12px;
+            color: #999;
+            margin-top: 8px;
+        }
+
+        .modal-form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .modal-form-group {
+            margin-bottom: 0;
+        }
+
+        .modal-form-group.full-width {
+            grid-column: span 2;
+        }
+
+        .modal-form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 6px;
+        }
+
+        .modal-form-group label span.red { color: red; }
+
+        .modal-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid #e8e8e8;
+            border-radius: 10px;
+            font-size: 14px;
+            color: #333;
+            background: #fafafa;
+            transition: all 0.2s;
+            outline: none;
+        }
+
+        .modal-input:focus {
+            border-color: #FFA500;
+            background: white;
+        }
+
+        textarea.modal-input {
+            resize: vertical;
+            min-height: 80px;
+            line-height: 1.5;
+        }
+
+        .modal-hint {
+            font-size: 11px;
+            color: #ccc;
+            margin-top: 3px;
+        }
+
+        .specialty-tags-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .specialty-tag {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            background: #FFF8E1;
+            color: #E65100;
+            border: 1px solid #FFE082;
+        }
+
+        .specialty-tag.empty {
+            background: #f5f5f5;
+            color: #999;
+            border-color: #e0e0e0;
+        }
+
+        /* 模态框内统计 */
+        .modal-stats-row {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 24px;
+            padding: 16px;
+            background: #fff9e6;
+            border-radius: 12px;
+        }
+
+        .modal-stat-item {
+            text-align: center;
+        }
+
+        .modal-stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #FFA500;
+        }
+
+        .modal-stat-label {
+            font-size: 11px;
+            color: #999;
+            margin-top: 2px;
+        }
+
+        .modal-cert-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .modal-cert-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .modal-cert-badge.ok {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .modal-cert-badge.no {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .modal-footer {
+            padding: 16px 32px 28px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .modal-btn-cancel {
+            background: #f5f5f5;
+            color: #666;
+            border: 1.5px solid #e0e0e0;
+        }
+
+        .modal-btn-cancel:hover { background: #eee; }
+
+        .modal-btn-save {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: white;
+            border: none;
+        }
+
+        .modal-btn-save:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(255,165,0,0.4);
+        }
+
+        /* =============================================
+           原有 dashboard 样式小调整
+           ============================================= */
+        .dashboard-container { display: none; }
+        .dashboard-container.authenticated { display: block; }
+        .login-page { display: flex; }
+        .login-page.hidden { display: none; }
+
+        /* Toast */
+        .toast-fixed {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            padding: 10px 28px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 9999;
+            color: white;
+            pointer-events: none;
+        }
+
+        .toast-fixed.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast-fixed.success { background: #4CAF50; }
+        .toast-fixed.error   { background: #f44336; }
+        .toast-fixed.info    { background: #2196F3; }
+
+        /* 头部头像更新 */
+        .header-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid rgba(255,255,255,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .header-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* 资料入口按钮 */
+        .btn-profile {
+            padding: 6px 14px;
+            background: rgba(255,255,255,0.25);
+            border: 1px solid rgba(255,255,255,0.4);
+            border-radius: 20px;
+            color: white;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-profile:hover {
+            background: rgba(255,255,255,0.35);
+        }
+
+        /* 退出确认模态框 */
+        .confirm-modal {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            width: 360px;
+            max-width: 90%;
+            text-align: center;
+        }
+
+        .confirm-modal h3 {
+            font-size: 17px;
+            color: #333;
+            margin-bottom: 24px;
+        }
+
+        .confirm-modal .confirm-btns {
+            display: flex;
+            gap: 12px;
+        }
+
+        .confirm-modal .confirm-btns button {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .confirm-modal .btn-no {
+            background: #f5f5f5;
+            color: #666;
+            border: 1.5px solid #e0e0e0;
+        }
+
+        .confirm-modal .btn-yes {
+            background: #f44336;
+            color: white;
+            border: none;
+        }
+    </style>
 </head>
 <body>
-    <div class="dashboard-container">
+    <!-- ============================================
+         登录页
+         ============================================ -->
+    <div class="login-page" id="loginPage">
+        <div class="login-card">
+            <div class="login-logo">
+                <div class="icon">👨‍⚕️</div>
+                <h1>咨询师入口</h1>
+                <p>登录管理您的咨询师账号</p>
+            </div>
+
+            <div id="loginError" class="login-error"></div>
+
+            <form id="loginForm" onsubmit="doConsultantLogin(); return false;">
+                <div class="form-group">
+                    <label>手机号</label>
+                    <input type="tel" id="loginPhone" placeholder="请输入注册手机号" maxlength="11" autocomplete="off" inputmode="numeric">
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" id="loginPwd" placeholder="请输入密码" autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn-login" id="loginBtn">登录</button>
+            </form>
+
+            <div class="login-footer">
+                <a href="admin/login.html">← 返回管理员登录</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         工作台主体
+         ============================================ -->
+    <div class="dashboard-container" id="dashboardPage">
         <!-- 顶部导航栏 -->
         <header class="dashboard-header">
             <div class="header-content">
@@ -18,14 +596,15 @@
                     <h1 class="header-title">童养园咨询师端</h1>
                 </div>
                 <div class="header-right">
-                    <div class="consultant-info" id="consultantInfo">
-                        <div class="avatar" id="consultantAvatar">张</div>
+                    <div class="consultant-info" id="consultantHeaderInfo">
+                        <div class="header-avatar" id="headerAvatar">张</div>
                         <div>
-                            <div class="consultant-name" id="consultantName">张医生</div>
-                            <div class="consultant-title" id="consultantTitle">儿童心理咨询师</div>
+                            <div class="consultant-name" id="headerName">张医生</div>
+                            <div class="consultant-title" id="headerTitle">儿童心理咨询师</div>
                         </div>
                     </div>
-                    <button class="btn btn-secondary" onclick="Auth.logout()">退出登录</button>
+                    <button class="btn-profile" onclick="openProfileModal()">📋 资料管理</button>
+                    <button class="btn btn-secondary" onclick="showLogoutConfirm()">退出登录</button>
                 </div>
             </div>
         </header>
@@ -41,7 +620,6 @@
                     <div class="stat-value" id="todayCount">0</div>
                     <div class="stat-label">今日预约</div>
                 </div>
-
                 <div class="stat-card">
                     <div class="stat-header">
                         <div class="stat-icon warning">⏰</div>
@@ -49,7 +627,6 @@
                     <div class="stat-value" id="pendingCount">0</div>
                     <div class="stat-label">待处理</div>
                 </div>
-
                 <div class="stat-card">
                     <div class="stat-header">
                         <div class="stat-icon success">✓</div>
@@ -57,17 +634,16 @@
                     <div class="stat-value" id="completedCount">0</div>
                     <div class="stat-label">已完成</div>
                 </div>
-
                 <div class="stat-card">
                     <div class="stat-header">
                         <div class="stat-icon primary">👥</div>
                     </div>
-                    <div class="stat-value" id="totalServed">1200</div>
+                    <div class="stat-value" id="totalServed">0</div>
                     <div class="stat-label">累计服务</div>
                 </div>
             </div>
 
-            <!-- 功能导航区 (新增) -->
+            <!-- 功能导航区 -->
             <div class="quick-access-section" style="margin-top: 20px; background: white; padding: 20px; border-radius: 12px;">
                 <h3 style="margin-top: 0; margin-bottom: 15px;">功能入口</h3>
                 <div style="display: flex; gap: 20px;">
@@ -100,7 +676,7 @@
 
                 <!-- 标签切换 -->
                 <div class="tab-buttons">
-                    <button class="tab-btn active" data-tab="today" onclick="Dashboard.switchTab('today')">
+                    <button class="tab-btn" data-tab="today" onclick="Dashboard.switchTab('today')">
                         今日预约
                     </button>
                     <button class="tab-btn" data-tab="pending" onclick="Dashboard.switchTab('pending')">
@@ -109,15 +685,13 @@
                     <button class="tab-btn" data-tab="completed" onclick="Dashboard.switchTab('completed')">
                         已完成
                     </button>
-                    <button class="tab-btn" data-tab="all" onclick="Dashboard.switchTab('all')">
+                    <button class="tab-btn active" data-tab="all" onclick="Dashboard.switchTab('all')">
                         全部
                     </button>
                 </div>
 
                 <!-- 预约列表 -->
-                <div class="appointment-list" id="appointmentList">
-                    <!-- 动态加载 -->
-                </div>
+                <div class="appointment-list" id="appointmentList"></div>
             </div>
 
             <!-- 咨询记录 -->
@@ -128,12 +702,124 @@
                         <button class="btn btn-secondary" onclick="Dashboard.refreshRecords()">刷新</button>
                     </div>
                 </div>
-                <div class="consultation-record-list" id="consultationRecordList">
-                    <!-- 动态加载 -->
-                </div>
+                <div class="consultation-record-list" id="consultationRecordList"></div>
             </div>
         </main>
     </div>
+
+    <!-- ============================================
+         资料编辑模态框
+         ============================================ -->
+    <div class="modal-overlay" id="profileModal">
+        <div class="profile-modal">
+            <div class="modal-header">
+                <h2>👨‍⚕️ 我的资料</h2>
+                <button class="modal-close" onclick="closeProfileModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <!-- 模态框内统计 -->
+                <div class="modal-stats-row" id="modalStatsRow">
+                    <div class="modal-stat-item">
+                        <div class="modal-stat-value" id="modalRating">5.0</div>
+                        <div class="modal-stat-label">评分</div>
+                    </div>
+                    <div class="modal-stat-item">
+                        <div class="modal-stat-value" id="modalServed">0</div>
+                        <div class="modal-stat-label">服务家庭</div>
+                    </div>
+                    <div class="modal-stat-item">
+                        <div class="modal-stat-value" id="modalId">-</div>
+                        <div class="modal-stat-label">咨询师ID</div>
+                    </div>
+                </div>
+
+                <!-- 认证状态 -->
+                <div class="modal-cert-row" id="modalCertRow" style="margin-bottom:20px; flex-wrap:wrap;">
+                    <span class="modal-cert-badge ok" id="certBadge">✅ 已认证</span>
+                    <span class="modal-cert-badge ok" id="depositBadge">✅ 保证金已缴纳</span>
+                </div>
+
+                <!-- 头像 -->
+                <div class="modal-avatar-section">
+                    <div class="modal-avatar-wrap" onclick="triggerModalAvatar()">
+                        <div class="modal-avatar-circle" id="modalAvatar">
+                            <span id="modalAvatarInitial">张</span>
+                        </div>
+                        <div class="modal-avatar-badge">✏️</div>
+                    </div>
+                    <div class="modal-avatar-hint">点击头像更换</div>
+                </div>
+
+                <!-- 查看模式 -->
+                <div id="modalInfoArea">
+                    <div class="modal-form-grid">
+                        <div class="modal-form-group">
+                            <label>姓名</label>
+                            <div style="padding:10px 0; font-size:14px;" id="infoName">-</div>
+                        </div>
+                        <div class="modal-form-group">
+                            <label>职称</label>
+                            <div style="padding:10px 0; font-size:14px;" id="infoTitle">-</div>
+                        </div>
+                        <div class="modal-form-group full-width">
+                            <label>擅长领域</label>
+                            <div class="specialty-tags-wrap" id="infoSpecialty"></div>
+                        </div>
+                        <div class="modal-form-group full-width">
+                            <label>个人简介</label>
+                            <div style="font-size:13px; color:#555; line-height:1.6; padding:8px 0;" id="infoIntro">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 编辑模式 -->
+                <div id="modalFormArea" style="display:none;">
+                    <div class="modal-form-grid">
+                        <div class="modal-form-group">
+                            <label>姓名 <span class="red">*</span></label>
+                            <input type="text" class="modal-input" id="inputName" maxlength="20" placeholder="请输入姓名">
+                        </div>
+                        <div class="modal-form-group">
+                            <label>职称</label>
+                            <input type="text" class="modal-input" id="inputTitle" maxlength="50" placeholder="如：国家二级心理咨询师">
+                        </div>
+                        <div class="modal-form-group full-width">
+                            <label>擅长领域</label>
+                            <input type="text" class="modal-input" id="inputSpecialty" placeholder="多个领域用逗号分隔">
+                            <div class="modal-hint">如需修改擅长领域请联系管理员</div>
+                        </div>
+                        <div class="modal-form-group full-width">
+                            <label>个人简介</label>
+                            <textarea class="modal-input" id="inputIntro" maxlength="500" rows="3" placeholder="介绍一下自己，让家长更了解您..."></textarea>
+                            <div class="modal-hint" id="introCharCount">0/500</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer" id="modalFooter">
+                <button class="modal-btn modal-btn-cancel" onclick="closeProfileModal()">关闭</button>
+                <button class="modal-btn modal-btn-save" id="modalEditBtn" onclick="startEditProfile()">编辑资料</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 退出确认 -->
+    <div class="modal-overlay" id="logoutConfirmModal">
+        <div class="confirm-modal">
+            <h3>确定要退出登录吗？</h3>
+            <div class="confirm-btns">
+                <button class="btn-no" onclick="closeLogoutConfirm()">取消</button>
+                <button class="btn-yes" onclick="confirmLogout()">确定退出</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast-fixed" id="toastEl"></div>
+
+    <!-- 头像上传（隐藏） -->
+    <input type="file" id="modalAvatarInput" accept="image/*" style="display:none;" onchange="handleModalAvatar(event)">
 
     <script src="js/config.js"></script>
     <script src="js/storage.js"></script>
@@ -141,5 +827,427 @@
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/dashboard.js"></script>
+    <script>
+        /* =============================================
+           咨询师登录
+           ============================================= */
+        const API_BASE = CONFIG.API_BASE_URL.endsWith('/api')
+            ? CONFIG.API_BASE_URL.replace('/api', '') + '/api'
+            : CONFIG.API_BASE_URL;
+
+        function getConsultantToken() {
+            return localStorage.getItem('consultantToken') || '';
+        }
+
+        function getConsultantUser() {
+            try {
+                return JSON.parse(localStorage.getItem('consultantUser') || '{}');
+            } catch(e) { return {}; }
+        }
+
+        // ===== 页面初始化 =====
+        document.addEventListener('DOMContentLoaded', () => {
+            // 手机号只允许数字
+            const phoneInput = document.getElementById('loginPhone');
+            if (phoneInput) {
+                phoneInput.addEventListener('input', function() {
+                    this.value = this.value.replace(/\D/g, '');
+                });
+            }
+
+            if (getConsultantToken()) {
+                showDashboard();
+            } else {
+                showLogin();
+            }
+        });
+
+        function showLogin() {
+            document.getElementById('loginPage').classList.remove('hidden');
+            document.getElementById('dashboardPage').classList.remove('authenticated');
+        }
+
+        async function showDashboard() {
+            document.getElementById('loginPage').classList.add('hidden');
+            document.getElementById('dashboardPage').classList.add('authenticated');
+            // 必须 await，确保 ConsultantStorage 写入完成后才触发 Dashboard.init()
+            await loadConsultantHeader();
+            loadConsultantData();
+        }
+
+        // ===== 登录逻辑 =====
+        async function doConsultantLogin() {
+            const phone = document.getElementById('loginPhone').value.trim();
+            const pwd = document.getElementById('loginPwd').value;
+
+            if (!phone || phone.length < 11) {
+                showLoginError('请输入正确的11位手机号');
+                return;
+            }
+            if (!pwd) {
+                showLoginError('请输入密码');
+                return;
+            }
+
+            const btn = document.getElementById('loginBtn');
+            btn.disabled = true;
+            btn.textContent = '登录中...';
+
+            try {
+                const base = API_BASE.endsWith('/api') ? API_BASE.replace('/api', '') + '/api' : API_BASE;
+                const res = await fetch(base + '/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone, password: pwd })
+                });
+                const json = await res.json();
+
+                if (json.code === 200 && json.data) {
+                    const d = json.data;
+                    if (d.userType !== 'CONSULTANT') {
+                        showLoginError('该账号不是咨询师账号，请使用咨询师手机号登录');
+                        btn.disabled = false;
+                        btn.textContent = '登录';
+                        return;
+                    }
+
+                    const token = d.token || '';
+
+                    // 【关键修复】必须额外调用 /consultants/user/{userId} 获取咨询师档案主键（consultants.id）
+                    // d.userId = users 表主键，而 appointments.consultant_id 引用的是 consultants.id
+                    let consultantProfile = null;
+                    try {
+                        const profileRes = await fetch(base + '/consultants/user/' + d.userId, {
+                            headers: { 'Authorization': 'Bearer ' + token }
+                        });
+                        const profileJson = await profileRes.json();
+                        if (profileJson.code === 200 && profileJson.data) {
+                            consultantProfile = profileJson.data;
+                        }
+                    } catch (e) {
+                        console.warn('获取咨询师档案失败', e);
+                    }
+
+                    if (!consultantProfile || !consultantProfile.id) {
+                        showLoginError('无法获取咨询师档案数据，请联系管理员');
+                        btn.disabled = false;
+                        btn.textContent = '登录';
+                        return;
+                    }
+
+                    // 存入 localStorage（consultantToken 用于 API 认证）
+                    localStorage.setItem('consultantToken', token);
+                    // consultantUser 存完整档案：id = consultants.id（含档案主键），userId = users.id
+                    localStorage.setItem('consultantUser', JSON.stringify({
+                        id: consultantProfile.id,          // ← consultants.id（业务关联主键）
+                        userId: d.userId,                  // ← users.id（用户身份主键）
+                        phone: d.phone,
+                        nickname: d.nickname || '',
+                        userType: d.userType,
+                        token: token
+                    }));
+                    showDashboard();
+                } else {
+                    showLoginError(json.message || '登录失败，请检查账号密码');
+                    btn.disabled = false;
+                    btn.textContent = '登录';
+                }
+            } catch (e) {
+                console.error('登录异常:', e);
+                const base = API_BASE.endsWith('/api') ? API_BASE.replace('/api', '') + '/api' : API_BASE;
+                showLoginError('无法连接登录接口（' + base + '/auth/login）。请确认后端已启动。');
+                btn.disabled = false;
+                btn.textContent = '登录';
+            }
+        }
+
+        function showLoginError(msg) {
+            const el = document.getElementById('loginError');
+            el.textContent = msg;
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 5000);
+        }
+
+        // ===== 头部信息 =====
+        async function loadConsultantHeader() {
+            try {
+                const res = await fetch(API_BASE + '/consultants/me', {
+                    headers: { 'Authorization': 'Bearer ' + getConsultantToken() }
+                });
+                const json = await res.json();
+                if (json.code === 200 && json.data) {
+                    const c = json.data;
+                    document.getElementById('headerName').textContent = c.name || '未设置姓名';
+                    document.getElementById('headerTitle').textContent = c.title || '儿童心理咨询师';
+
+                    const avatarEl = document.getElementById('headerAvatar');
+                    if (c.avatarUrl) {
+                        avatarEl.innerHTML = `<img src="${escapeHtml(c.avatarUrl)}" alt="头像">`;
+                    } else {
+                        avatarEl.textContent = (c.name || '?').charAt(0).toUpperCase();
+                    }
+
+                    // 更新 localStorage 中存储的咨询师档案（确保 id 正确）
+                    const stored = JSON.parse(localStorage.getItem('consultantUser') || '{}');
+                    localStorage.setItem('consultantUser', JSON.stringify({
+                        ...stored,
+                        id: c.id,          // ← 必须是 consultants.id
+                        userId: c.userId,
+                        name: c.name,
+                        title: c.title,
+                        specialty: c.specialty
+                    }));
+
+                    // 【关键修复】必须同步写入 ConsultantStorage，否则 Dashboard.init() 检测不到登录直接退出
+                    const token = localStorage.getItem('consultantToken') || '';
+                    const loginData = {
+                        ...c,
+                        token: token,
+                        loginTime: Date.now()
+                    };
+                    ConsultantStorage.setCurrentConsultant(loginData);
+
+                    // 加载完头部数据后，立即触发 Dashboard.init()（确保 ConsultantStorage 已就绪）
+                    if (typeof Dashboard !== 'undefined' && Dashboard.init) {
+                        Dashboard.init();
+                    }
+                }
+            } catch(e) { console.error('加载头部信息失败', e); }
+        }
+
+        // ===== 加载预约和统计数据 =====
+        async function loadConsultantData() {
+            // Dashboard.init() 已由 loadConsultantHeader() 调用并等待完成，
+            // 此处无需重复调用，只需加载统计数据即可
+            try {
+                const res = await fetch(API_BASE + '/consultants/me', {
+                    headers: { 'Authorization': 'Bearer ' + getConsultantToken() }
+                });
+                const json = await res.json();
+                if (json.code === 200 && json.data) {
+                    const c = json.data;
+                    document.getElementById('totalServed').textContent = c.servedCount || 0;
+                }
+            } catch(e) {}
+        }
+
+        /* =============================================
+           资料管理模态框
+           ============================================= */
+        let consultantProfile = {};
+        let pendingAvatarBase64 = '';
+        let isEditingProfile = false;
+
+        async function openProfileModal() {
+            const modal = document.getElementById('profileModal');
+            modal.classList.add('show');
+            isEditingProfile = false;
+            pendingAvatarBase64 = '';
+
+            try {
+                const res = await fetch(API_BASE + '/consultants/me', {
+                    headers: { 'Authorization': 'Bearer ' + getConsultantToken() }
+                });
+                const json = await res.json();
+                if (json.code === 200 && json.data) {
+                    consultantProfile = json.data;
+                    renderProfileView();
+                } else {
+                    showToast('获取资料失败', 'error');
+                }
+            } catch(e) {
+                showToast('网络错误，请重试', 'error');
+            }
+        }
+
+        function closeProfileModal() {
+            document.getElementById('profileModal').classList.remove('show');
+            isEditingProfile = false;
+        }
+
+        function renderProfileView() {
+            const c = consultantProfile;
+
+            // 统计
+            document.getElementById('modalRating').textContent =
+                c.rating ? parseFloat(c.rating).toFixed(1) : '5.0';
+            document.getElementById('modalServed').textContent = c.servedCount || 0;
+            document.getElementById('modalId').textContent = c.id || '-';
+
+            // 认证
+            const certBadge = document.getElementById('certBadge');
+            certBadge.textContent = c.isCertificateVerified ? '✅ 已认证' : '❌ 未认证';
+            certBadge.className = 'modal-cert-badge ' + (c.isCertificateVerified ? 'ok' : 'no');
+
+            const depBadge = document.getElementById('depositBadge');
+            depBadge.textContent = c.isDepositPaid ? '✅ 保证金已缴纳' : '❌ 未缴纳';
+            depBadge.className = 'modal-cert-badge ' + (c.isDepositPaid ? 'ok' : 'no');
+
+            // 头像
+            const avatarEl = document.getElementById('modalAvatar');
+            const initialEl = document.getElementById('modalAvatarInitial');
+            if (c.avatarUrl) {
+                avatarEl.innerHTML = `<img src="${escapeHtml(c.avatarUrl)}" alt="头像">`;
+            } else {
+                avatarEl.innerHTML = `<span id="modalAvatarInitial">${(c.name || '?').charAt(0)}</span>`;
+            }
+
+            // 查看模式
+            document.getElementById('infoName').textContent = c.name || '-';
+            document.getElementById('infoTitle').textContent = c.title || '-';
+
+            const tags = c.specialty
+                ? c.specialty.split(/[，,、]/).filter(s => s.trim())
+                : [];
+            const specEl = document.getElementById('infoSpecialty');
+            if (tags.length) {
+                specEl.innerHTML = tags.map(s => `<span class="specialty-tag">${escapeHtml(s)}</span>`).join('');
+            } else {
+                specEl.innerHTML = '<span class="specialty-tag empty">未填写</span>';
+            }
+
+            document.getElementById('infoIntro').textContent = c.intro || '未填写';
+
+            // 表单区域
+            document.getElementById('modalInfoArea').style.display = 'block';
+            document.getElementById('modalFormArea').style.display = 'none';
+            document.getElementById('modalFooter').innerHTML =
+                '<button class="modal-btn modal-btn-cancel" onclick="closeProfileModal()">关闭</button>' +
+                '<button class="modal-btn modal-btn-save" onclick="startEditProfile()">编辑资料</button>';
+        }
+
+        function startEditProfile() {
+            const c = consultantProfile;
+            isEditingProfile = true;
+
+            document.getElementById('inputName').value = c.name || '';
+            document.getElementById('inputTitle').value = c.title || '';
+            document.getElementById('inputSpecialty').value = c.specialty || '';
+            document.getElementById('inputIntro').value = c.intro || '';
+            document.getElementById('introCharCount').textContent = (c.intro || '').length + '/500';
+
+            document.getElementById('modalInfoArea').style.display = 'none';
+            document.getElementById('modalFormArea').style.display = 'block';
+            document.getElementById('modalFooter').innerHTML =
+                '<button class="modal-btn modal-btn-cancel" onclick="cancelEditProfile()">取消</button>' +
+                '<button class="modal-btn modal-btn-save" onclick="saveProfile()">保存</button>';
+
+            // 简介字数监听
+            const introInput = document.getElementById('inputIntro');
+            introInput.oninput = function() {
+                document.getElementById('introCharCount').textContent = this.value.length + '/500';
+            };
+
+            // 头像预览（当前值）
+            if (c.avatarUrl) {
+                const avatarEl = document.getElementById('modalAvatar');
+                avatarEl.innerHTML = `<img src="${escapeHtml(c.avatarUrl)}" alt="头像预览">`;
+            }
+        }
+
+        function cancelEditProfile() {
+            isEditingProfile = false;
+            pendingAvatarBase64 = '';
+            renderProfileView();
+        }
+
+        async function saveProfile() {
+            const name = document.getElementById('inputName').value.trim();
+            if (!name) {
+                showToast('姓名不能为空', 'error');
+                return;
+            }
+
+            const data = {
+                name: name,
+                title: document.getElementById('inputTitle').value.trim() || null,
+                specialty: document.getElementById('inputSpecialty').value.trim() || null,
+                intro: document.getElementById('inputIntro').value.trim() || null
+            };
+
+            if (pendingAvatarBase64) {
+                data.avatarUrl = pendingAvatarBase64;
+            }
+
+            try {
+                const res = await fetch(API_BASE + '/consultants/me', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + getConsultantToken()
+                    },
+                    body: JSON.stringify(data)
+                });
+                const json = await res.json();
+                if (json.code === 200) {
+                    consultantProfile = json.data;
+                    pendingAvatarBase64 = '';
+                    isEditingProfile = false;
+                    renderProfileView();
+                    loadConsultantHeader();
+                    showToast('保存成功！', 'success');
+                } else {
+                    showToast(json.message || '保存失败', 'error');
+                }
+            } catch(e) {
+                showToast('保存失败，请重试', 'error');
+            }
+        }
+
+        function triggerModalAvatar() {
+            document.getElementById('modalAvatarInput').click();
+        }
+
+        function handleModalAvatar(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (file.size > 2 * 1024 * 1024) {
+                showToast('图片大小不能超过 2MB', 'error');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                pendingAvatarBase64 = e.target.result;
+                const avatarEl = document.getElementById('modalAvatar');
+                avatarEl.innerHTML = `<img src="${pendingAvatarBase64}" alt="头像预览">`;
+                showToast('头像已选择，点击「保存」生效', 'info');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        /* =============================================
+           退出登录
+           ============================================= */
+        function showLogoutConfirm() {
+            document.getElementById('logoutConfirmModal').classList.add('show');
+        }
+
+        function closeLogoutConfirm() {
+            document.getElementById('logoutConfirmModal').classList.remove('show');
+        }
+
+        function confirmLogout() {
+            localStorage.removeItem('consultantToken');
+            localStorage.removeItem('consultantUser');
+            window.location.href = 'dashboard.html';
+        }
+
+        /* =============================================
+           Toast 工具
+           ============================================= */
+        function showToast(msg, type = 'info') {
+            const el = document.getElementById('toastEl');
+            el.textContent = msg;
+            el.className = 'toast-fixed ' + type + ' show';
+            setTimeout(() => el.classList.remove('show'), 2500);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+    </script>
 </body>
 </html>

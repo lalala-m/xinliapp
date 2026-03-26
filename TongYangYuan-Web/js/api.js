@@ -6,17 +6,23 @@ const API = {
         return `${CONFIG.API_BASE_URL}${endpoint}`;
     },
 
-    // 获取 Auth Token
+    // 获取 Auth Token（同时兼容咨询师端和手机端）
     getToken() {
         // 优先从 Android 原生接口获取（家长端）
         if (window.Android && window.Android.getToken) {
             const token = window.Android.getToken();
             if (token) return token;
         }
-        
+
         // 其次尝试从 Web Storage 获取（咨询师端）
         const consultant = ConsultantStorage.getCurrentConsultant();
-        return consultant ? consultant.token : null;
+        if (consultant && consultant.token) return consultant.token;
+
+        // 兼容 dashboard.html 登录时直接存的 localStorage['consultantToken']
+        const rawToken = localStorage.getItem('consultantToken');
+        if (rawToken) return rawToken;
+
+        return null;
     },
 
     // 通用请求方法

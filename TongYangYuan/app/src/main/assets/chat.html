@@ -493,50 +493,52 @@
 
             const token = Android.getAuthToken();
             currentUserId = Android.getUserId();
-            
+
             if (!token) {
                 console.warn("No auth token available");
                 return;
             }
 
-            // 动态获取服务器地址
-            let wsUrl = 'http://10.0.2.2:8080/api/ws';
-            if (Android.getBaseUrl) {
-                let baseUrl = Android.getBaseUrl();
-                // 确保 baseUrl 不以 / 结尾
-                if (baseUrl.endsWith('/')) {
-                    baseUrl = baseUrl.substring(0, baseUrl.length - 1);
-                }
-                wsUrl = baseUrl + '/ws';
+            // 动态获取服务器地址（不再 fallback 硬编码 127.0.0.1）
+            if (!Android.getBaseUrl) {
+                console.warn("Android.getBaseUrl not available");
+                return;
             }
+            let baseUrl = Android.getBaseUrl();
+            if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+            const wsUrl = baseUrl + '/ws';
 
-            const socket = new SockJS(wsUrl + '?token=' + token);
+            const socket = new SockJS(wsUrl);
             stompClient = Stomp.over(socket);
-            
-            // 禁用debug日志
+
+            // 禁用 STOMP debug 日志
             stompClient.debug = null;
 
-            stompClient.connect({}, function (frame) {
-                console.log('Connected: ' + frame);
-                
-                // 订阅个人消息队列
-                stompClient.subscribe('/user/queue/messages', function (messageOutput) {
-                    const message = JSON.parse(messageOutput.body);
-                    handleIncomingMessage(message);
-                });
+            // Token 放入 STOMP CONNECT 帧的 Authorization 头，供 WebSocketChannelInterceptor 验证
+            stompClient.connect(
+                { 'Authorization': 'Bearer ' + token },
+                function (frame) {
+                    console.log('STOMP Connected: ' + frame);
 
-                stompClient.subscribe('/user/queue/webrtc', function (messageOutput) {
-                    const signal = JSON.parse(messageOutput.body);
-                    handleWebRTCSignal(signal);
-                });
-                
-                // 上线通知
-                stompClient.send("/app/chat.online", {}, JSON.stringify(currentUserId));
+                    // 订阅个人消息队列
+                    stompClient.subscribe('/user/queue/messages', function (messageOutput) {
+                        const message = JSON.parse(messageOutput.body);
+                        handleIncomingMessage(message);
+                    });
 
-            }, function (error) {
-                console.error('STOMP error: ' + error);
-                setTimeout(connectWebSocket, 5000);
-            });
+                    stompClient.subscribe('/user/queue/webrtc', function (messageOutput) {
+                        const signal = JSON.parse(messageOutput.body);
+                        handleWebRTCSignal(signal);
+                    });
+
+                    // 上线通知
+                    stompClient.send("/app/chat.online", {}, JSON.stringify(currentUserId));
+
+                }, function (error) {
+                    console.error('STOMP error: ' + error);
+                    setTimeout(connectWebSocket, 5000);
+                }
+            );
         }
         
         function handleIncomingMessage(messageDTO) {
@@ -636,7 +638,7 @@
             };
             
             // 使用 HTTP POST 发送消息 (比 WebSocket 更可靠)
-            let baseUrl = 'http://10.0.2.2:8080/api';
+            let baseUrl = 'http://127.0.0.1:8080/api';
             if (window.Android && Android.getBaseUrl) {
                 baseUrl = Android.getBaseUrl();
                 if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);

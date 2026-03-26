@@ -108,7 +108,7 @@
     };
 
     // API Base URL
-    window.API_BASE_URL = 'http://10.0.2.2:8080'; // Android Emulator Loopback
+    window.API_BASE_URL = 'http://127.0.0.1:8080'; // Emulator: run adb reverse tcp:8080 tcp:8080
 
     // 带认证的Fetch
     window.fetchWithAuth = async function(url, options = {}) {

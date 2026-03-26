@@ -38,28 +38,37 @@ public class AppointmentController {
     public ApiResponse<List<Map<String, Object>>> getAppointmentsByParent(@PathVariable Long parentUserId) {
         try {
             List<Appointment> appointments = appointmentService.getAppointmentsByParentUserId(parentUserId);
-            // 转换为前端友好的格式，包含咨询师姓名等
-            List<Map<String, Object>> result = new ArrayList<>();
+            List<Map<String, Object>> result = new java.util.ArrayList<>();
             for (Appointment app : appointments) {
-                Map<String, Object> map = new HashMap<>();
+                Map<String, Object> map = new java.util.LinkedHashMap<>();
                 map.put("id", app.getId());
                 map.put("appointmentNo", app.getAppointmentNo());
                 map.put("consultantId", app.getConsultantId());
                 map.put("childName", app.getChildName());
+                map.put("childAge", app.getChildAge());
                 map.put("appointmentDate", app.getAppointmentDate());
                 map.put("timeSlot", app.getTimeSlot());
-                map.put("status", app.getStatus());
+                // status 转 String，避开内部枚举序列化
+                map.put("status", app.getStatus() != null ? app.getStatus().name() : null);
                 map.put("domain", app.getDomain());
-                
-                // 获取咨询师姓名
-                Consultant consultant = consultantService.getConsultantById(app.getConsultantId());
-                map.put("consultantName", consultant != null ? consultant.getName() : "未知咨询师");
-                
+                map.put("description", app.getDescription());
+                map.put("isPinned", Boolean.TRUE.equals(app.getIsPinned()));
+                map.put("isChatted", Boolean.TRUE.equals(app.getIsChatted()));
+                map.put("createdAt", app.getCreatedAt());
+                map.put("updatedAt", app.getUpdatedAt());
+                // 用名字查consultant，不调用service层，避免懒加载实体序列化问题
+                Consultant c = null;
+                if (app.getConsultantId() != null) {
+                    try {
+                        c = consultantService.getConsultantById(app.getConsultantId());
+                    } catch (Exception ignored) {}
+                }
+                map.put("consultantName", c != null ? c.getName() : "未知咨询师");
                 result.add(map);
             }
             return ApiResponse.success(result);
         } catch (Exception e) {
-            return ApiResponse.error(e.getMessage());
+            return ApiResponse.error("查询失败: " + e.getMessage());
         }
     }
 

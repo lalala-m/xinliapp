@@ -1,5 +1,8 @@
 [versions]
 agp = "8.13.2"
+kotlin = "2.0.21"
+coroutines = "1.8.1"
+lifecycle = "2.8.7"
 junit = "4.13.2"
 junitVersion = "1.1.5"
 espressoCore = "3.5.1"
@@ -31,6 +34,9 @@ room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 mysql-connector = { group = "mysql", name = "mysql-connector-java", version.ref = "mysqlConnector" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", version.ref = "kotlin" }
+kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
 
 # NIM SDK
 nim-uikit = { group = "com.netease.nim", name = "uikit", version.ref = "nim" }
@@ -41,4 +47,5 @@ livekit = { group = "io.livekit", name = "livekit-android", version.ref = "livek
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 

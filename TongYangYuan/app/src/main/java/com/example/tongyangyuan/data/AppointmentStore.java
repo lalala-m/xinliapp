@@ -20,13 +20,42 @@ public class AppointmentStore {
     private static final String PREF_NAME = "appointment_store";
     private static final String KEY_APPOINTMENTS = "appointments";
     private static final String KEY_APPOINTMENTS_PREFIX = "appointments_";
+    /** 同步失败的预约 ID 集合，供外部（如 Activity）读取并弹 Toast */
+    private static final String KEY_SYNC_ERROR_IDS = "sync_error_ids";
+    /** 本次同步发现的孤儿记录 ID 集合（本地有 serverId=-1 且后端也没有） */
+    private static final String KEY_ORPHAN_IDS = "orphan_ids";
     
     private final SharedPreferences sharedPreferences;
     private final PreferenceStore preferenceStore;
+    private final android.os.Handler syncHandler;
+    private Runnable syncRunnable;
+    private static final long SYNC_INTERVAL_MS = 30_000; // 30秒轮询一次
 
     public AppointmentStore(Context context) {
         sharedPreferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         preferenceStore = new PreferenceStore(context);
+        syncHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    }
+
+    /** 启动后台定时同步（每30秒拉取一次后端数据） */
+    public void startPeriodicSync(Context context) {
+        stopPeriodicSync();
+        syncRunnable = new Runnable() {
+            @Override
+            public void run() {
+                syncFromServer();
+                syncHandler.postDelayed(this, SYNC_INTERVAL_MS);
+            }
+        };
+        syncHandler.postDelayed(syncRunnable, SYNC_INTERVAL_MS);
+    }
+
+    /** 停止定时同步 */
+    public void stopPeriodicSync() {
+        if (syncRunnable != null) {
+            syncHandler.removeCallbacks(syncRunnable);
+            syncRunnable = null;
+        }
     }
 
     public void syncFromServer() {
@@ -45,13 +74,15 @@ public class AppointmentStore {
                     conn.setRequestProperty("Authorization", "Bearer " + token);
                 }
 
-                if (conn.getResponseCode() == 200) {
+                int httpCode = conn.getResponseCode();
+                if (httpCode == 200) {
                     java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(conn.getInputStream()));
                     StringBuilder response = new StringBuilder();
                     String line;
                     while ((line = br.readLine()) != null) {
                         response.append(line);
                     }
+                    br.close();
                     JSONObject jsonRes = new JSONObject(response.toString());
                     if (jsonRes.optInt("code") == 200) {
                         JSONArray data = jsonRes.getJSONArray("data");
@@ -63,11 +94,14 @@ public class AppointmentStore {
                                 serverRecords.add(record);
                             }
                         }
-                        updateFromServer(serverRecords);
+                        // updateFromServer 会自动识别并清理孤儿记录
+                        int cleaned = updateFromServer(serverRecords);
+                        Log.d("AppointmentStore", "同步完成，清理孤儿记录 " + cleaned + " 条");
                     }
                 }
+                conn.disconnect();
             } catch (Exception e) {
-                e.printStackTrace();
+                Log.e("AppointmentStore", "syncFromServer 异常", e);
             }
         }).start();
     }
@@ -157,9 +191,15 @@ public class AppointmentStore {
 
                 JSONObject json = new JSONObject();
                 json.put("appointmentNo", record.getId());
-                // consultant.getUserId() 可能为0，如果为0则尝试用默认值1
-                long consultantId = record.getConsultant().getUserId();
-                json.put("consultantId", consultantId > 0 ? consultantId : 1); 
+                // 【关键修复】consultants表主键是 consultants.id，不是 users.id
+                // 用 consultant.serverId（= consultants.id），若为0才降级
+                long consultantId = record.getConsultant() != null ? record.getConsultant().getServerId() : 0;
+                if (consultantId <= 0) {
+                    consultantId = record.getConsultant() != null ? record.getConsultant().getUserId() : 1;
+                }
+                json.put("consultantId", consultantId);
+                Log.d("AppointmentStore", "syncAppointmentToServer: consultantId=" + consultantId
+                        + " (userId=" + (record.getConsultant() != null ? record.getConsultant().getUserId() : -1) + ")");
                 json.put("parentUserId", preferenceStore.getUserId());
                 String childId = record.getChildId();
                 if (!TextUtils.isEmpty(childId)) {
@@ -184,7 +224,7 @@ public class AppointmentStore {
                 }
 
                 int responseCode = conn.getResponseCode();
-                if (responseCode == 200) {
+                if (responseCode == 200 || responseCode == 201) {
                     java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(conn.getInputStream()));
                     StringBuilder response = new StringBuilder();
                     String line;
@@ -193,29 +233,74 @@ public class AppointmentStore {
                     }
                     JSONObject jsonRes = new JSONObject(response.toString());
                     if (jsonRes.optInt("code") == 200) {
-                        JSONObject data = jsonRes.getJSONObject("data");
-                        long serverId = data.getLong("id");
+                        long serverId = 0;
+                        try { serverId = jsonRes.getJSONObject("data").getLong("id"); } catch (Exception ignored) {}
                         record.setServerId(serverId);
-                        
-                        // Update local storage
                         List<AppointmentRecord> records = getAllAppointments();
-                        boolean updated = false;
                         for (AppointmentRecord r : records) {
                             if (r.getId().equals(record.getId())) {
                                 r.setServerId(serverId);
-                                updated = true;
                                 break;
                             }
                         }
-                        if (updated) {
-                            saveAppointments(records);
-                        }
+                        saveAppointments(records);
+                        clearSyncError(record.getId());
+                        Log.d("AppointmentStore", "预约同步成功，serverId=" + serverId);
                     }
+                } else {
+                    // 读取错误信息
+                    StringBuilder errBody = new StringBuilder();
+                    java.io.BufferedReader errBr = new java.io.BufferedReader(
+                            new java.io.InputStreamReader(conn.getErrorStream()));
+                    String line;
+                    while ((line = errBr.readLine()) != null) errBody.append(line);
+                    errBr.close();
+                    String errMsg = responseCode + ":" + errBody;
+                    Log.e("AppointmentStore", "同步失败 " + errMsg);
+                    markSyncError(record.getId());
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                Log.e("AppointmentStore", "同步异常", e);
+                markSyncError(record.getId());
             }
         }).start();
+    }
+
+    private void markSyncError(String localId) {
+        if (TextUtils.isEmpty(localId)) return;
+        SharedPreferences sp = sharedPreferences;
+        String ids = sp.getString(KEY_SYNC_ERROR_IDS, "");
+        if (!ids.contains(localId)) {
+            sp.edit().putString(KEY_SYNC_ERROR_IDS, ids.isEmpty() ? localId : ids + "," + localId).apply();
+        }
+    }
+
+    private void clearSyncError(String localId) {
+        if (TextUtils.isEmpty(localId)) return;
+        SharedPreferences sp = sharedPreferences;
+        String ids = sp.getString(KEY_SYNC_ERROR_IDS, "");
+        if (ids.contains(localId)) {
+            String[] arr = ids.split(",");
+            StringBuilder sb = new StringBuilder();
+            for (String s : arr) {
+                if (!s.equals(localId) && !s.isEmpty()) {
+                    if (sb.length() > 0) sb.append(",");
+                    sb.append(s);
+                }
+            }
+            sp.edit().putString(KEY_SYNC_ERROR_IDS, sb.toString()).apply();
+        }
+    }
+
+    /** 返回有过同步错误的本地预约 ID 列表，供调用方弹 Toast */
+    public String[] getSyncErrorIds() {
+        String ids = sharedPreferences.getString(KEY_SYNC_ERROR_IDS, "");
+        return ids.isEmpty() ? new String[0] : ids.split(",");
+    }
+
+    /** 清除所有同步错误标记 */
+    public void clearAllSyncErrors() {
+        sharedPreferences.edit().remove(KEY_SYNC_ERROR_IDS).apply();
     }
 
     public List<AppointmentRecord> getAllAppointments() {
@@ -321,22 +406,32 @@ public class AppointmentStore {
         saveAppointments(records);
     }
 
-    public void updateFromServer(List<AppointmentRecord> serverRecords) {
+    /**
+     * 与后端数据合并，返回清理的孤儿记录数量。
+     * 孤儿记录定义：本地有记录但 serverId=-1（从未同步成功），且后端也返回了数据（说明这条确实没进去）
+     */
+    public int updateFromServer(List<AppointmentRecord> serverRecords) {
         List<AppointmentRecord> localRecords = getAllAppointments();
         boolean changed = false;
 
+        // 收集后端已知的 appointmentNo（用于判断孤儿）
+        java.util.Set<String> serverAptNos = new java.util.HashSet<>();
+        for (AppointmentRecord sr : serverRecords) {
+            serverAptNos.add(sr.getId()); // getId() 在这里等于 appointmentNo
+        }
+
+        // 收集孤儿 ID
+        java.util.List<String> orphanIds = new java.util.ArrayList<>();
+
+        // 遍历本地记录，匹配 & 更新
         for (AppointmentRecord serverRecord : serverRecords) {
             boolean exists = false;
             for (int i = 0; i < localRecords.size(); i++) {
                 AppointmentRecord local = localRecords.get(i);
-                // 匹配规则：Server ID 相同，或者 Local ID (UUID) 等于 Server 的 appointmentNo
                 if ((serverRecord.getServerId() > 0 && serverRecord.getServerId() == local.getServerId()) ||
-                    (local.getId().equals(serverRecord.getId()))) { // 注意：serverRecord.getId() 在解析时已经设为 appointmentNo
-                    
-                    // 更新本地记录状态
+                    (local.getId().equals(serverRecord.getId()))) {
                     local.setServerId(serverRecord.getServerId());
-                    local.setStatus(serverRecord.getStatus()); // 需要在 AppointmentRecord 中添加 setStatus
-                    // 可以根据需要更新其他字段
+                    local.setStatus(serverRecord.getStatus());
                     exists = true;
                     changed = true;
                     break;
@@ -347,12 +442,53 @@ public class AppointmentStore {
                 changed = true;
             }
         }
-        
+
+        // 清理孤儿：本地有、后端没有、且 serverId = -1（从未成功入库）
+        java.util.Iterator<AppointmentRecord> it = localRecords.iterator();
+        while (it.hasNext()) {
+            AppointmentRecord local = it.next();
+            if (local.getServerId() <= 0 && !serverAptNos.contains(local.getId())) {
+                orphanIds.add(local.getId());
+                it.remove();
+                changed = true;
+                Log.d("AppointmentStore", "识别孤儿记录: " + local.getId()
+                        + " (consultant=" + (local.getConsultant() != null ? local.getConsultant().getName() : "?") + ")");
+            }
+        }
+
         if (changed) {
-            // 按时间倒序排序
             localRecords.sort((a, b) -> Long.compare(b.getCreateTime(), a.getCreateTime()));
             saveAppointments(localRecords);
         }
+
+        // 记录孤儿 ID 供 JS 层弹 Toast
+        if (!orphanIds.isEmpty()) {
+            SharedPreferences sp = sharedPreferences;
+            String existing = sp.getString(KEY_ORPHAN_IDS, "");
+            java.util.Set<String> all = new java.util.HashSet<>();
+            for (String id : existing.split(",")) {
+                if (!id.isEmpty()) all.add(id);
+            }
+            all.addAll(orphanIds);
+            StringBuilder sb = new StringBuilder();
+            for (String id : all) {
+                if (sb.length() > 0) sb.append(",");
+                sb.append(id);
+            }
+            sp.edit().putString(KEY_ORPHAN_IDS, sb.toString()).apply();
+        }
+
+        return orphanIds.size();
+    }
+
+    /** 返回孤儿预约 ID 列表（从未入库，JSON 数组字符串） */
+    public String getOrphanIds() {
+        return sharedPreferences.getString(KEY_ORPHAN_IDS, "");
+    }
+
+    /** 清除孤儿标记 */
+    public void clearOrphanIds() {
+        sharedPreferences.edit().remove(KEY_ORPHAN_IDS).apply();
     }
 
     public void updateFromServerJsonArray(JSONArray dataArray) {

@@ -30,12 +30,15 @@ public class ConsultantService {
      */
     private void fillAvatarFromUser(Consultant consultant) {
         if (consultant == null || consultant.getUserId() == null) return;
-        userRepository.findById(consultant.getUserId()).ifPresent(user -> {
-            String avatar = user.getAvatarUrl();
-            if (avatar != null && !avatar.isEmpty()) {
-                consultant.setAvatarUrl(avatar);
-            }
-        });
+        try {
+            userRepository.findById(consultant.getUserId()).ifPresent(user -> {
+                if (user != null && user.getAvatarUrl() != null && !user.getAvatarUrl().isEmpty()) {
+                    consultant.setAvatarUrl(user.getAvatarUrl());
+                }
+            });
+        } catch (Exception e) {
+            // 忽略用户查找失败，不影响主流程
+        }
     }
 
     public List<Consultant> getAllConsultants() {
@@ -92,5 +95,35 @@ public class ConsultantService {
     public Consultant createOrUpdateConsultant(Consultant consultant) {
         log.info("更新咨询师信息，清除缓存: name={}", consultant.getName());
         return consultantRepository.save(consultant);
+    }
+
+    /**
+     * 按优先级获取所有可用咨询师
+     */
+    public List<Consultant> findAllOrderByPriority() {
+        List<Consultant> consultants = consultantRepository.findAllOrderByPriority();
+        consultants.forEach(this::fillAvatarFromUser);
+        return consultants;
+    }
+
+    /**
+     * 按领域筛选并按优先级排序
+     */
+    public List<Consultant> findByDomainOrderByPriority(String domain) {
+        List<Consultant> consultants = consultantRepository.findByDomainOrderByPriority(domain);
+        consultants.forEach(this::fillAvatarFromUser);
+        return consultants;
+    }
+
+    /**
+     * 按领域筛选咨询师
+     */
+    public List<Consultant> getConsultantsByDomain(String domain) {
+        List<Consultant> consultants = consultantRepository.findAll();
+        consultants = consultants.stream()
+                .filter(c -> c.getSpecialty() != null && c.getSpecialty().contains(domain))
+                .collect(java.util.stream.Collectors.toList());
+        consultants.forEach(this::fillAvatarFromUser);
+        return consultants;
     }
 }

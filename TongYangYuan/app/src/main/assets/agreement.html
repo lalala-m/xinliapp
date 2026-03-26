@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>用户服务协议 - 童康源</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        :root {
+            --blue: #6FA6F8;
+            --blue-dark: #4A8AE8;
+            --text-primary: #2C3345;
+            --text-secondary: #627089;
+            --text-hint: #9BA5BF;
+            --border: #E8ECF2;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #F4F7FF;
+            min-height: 100vh;
+            color: var(--text-primary);
+            max-width: 520px;
+            margin: 0 auto;
+        }
+
+        .header {
+            position: sticky;
+            top: 0;
+            background: white;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--border);
+            z-index: 100;
+        }
+
+        .back-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: #F0F4FF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .back-btn:active { background: #E0E8FF; }
+
+        .back-btn svg { width: 20px; height: 20px; color: var(--blue); }
+
+        .header h1 {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .content {
+            padding: 20px;
+            background: white;
+            margin: 16px;
+            border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(111, 166, 248, 0.08);
+        }
+
+        .content h2 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--blue-dark);
+            margin: 20px 0 10px;
+        }
+
+        .content h2:first-child { margin-top: 0; }
+
+        .content p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+            margin-bottom: 12px;
+        }
+
+        .content p:last-child { margin-bottom: 0; }
+
+        .bottom-spacer { height: 40px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <button class="back-btn" onclick="goBack()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 18l-6-6 6-6"/>
+            </svg>
+        </button>
+        <h1>用户服务协议</h1>
+    </div>
+
+    <div class="content">
+        <h2>一、服务说明</h2>
+        <p>童康源是一款专注于儿童健康咨询与心理成长的移动应用平台。我们致力于为家长提供专业的儿童健康指导、心理咨询和建议服务，帮助家长更好地了解和陪伴孩子成长。</p>
+
+        <h2>二、用户注册</h2>
+        <p>用户在使用本服务前需同意本协议并完成注册流程。用户承诺注册信息真实、准确、完整，如有变更应及时更新。用户需对账户安全负责，因个人保管不善导致的损失由用户自行承担。</p>
+
+        <h2>三、服务内容</h2>
+        <p>童康源平台提供以下服务：儿童健康咨询、心理咨询预约、成长方案定制、专家问答、社区交流等。具体服务内容以平台实际提供为准，我们保留不时调整服务内容的权利。</p>
+
+        <h2>四、咨询师资质</h2>
+        <p>平台上的咨询师均经过严格审核，具备相关专业资质。但请注意，本平台提供的咨询服务仅供参考，不能替代专业医疗诊断。如有紧急情况，请及时就医或拨打紧急求助电话。</p>
+
+        <h2>五、用户行为规范</h2>
+        <p>用户在使用本服务时应遵守法律法规，不得利用本平台从事违法活动、传播违法信息、骚扰他人、发布虚假信息等。如有违反，平台有权终止服务并追究法律责任。</p>
+
+        <h2>六、隐私保护</h2>
+        <p>我们重视用户隐私保护，承诺按照《隐私政策》收集、使用和保护您的个人信息。未经用户授权，我们不会向第三方披露用户个人信息，法律另有规定的除外。</p>
+
+        <h2>七、知识产权</h2>
+        <p>本平台的所有内容，包括但不限于文字、图片、视频、音频、软件、程序等，其知识产权归童康源或相关权利人所有。未经授权，用户不得复制、修改、传播或用于商业目的。</p>
+
+        <h2>八、免责声明</h2>
+        <p>本平台对咨询师提供的建议不承担医疗责任。用户应自行判断咨询内容的适用性，并承担使用后果。因不可抗力导致的服务中断，我们不承担责任，但会尽力恢复正常服务。</p>
+
+        <h2>九、服务变更与终止</h2>
+        <p>我们保留随时修改或中断服务的权利，并会提前通知用户。如用户不同意修改内容，可在修改生效前停止使用服务。用户也可随时注销账户终止服务。</p>
+
+        <h2>十、争议解决</h2>
+        <p>本协议的解释和执行均适用中华人民共和国法律。如发生争议，双方应友好协商解决；协商不成的，提交有管辖权的人民法院诉讼解决。</p>
+
+        <h2>十一、联系方式</h2>
+        <p>如您对本协议有任何疑问，请联系我们的客服团队。我们将尽快为您解答。客服邮箱：support@tongyangyuan.com</p>
+
+        <p style="color: var(--text-hint); margin-top: 20px;"><strong>更新日期：2024年1月1日</strong></p>
+    </div>
+
+    <div class="bottom-spacer"></div>
+
+    <script src="js/app.js"></script>
+    <script>
+        function goBack() {
+            if (window.Android && typeof Android.goBack === 'function') {
+                Android.goBack();
+            } else {
+                history.back();
+            }
+        }
+    </script>
+</body>
+</html>

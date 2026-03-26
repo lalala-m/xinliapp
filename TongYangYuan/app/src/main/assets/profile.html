@@ -139,6 +139,36 @@
                 <span class="info-label">会员权益</span>
                 <span class="info-value" id="memberStatus">未开通</span>
             </div>
+            <!-- 当前操作孩子信息 -->
+            <div class="info-item" id="currentChildInfo" style="display: none;">
+                <span class="info-label">当前孩子</span>
+                <span class="info-value" id="currentChildDisplay">-</span>
+            </div>
+        </div>
+
+        <!-- 孩子成长档案卡片 -->
+        <div class="card" id="childGrowthCard" style="margin-top: 16px; display: none;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                <div class="child-avatar-lg" id="growthChildAvatar" style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, #6FA6F8 0%, #A9C9FF 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; font-weight: 600; flex-shrink: 0;"></div>
+                <div style="flex: 1;">
+                    <div style="font-size: 16px; font-weight: 600; color: var(--text-primary);" id="growthChildName">-</div>
+                    <div style="font-size: 13px; color: var(--text-secondary);" id="growthChildMeta">-</div>
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                <div style="text-align: center; padding: 12px; background: rgba(111, 166, 248, 0.08); border-radius: 12px;">
+                    <div style="font-size: 18px; font-weight: 700; color: var(--primary-color);" id="growthConsultCount">0</div>
+                    <div style="font-size: 11px; color: var(--text-secondary);">咨询次数</div>
+                </div>
+                <div style="text-align: center; padding: 12px; background: rgba(255, 183, 197, 0.15); border-radius: 12px;">
+                    <div style="font-size: 18px; font-weight: 700; color: #FF8FAB;" id="growthBadgeCount">0</div>
+                    <div style="font-size: 11px; color: var(--text-secondary);">获得勋章</div>
+                </div>
+                <div style="text-align: center; padding: 12px; background: rgba(189, 235, 200, 0.2); border-radius: 12px;">
+                    <div style="font-size: 18px; font-weight: 700; color: #66BB6A;" id="growthDayCount">0</div>
+                    <div style="font-size: 11px; color: var(--text-secondary);">守护天数</div>
+                </div>
+            </div>
         </div>
 
         <div class="section-title">快捷数据</div>
@@ -217,6 +247,19 @@
 
         <div class="section-title">咨询师中心</div>
         <div class="card management-card">
+            <!-- 咨询师入口：登录后根据 userType 决定显示 -->
+            <div class="management-item" id="consultantLoginEntry" onclick="openConsultantLogin()">
+                <div class="management-item-content">
+                    <img src="icons/certified-mentor.svg" alt="咨询师" class="management-icon">
+                    <div class="management-info">
+                        <span class="management-title" id="consultantEntryTitle">咨询师入口</span>
+                        <span class="management-desc" id="consultantEntryDesc">登录管理咨询师账号</span>
+                    </div>
+                </div>
+                <svg class="chevron-icon" viewBox="0 0 24 24">
+                    <path d="M9 6l6 6-6 6" />
+                </svg>
+            </div>
             <div class="management-item" onclick="window.location.href='consultant_training.html'">
                 <div class="management-item-content">
                     <img src="icons/certified-mentor.svg" alt="加入咨询师" class="management-icon">
@@ -246,11 +289,120 @@
 
     <script src="js/app.js"></script>
     <script>
+        // 孩子数据
+        let childProfiles = [];
+        let currentChildId = -1;
+
+        // 获取用户配置
+        function getUserProfile() {
+            if (window.Android && Android.getUserProfile) {
+                try {
+                    return JSON.parse(Android.getUserProfile());
+                } catch (e) {
+                    return {};
+                }
+            }
+            return {};
+        }
+
+        // 加载孩子信息
+        function loadChildInfo() {
+            if (window.Android && typeof Android.getChildProfiles === 'function') {
+                try {
+                    const json = Android.getChildProfiles();
+                    const parsed = JSON.parse(json || '[]');
+                    if (Array.isArray(parsed)) {
+                        childProfiles = parsed;
+                    }
+                } catch (e) {
+                    childProfiles = [];
+                }
+            }
+
+            if (window.Android && typeof Android.getCurrentChildId === 'function') {
+                try {
+                    currentChildId = parseInt(Android.getCurrentChildId());
+                } catch (e) {
+                    currentChildId = -1;
+                }
+            }
+
+            // 更新UI
+            updateChildInfoUI();
+        }
+
+        // 计算年龄
+        function calculateAge(birthDate) {
+            if (!birthDate) return 0;
+            try {
+                const birth = new Date(birthDate);
+                const today = new Date();
+                let age = today.getFullYear() - birth.getFullYear();
+                const monthDiff = today.getMonth() - birth.getMonth();
+                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+                    age--;
+                }
+                return age;
+            } catch (e) {
+                return 0;
+            }
+        }
+
+        // 更新孩子信息UI
+        function updateChildInfoUI() {
+            const currentChildInfo = document.getElementById('currentChildInfo');
+            const currentChildDisplay = document.getElementById('currentChildDisplay');
+            const childGrowthCard = document.getElementById('childGrowthCard');
+
+            // 查找当前孩子
+            const currentChild = childProfiles.find(c => {
+                const cid = typeof c.id === 'string' ? parseInt(c.id) : c.id;
+                return cid === currentChildId;
+            });
+
+            if (currentChild) {
+                currentChildInfo.style.display = 'flex';
+                const age = calculateAge(currentChild.birthDate);
+                currentChildDisplay.textContent = `${currentChild.name || '未命名'} · ${age > 0 ? age + '岁' : '年龄未知'}`;
+
+                // 显示成长档案卡片
+                childGrowthCard.style.display = 'block';
+                document.getElementById('growthChildName').textContent = currentChild.name || '未命名';
+                document.getElementById('growthChildMeta').textContent = 
+                    `${currentChild.gender === 'GIRL' ? '女孩' : '男孩'} · ${currentChild.birthDate || '生日未填'}`;
+                document.getElementById('growthChildAvatar').textContent = (currentChild.name || '子').charAt(0);
+
+                // TODO: 从服务器获取真实数据
+                // 暂时使用模拟数据
+                document.getElementById('growthConsultCount').textContent = '0';
+                document.getElementById('growthBadgeCount').textContent = '0';
+                document.getElementById('growthDayCount').textContent = '0';
+            } else if (childProfiles.length > 0) {
+                currentChildInfo.style.display = 'flex';
+                const first = childProfiles[0];
+                const age = calculateAge(first.birthDate);
+                currentChildDisplay.textContent = `${first.name || '未命名'} · ${age > 0 ? age + '岁' : '年龄未知'}`;
+                childGrowthCard.style.display = 'block';
+                document.getElementById('growthChildName').textContent = first.name || '未命名';
+            } else {
+                currentChildInfo.style.display = 'none';
+                childGrowthCard.style.display = 'none';
+            }
+        }
+
         function openAccountManagement() {
             if (window.Android && Android.openAccountManagement) {
                 Android.openAccountManagement();
             } else {
                 window.location.href = 'account_manage.html';
+            }
+        }
+
+        function openConsultantLogin() {
+            if (window.Android && Android.openConsultantLogin) {
+                Android.openConsultantLogin();
+            } else {
+                window.location.href = 'consultant_login.html';
             }
         }
 
@@ -326,7 +478,30 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', hydrateProfile);
+        document.addEventListener('DOMContentLoaded', function() {
+            loadChildInfo();
+            hydrateProfile();
+            updateConsultantEntry();
+        });
+
+        function updateConsultantEntry() {
+            // 检查是否为咨询师账号
+            var userType = '';
+            if (window.Android && Android.getUserType) {
+                try { userType = Android.getUserType() || ''; } catch(e) {}
+            }
+            var entryTitle = document.getElementById('consultantEntryTitle');
+            var entryDesc = document.getElementById('consultantEntryDesc');
+            if (entryTitle && entryDesc) {
+                if (userType === 'CONSULTANT') {
+                    entryTitle.textContent = '我的主页（咨询师）';
+                    entryDesc.textContent = '查看和编辑咨询师资料';
+                } else {
+                    entryTitle.textContent = '咨询师入口';
+                    entryDesc.textContent = '登录管理咨询师账号';
+                }
+            }
+        }
     </script>
 </body>
 </html>

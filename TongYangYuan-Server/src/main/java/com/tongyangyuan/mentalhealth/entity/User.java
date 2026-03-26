@@ -60,6 +60,10 @@ public class User {
     @Column(name = "wx_avatar_url", length = 500)
     private String wxAvatarUrl;
 
+    // 当前操作孩子的ID
+    @Column(name = "current_child_id")
+    private Long currentChildId;
+
     @PrePersist
     protected void onCreate() {
         gmtCreate = LocalDateTime.now();
@@ -214,5 +218,13 @@ public class User {
 
     public void setWxAvatarUrl(String wxAvatarUrl) {
         this.wxAvatarUrl = wxAvatarUrl;
+    }
+
+    public Long getCurrentChildId() {
+        return currentChildId;
+    }
+
+    public void setCurrentChildId(Long currentChildId) {
+        this.currentChildId = currentChildId;
     }
 }

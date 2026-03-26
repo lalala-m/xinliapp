@@ -308,6 +308,7 @@ public class DataSyncService {
                 }
                 entity.setServedCount(sc.getServedCount() != null ? String.valueOf(sc.getServedCount()) : "0");
                 entity.setAvatarColor(sc.getAvatarColor());
+                entity.setAvatarUrl(sc.getAvatarUrl());
                 entity.setIntro(sc.getIntro());
                 entity.setReviews(new ArrayList<>());
                 entity.setIdentityTags(new ArrayList<>());
@@ -335,6 +336,7 @@ public class DataSyncService {
         private Double rating;
         private Integer servedCount;
         private String avatarColor;
+        private String avatarUrl;
         private String intro;
 
         public Long getUserId() {
@@ -367,6 +369,10 @@ public class DataSyncService {
 
         public String getAvatarColor() {
             return avatarColor;
+        }
+
+        public String getAvatarUrl() {
+            return avatarUrl;
         }
 
         public String getIntro() {

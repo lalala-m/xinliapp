@@ -141,7 +141,7 @@ public final class ConsultantRepository {
     }
 
     private Consultant entityToConsultant(ConsultantEntity entity) {
-        return new Consultant(
+        Consultant consultant = new Consultant(
                 entity.getUserId(),
                 entity.getName(),
                 entity.getTitle(),
@@ -154,6 +154,8 @@ public final class ConsultantRepository {
                 entity.getIntro(),
                 entity.getReviews() != null ? entity.getReviews() : new ArrayList<>()
         );
+        consultant.setServerId(entity.getServerId()); // 业务主键，用于提交预约
+        return consultant;
     }
 
     public void clearCache() {

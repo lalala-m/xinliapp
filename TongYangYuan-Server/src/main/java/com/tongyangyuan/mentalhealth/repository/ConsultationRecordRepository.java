@@ -4,12 +4,14 @@ import com.tongyangyuan.mentalhealth.entity.ConsultationRecord;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
 @Repository
-public interface ConsultationRecordRepository extends JpaRepository<ConsultationRecord, Long> {
+public interface ConsultationRecordRepository extends JpaRepository<ConsultationRecord, Long>, 
+        JpaSpecificationExecutor<ConsultationRecord> {
     
     // 根据用户ID查询咨询记录
     Page<ConsultationRecord> findByParentUserIdOrderByCreatedAtDesc(Long parentUserId, Pageable pageable);

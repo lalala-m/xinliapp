@@ -1127,3 +1127,92 @@ textarea.form-control {
         padding: 10px;
     }
 }
+
+/* 头像上传区域样式 */
+.avatar-upload-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.avatar-preview {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.avatar-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+    cursor: pointer;
+}
+
+.avatar-overlay span {
+    color: white;
+    font-size: 14px;
+}
+
+.avatar-preview:hover .avatar-overlay {
+    opacity: 1;
+}
+
+.avatar-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.avatar-actions .form-control {
+    width: 100%;
+}
+
+.avatar-actions .btn-secondary,
+.avatar-actions .btn-warning {
+    width: 100%;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.avatar-actions .btn-secondary {
+    background: #e0e0e0;
+    color: #333;
+}
+
+.avatar-actions .btn-secondary:hover {
+    background: #d0d0d0;
+}
+
+.avatar-actions .btn-warning {
+    background: #fff3e0;
+    color: #ff9800;
+}
+
+.avatar-actions .btn-warning:hover {
+    background: #ffe0b2;
+}
+
+.avatar-tips {
+    color: #999;
+    font-size: 12px;
+}

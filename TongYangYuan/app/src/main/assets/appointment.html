@@ -408,6 +408,17 @@
             renderChildSelector();
         }
 
+        function getCurrentChildId() {
+            try {
+                if (window.Android && Android.getCurrentChildId) {
+                    return Android.getCurrentChildId();
+                }
+            } catch (e) {
+                console.warn('getCurrentChildId failed', e);
+            }
+            return -1;
+        }
+
         function renderChildSelector() {
             const list = document.getElementById('childList');
             const empty = document.getElementById('childEmpty');
@@ -420,18 +431,36 @@
             }
             
             empty.style.display = 'none';
-            // 默认选中第一个孩子
-            if (!selectedChild) {
+            
+            // 获取当前孩子ID，优先选中
+            const currentChildId = getCurrentChildId();
+            if (currentChildId > 0) {
+                // 查找当前孩子是否在列表中
+                const currentChild = childProfiles.find(c => {
+                    // 支持字符串和数字ID
+                    const cid = typeof c.id === 'string' ? parseInt(c.id) : c.id;
+                    return cid === currentChildId;
+                });
+                if (currentChild) {
+                    selectedChild = currentChild;
+                } else {
+                    selectedChild = childProfiles[0];
+                }
+            } else if (!selectedChild) {
+                // 没有当前孩子，默认选中第一个
                 selectedChild = childProfiles[0];
             }
             
             list.innerHTML = childProfiles.map(child => {
                 const isSelected = selectedChild && selectedChild.id === child.id;
+                // 标记当前操作孩子
+                const currentTag = (selectedChild && selectedChild.id === child.id) ? 
+                    '<span style="font-size:11px;background:#6FA6F8;color:white;padding:2px 6px;border-radius:8px;margin-left:8px;">当前</span>' : '';
                 return `
                 <div class="child-card ${isSelected ? 'selected' : ''}" onclick="selectChild('${child.id}')">
                     <img src="icons/child-select.svg" alt="选择孩子" class="child-card-icon">
                     <div style="flex: 1;">
-                        <div class="child-name">${child.name || '未命名孩子'}</div>
+                        <div class="child-name">${child.name || '未命名孩子'}${currentTag}</div>
                         <div class="child-meta">${formatChildMeta(child)}</div>
                     </div>
                 </div>
@@ -442,6 +471,10 @@
             const child = childProfiles.find(item => item.id === id);
             if (!child) return;
             selectedChild = child;
+            // 同步到本地和服务器
+            if (window.Android && Android.setCurrentChild) {
+                Android.setCurrentChild(String(child.id), child.name || '');
+            }
             renderChildSelector();
         }
 

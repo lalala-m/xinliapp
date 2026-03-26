@@ -9,6 +9,7 @@ public class CreateConsultantRequest {
     private String specialty;
     private String intro;
     private Consultant.IdentityTier identityTier;
+    private String avatarUrl;
 
     // Getters and Setters
     public String getPhone() {
@@ -57,5 +58,13 @@ public class CreateConsultantRequest {
 
     public void setIdentityTier(Consultant.IdentityTier identityTier) {
         this.identityTier = identityTier;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
     }
 }

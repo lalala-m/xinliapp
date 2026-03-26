@@ -43,6 +43,8 @@ import java.util.Locale;
 
 public class WebAppInterface {
 
+    private static final String TAG = "WebAppInterface";
+
     // ==================== 旧 NIM 配置已移除 ====================
 
     public interface MediaDelegate {
@@ -158,6 +160,11 @@ public class WebAppInterface {
             String status = record.getStatus();
             if ("CANCELLED".equalsIgnoreCase(status)) {
                 showToast("该咨询已取消，无法进入聊天");
+                return;
+            }
+            // 未确认的预约不允许直接进入聊天
+            if ("PENDING".equalsIgnoreCase(status)) {
+                showToast("请等待咨询师确认后再开始聊天");
                 return;
             }
             Intent intent = new Intent(context, ChatActivity.class);
@@ -415,14 +422,169 @@ public class WebAppInterface {
         context.startActivity(intent);
     }
 
+    // ==================== 音视频通话控制方法 ====================
+
+    @JavascriptInterface
+    public void setMute(boolean muted) {
+        Log.d(TAG, "setMute: " + muted);
+        // 实际静音控制需要传递到VideoCallActivity
+        // 这里只做日志记录
+    }
+
+    @JavascriptInterface
+    public void setVideoEnabled(boolean enabled) {
+        Log.d(TAG, "setVideoEnabled: " + enabled);
+        // 实际视频控制需要传递到VideoCallActivity
+    }
+
+    @JavascriptInterface
+    public void endCurrentCall() {
+        Log.d(TAG, "endCurrentCall called");
+        // 结束当前通话
+    }
+
+    @JavascriptInterface
+    public void onCallConnected() {
+        Log.d(TAG, "onCallConnected");
+        mainHandler.post(() -> showToast("通话已连接"));
+    }
+
+    @JavascriptInterface
+    public void openCallPage(String appointmentId, String consultantName, String targetUserId, String callType) {
+        // 打开通话测试页面
+        Intent intent = new Intent(context, com.example.tongyangyuan.webview.WebViewActivity.class);
+        intent.putExtra(com.example.tongyangyuan.webview.WebViewActivity.EXTRA_HTML_FILE, "call.html");
+        if (appointmentId != null) intent.putExtra("appointmentId", appointmentId);
+        if (consultantName != null) intent.putExtra("consultantName", consultantName);
+        if (targetUserId != null) intent.putExtra("targetUserId", targetUserId);
+        if (callType != null) intent.putExtra("callType", callType);
+        context.startActivity(intent);
+    }
+
     @JavascriptInterface
     public void openAccountManagement() {
         openWebPage("account_manage.html");
     }
 
     @JavascriptInterface
+    public void openWebPage(String htmlFile) {
+        Intent intent = new Intent(context, WebViewActivity.class);
+        intent.putExtra(WebViewActivity.EXTRA_HTML_FILE, htmlFile);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        context.startActivity(intent);
+    }
+
+    @JavascriptInterface
     public void openChildManagement() {
         openWebPage("child_info.html");
+    }
+
+    // ========== 咨询师相关 ==========
+
+    /**
+     * 打开咨询师登录页面
+     */
+    @JavascriptInterface
+    public void openConsultantLogin() {
+        openWebPage("consultant_login.html");
+    }
+
+    /**
+     * 打开咨询师个人中心页面
+     */
+    @JavascriptInterface
+    public void openConsultantProfile() {
+        openWebPage("consultant_profile.html");
+    }
+
+    /**
+     * 保存咨询师的 JWT Token
+     */
+    @JavascriptInterface
+    public void saveAuthToken(String token) {
+        preferenceStore.saveConsultantToken(token);
+    }
+
+    /**
+     * 获取咨询师 JWT Token（与普通登录 token 区分）
+     */
+    @JavascriptInterface
+    public String getConsultantAuthToken() {
+        String token = preferenceStore.getConsultantToken();
+        return token != null ? token : "";
+    }
+
+    /**
+     * 退出咨询师登录
+     */
+    @JavascriptInterface
+    public void consultantLogout() {
+        preferenceStore.clearConsultantToken();
+        showToast("已退出咨询师账号");
+    }
+
+    /**
+     * 获取当前登录用户类型（CONSULTANT / PARENT / ADMIN）
+     */
+    @JavascriptInterface
+    public String getUserType() {
+        return preferenceStore.getUserType() != null ? preferenceStore.getUserType() : "";
+    }
+
+    /**
+     * 保存用户类型
+     */
+    @JavascriptInterface
+    public void saveUserType(String userType) {
+        preferenceStore.saveUserType(userType);
+    }
+
+    /**
+     * 保存用户完整资料（含头像）
+     */
+    @JavascriptInterface
+    public void saveUserProfile(String jsonProfile) {
+        try {
+            JSONObject profile = new JSONObject(jsonProfile);
+            if (profile.has("userId")) {
+                preferenceStore.saveLastLoginUserId(profile.getLong("userId"));
+            }
+            if (profile.has("userType")) {
+                preferenceStore.saveUserType(profile.getString("userType"));
+            }
+            if (profile.has("phone")) {
+                preferenceStore.saveLastLoginPhone(profile.getString("phone"));
+            }
+            if (profile.has("nickname")) {
+                preferenceStore.saveNickname(profile.getString("nickname"));
+            }
+            if (profile.has("avatarUrl")) {
+                preferenceStore.saveAvatarUrl(profile.getString("avatarUrl"));
+            }
+            if (profile.has("isLoggedIn")) {
+                preferenceStore.setLoggedIn(profile.getBoolean("isLoggedIn"));
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 获取头像 URL
+     */
+    @JavascriptInterface
+    public String getAvatarUrl() {
+        String url = preferenceStore.getAvatarUrl();
+        return url != null ? url : "";
+    }
+
+    /**
+     * 获取用户昵称
+     */
+    @JavascriptInterface
+    public String getNickname() {
+        String name = preferenceStore.getNickname();
+        return name != null ? name : "";
     }
 
     @JavascriptInterface
@@ -567,16 +729,23 @@ public class WebAppInterface {
                     return;
                 }
                 
-                if (finalConsultant.getUserId() <= 0) {
-                     Log.w("WebAppInterface", "Consultant userId is missing/invalid: " + finalConsultant.getUserId());
+                // 区分 userId（users表主键）和 serverId（consultants表主键/档案ID）
+                // 预约表 appointments.consultant_id 引用的是 consultants.id，不是 users.id
+                final long consultantUserId = finalConsultant.getUserId();
+                final long consultantServerId = finalConsultant.getServerId();
+
+                if (consultantServerId <= 0) {
+                     Log.e("WebAppInterface", "Consultant serverId (档案ID) 缺失或无效: " + consultantServerId);
+                     mainHandler.post(() -> showToast("咨询师档案数据异常，请重新登录APP后重试"));
+                     return;
                 }
-                
-                long consultantId = finalConsultant.getUserId();
-                Log.d("WebAppInterface", "Submitting appointment: consultantId=" + consultantId + ", parentId=" + parentUserId);
+
+                Log.d("WebAppInterface", "Submitting appointment: serverId(档案ID)=" + consultantServerId
+                        + ", userId(用户ID)=" + consultantUserId + ", parentId=" + parentUserId);
 
                 // 构建JSON数据
                 JSONObject jsonObject = new JSONObject();
-                jsonObject.put("consultantId", consultantId);
+                jsonObject.put("consultantId", consultantServerId); // 用 consultants.id，不要用 users.id
                 jsonObject.put("parentUserId", parentUserId);
                 jsonObject.put("childName", childName);
                 jsonObject.put("childAge", calculateAge(childId)); // 计算年龄
@@ -787,6 +956,34 @@ public class WebAppInterface {
             return;
         }
         appointmentStore.deleteAppointment(appointmentId);
+    }
+
+    /** 返回有过后端同步失败的本地预约 ID 列表（JSON 数组字符串） */
+    @JavascriptInterface
+    public String getSyncErrorIds() {
+        String[] ids = appointmentStore.getSyncErrorIds();
+        JSONArray arr = new JSONArray();
+        for (String id : ids) arr.put(id);
+        return arr.toString();
+    }
+
+    /** 返回本次同步发现的孤儿预约 ID 列表（从未入库，JSON 数组字符串） */
+    @JavascriptInterface
+    public String getOrphanIds() {
+        String ids = appointmentStore.getOrphanIds();
+        JSONArray arr = new JSONArray();
+        if (!ids.isEmpty()) {
+            for (String id : ids.split(",")) {
+                if (!id.isEmpty()) arr.put(id);
+            }
+        }
+        return arr.toString();
+    }
+
+    /** 清除孤儿标记（用户确认后调用） */
+    @JavascriptInterface
+    public void clearOrphanIds() {
+        appointmentStore.clearOrphanIds();
     }
 
     @JavascriptInterface
@@ -1228,6 +1425,117 @@ public class WebAppInterface {
         return preferenceStore.getUserId();
     }
 
+    // ==================== 当前操作孩子相关 ====================
+
+    @JavascriptInterface
+    public long getCurrentChildId() {
+        return preferenceStore.getCurrentChildId();
+    }
+
+    @JavascriptInterface
+    public String getCurrentChildName() {
+        return preferenceStore.getCurrentChildName();
+    }
+
+    @JavascriptInterface
+    public void setCurrentChild(String childId, String childName) {
+        try {
+            long id = Long.parseLong(childId);
+            preferenceStore.setCurrentChildId(id);
+            if (!TextUtils.isEmpty(childName)) {
+                preferenceStore.setCurrentChildName(childName);
+            }
+            // 同步到服务器
+            syncCurrentChildToServer(id);
+            Log.d(TAG, "已设置当前孩子: id=" + childId + ", name=" + childName);
+        } catch (Exception e) {
+            Log.e(TAG, "setCurrentChild error", e);
+            showToast("切换孩子失败");
+        }
+    }
+
+    @JavascriptInterface
+    public String getCurrentChildInfo() {
+        try {
+            org.json.JSONObject obj = new org.json.JSONObject();
+            obj.put("childId", preferenceStore.getCurrentChildId());
+            obj.put("childName", preferenceStore.getCurrentChildName());
+            return obj.toString();
+        } catch (Exception e) {
+            Log.e(TAG, "getCurrentChildInfo error", e);
+            return "{}";
+        }
+    }
+
+    private void syncCurrentChildToServer(long childId) {
+        new Thread(() -> {
+            try {
+                String baseUrl = com.example.tongyangyuan.database.NetworkConfig.getBaseUrl();
+                java.net.URL url = new java.net.URL(baseUrl + "/user/current-child");
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("PUT");
+                conn.setRequestProperty("Content-Type", "application/json");
+                conn.setRequestProperty("Authorization", "Bearer " + preferenceStore.getAuthToken());
+                conn.setDoOutput(true);
+                conn.setConnectTimeout(5000);
+                conn.setReadTimeout(5000);
+
+                org.json.JSONObject body = new org.json.JSONObject();
+                body.put("childId", childId);
+                java.io.OutputStream os = conn.getOutputStream();
+                os.write(body.toString().getBytes("UTF-8"));
+                os.close();
+
+                int responseCode = conn.getResponseCode();
+                Log.d(TAG, "同步当前孩子到服务器: childId=" + childId + ", response=" + responseCode);
+                conn.disconnect();
+            } catch (Exception e) {
+                Log.e(TAG, "同步当前孩子失败", e);
+            }
+        }).start();
+    }
+
+    private void loadCurrentChildFromServer() {
+        new Thread(() -> {
+            try {
+                String baseUrl = com.example.tongyangyuan.database.NetworkConfig.getBaseUrl();
+                java.net.URL url = new java.net.URL(baseUrl + "/user/current-child");
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setRequestProperty("Authorization", "Bearer " + preferenceStore.getAuthToken());
+                conn.setConnectTimeout(5000);
+                conn.setReadTimeout(5000);
+
+                int responseCode = conn.getResponseCode();
+                if (responseCode == 200) {
+                    java.io.BufferedReader br = new java.io.BufferedReader(
+                            new java.io.InputStreamReader(conn.getInputStream()));
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = br.readLine()) != null) sb.append(line);
+                    br.close();
+
+                    org.json.JSONObject response = new org.json.JSONObject(sb.toString());
+                    if (response.optInt("code") == 200 && response.has("data")) {
+                        org.json.JSONObject data = response.getJSONObject("data");
+                        if (data != null && data.has("id")) {
+                            final long childId = data.getLong("id");
+                            final String childName = data.optString("name", "");
+                            mainHandler.post(() -> {
+                                preferenceStore.setCurrentChildId(childId);
+                                preferenceStore.setCurrentChildName(childName);
+                                Log.d(TAG, "从服务器加载当前孩子: id=" + childId + ", name=" + childName);
+                            });
+                        }
+                    }
+                }
+                conn.disconnect();
+            } catch (Exception e) {
+                Log.e(TAG, "加载当前孩子失败", e);
+            }
+        }).start();
+    }
+
     @JavascriptInterface
     public boolean hasBadge(String badgeId) {
         return preferenceStore.hasBadge(badgeId);
@@ -1362,6 +1670,9 @@ public class WebAppInterface {
             });
         }
         
+        // 同步当前孩子信息
+        loadCurrentChildFromServer();
+        
         if (preferenceStore.hasChildProfile()) {
             // 已有孩子信息，进入主页 (MainActivity)
             Intent intent = new Intent(context, MainActivity.class);
@@ -1403,6 +1714,7 @@ public class WebAppInterface {
     private JSONObject consultantToJson(Consultant consultant) throws JSONException {
         JSONObject obj = new JSONObject();
         obj.put("userId", consultant.getUserId());
+        obj.put("serverId", consultant.getServerId()); // 咨询师档案ID（appointments.consultant_id 引用此值）
         obj.put("name", consultant.getName());
         obj.put("title", consultant.getTitle());
         obj.put("specialty", consultant.getSpecialty());
@@ -1477,12 +1789,6 @@ public class WebAppInterface {
         return consultant;
     }
 
-    private void openWebPage(String htmlFile) {
-        Intent intent = new Intent(context, WebViewActivity.class);
-        intent.putExtra(WebViewActivity.EXTRA_HTML_FILE, htmlFile);
-        context.startActivity(intent);
-    }
-    
     // ==================== OpenIM JavaScript接口（替代旧 NIM） ====================
 
     private com.example.tongyangyuan.openim.OpenIMService getOpenIMService() {

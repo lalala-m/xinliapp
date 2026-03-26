@@ -1,7 +1,24 @@
 // 童养园咨询师端 - 工作台逻辑
 
+/** 将后端 appointmentDate 统一为 YYYY-MM-DD，避免与「今日」比较失败 */
+function normalizeAppointmentDate(apt) {
+    const v = apt && (apt.appointmentDate != null ? apt.appointmentDate : apt.date);
+    if (v == null || v === '') return '';
+    if (typeof v === 'string') {
+        return v.length >= 10 ? v.slice(0, 10) : v;
+    }
+    if (Array.isArray(v) && v.length >= 3) {
+        const y = v[0];
+        const m = v[1];
+        const d = v[2];
+        return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    }
+    return '';
+}
+
 const Dashboard = {
-    currentTab: 'today',
+    // 默认「全部」，咨询师登录后第一时间看到所有预约（包括历史）
+    currentTab: 'all',
     consultant: null,
     appointments: [], // 本地缓存当前的预约列表
     records: [],
@@ -40,11 +57,59 @@ const Dashboard = {
 
         // 初始加载数据
         this.refreshData();
-        
+
+        this.requestNotificationPermission();
+        this.startPolling();
+
         // 确保如果有 Mock 数据也尝试加载
         if (window.MockData && !this.appointments.length) {
             console.log('尝试加载 Mock 数据作为兜底...');
             // 这里可以添加加载 Mock 数据的逻辑，但目前先主要依赖后端接口
+        }
+    },
+
+    // 每30秒自动轮询预约数据
+    startPolling() {
+        if (this._pollTimer) clearInterval(this._pollTimer);
+        this._pollTimer = setInterval(async () => {
+            try {
+                const appointments = await API.get(`/consultants/me/appointments`);
+                if (appointments) {
+                    const oldPendingCount = this.appointments.filter(apt => apt.status === 'pending').length;
+                    this.appointments = appointments.map(apt => ({
+                        ...apt,
+                        date: normalizeAppointmentDate(apt),
+                        status: (apt.status || '').toLowerCase(),
+                        clientName: `家长#${apt.parentUserId}`,
+                        createdAt: new Date(apt.createdAt).getTime()
+                    }));
+                    const newPendingCount = this.appointments.filter(apt => apt.status === 'pending').length;
+
+                    // 如果有新的待处理预约，弹通知
+                    if (newPendingCount > oldPendingCount) {
+                        const newApts = this.appointments.filter(apt => apt.status === 'pending');
+                        Utils.showToast(`您有 ${newPendingCount} 个新预约待处理！`, 'info');
+                        if (Notification.permission === 'granted') {
+                            new Notification('童养园 - 新预约通知', {
+                                body: `您有 ${newPendingCount} 个新预约待确认`,
+                                icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">👨‍⚕️</text></svg>'
+                            });
+                        }
+                    }
+
+                    this.updateStats();
+                    this.filterAndDisplayAppointments();
+                }
+            } catch (e) {
+                console.error('轮询预约失败', e);
+            }
+        }, 30000); // 30秒轮询一次
+    },
+
+    // 请求浏览器通知权限
+    requestNotificationPermission() {
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
         }
     },
 
@@ -67,15 +132,15 @@ const Dashboard = {
         this.showLoading();
         try {
             const [appointments, recordPage] = await Promise.all([
-                API.get(`/appointments/consultant/${this.consultant.id}`),
+                API.get(`/consultants/me/appointments`),
                 API.get('/consultation-records/consultant?page=0&size=20')
             ]);
 
             if (appointments) {
                 this.appointments = appointments.map(apt => ({
                     ...apt,
-                    date: apt.appointmentDate,
-                    status: apt.status.toLowerCase(),
+                    date: normalizeAppointmentDate(apt),
+                    status: (apt.status || '').toLowerCase(),
                     clientName: `家长#${apt.parentUserId}`,
                     createdAt: new Date(apt.createdAt).getTime()
                 }));
@@ -196,9 +261,13 @@ const Dashboard = {
         if (appointments.length === 0) {
             const emptyDiv = document.createElement('div');
             emptyDiv.className = 'empty-state';
+            const hint = this.currentTab === 'today'
+                ? '<div class="empty-hint" style="margin-top:10px;font-size:13px;color:#888;line-height:1.5;">今日没有排期？待确认的预约若约在未来日期，请点击上方「待处理」查看。</div>'
+                : '';
             emptyDiv.innerHTML = `
                 <div class="empty-icon">📭</div>
                 <div class="empty-text">暂无预约</div>
+                ${hint}
             `;
             fragment.appendChild(emptyDiv);
         } else {
@@ -359,21 +428,46 @@ const Dashboard = {
             `);
         }
 
+        // 任何状态的预约都可删除（尤其是家长那边同步失败产生的垃圾记录）
+        actions.push(`
+            <button class="btn btn-sm" style="color:#999;background:#f5f5f5;border:1px solid #ddd;"
+                onclick="Dashboard.deleteAppointment('${apt.id}')">
+                删除
+            </button>
+        `);
+
         return actions.join('');
+    },
+
+    // 删除预约
+    async deleteAppointment(id) {
+        if (!Utils.confirm('确定要删除这条预约记录吗？删除后家长端也会同步消失。')) {
+            return;
+        }
+        this.showLoading();
+        try {
+            await API.delete(`/appointments/${id}`);
+            Utils.showToast('已删除', 'success');
+            this.refreshData();
+        } catch (error) {
+            console.error('删除预约失败', error);
+            Utils.showToast('删除失败', 'error');
+            this.hideLoading();
+        }
     },
 
     // 更新预约状态
     async updateStatus(id, newStatus) {
         const confirmMsg = newStatus === 'ACCEPTED' ? '确定接受这个预约吗？' : '确定拒绝这个预约吗？';
-        
+
         if (Utils.confirm(confirmMsg)) {
             this.showLoading();
             try {
-                // 调用 API 更新状态
-                await API.put(`/appointments/${id}`, {
-                    status: newStatus
-                });
-                
+                const endpoint = newStatus === 'ACCEPTED'
+                    ? `/consultants/me/appointments/${id}/accept`
+                    : `/consultants/me/appointments/${id}/reject`;
+                await API.put(endpoint);
+
                 Utils.showToast('操作成功', 'success');
                 this.refreshData(); // 重新加载数据
             } catch (error) {

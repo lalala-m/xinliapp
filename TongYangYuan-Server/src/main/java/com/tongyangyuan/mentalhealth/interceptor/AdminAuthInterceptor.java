@@ -73,11 +73,11 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
                 return false;
             }
 
-            // 检查是否是管理员
-            if (user.getUserType() != User.UserType.ADMIN) {
+            // 检查是否是管理员或咨询师
+            if (user.getUserType() != User.UserType.ADMIN && user.getUserType() != User.UserType.CONSULTANT) {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                 response.setContentType("application/json;charset=UTF-8");
-                response.getWriter().write("{\"error\":\"权限不足\",\"message\":\"需要管理员权限\"}");
+                response.getWriter().write("{\"error\":\"权限不足\",\"message\":\"需要管理员或咨询师权限\"}");
                 return false;
             }
 

@@ -121,6 +121,39 @@ public class ConsultationRecordService {
     public Page<ConsultationRecord> getUserRecords(Long userId, Pageable pageable) {
         return consultationRecordRepository.findByParentUserIdOrderByCreatedAtDesc(userId, pageable);
     }
+
+    /**
+     * 获取用户的咨询记录（支持按孩子和时间筛选）
+     */
+    public Page<ConsultationRecord> getUserRecords(Long userId, Long childId, 
+            String startDate, String endDate, Pageable pageable) {
+        org.springframework.data.jpa.domain.Specification<ConsultationRecord> spec = 
+                (root, query, cb) -> cb.equal(root.get("parentUserId"), userId);
+        
+        if (childId != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("childId"), childId));
+        }
+        
+        if (startDate != null && !startDate.isEmpty()) {
+            spec = spec.and((root, query, cb) -> 
+                    cb.greaterThanOrEqualTo(root.get("createdAt"), 
+                            java.time.LocalDateTime.parse(startDate + "T00:00:00")));
+        }
+        
+        if (endDate != null && !endDate.isEmpty()) {
+            spec = spec.and((root, query, cb) -> 
+                    cb.lessThanOrEqualTo(root.get("createdAt"), 
+                            java.time.LocalDateTime.parse(endDate + "T23:59:59")));
+        }
+        
+        org.springframework.data.domain.Sort sort = org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.DESC, "createdAt");
+        org.springframework.data.domain.Pageable sortedPageable = 
+                org.springframework.data.domain.PageRequest.of(pageable.getPageNumber(), 
+                        pageable.getPageSize(), sort);
+        
+        return consultationRecordRepository.findAll(spec, sortedPageable);
+    }
     
     /**
      * 获取咨询师的咨询记录
@@ -146,6 +179,26 @@ public class ConsultationRecordService {
             .orElseThrow(() -> new RuntimeException("咨询记录不存在"));
         
         record.setRating(rating);
+        record.setUserComment(comment);
+        
+        return consultationRecordRepository.save(record);
+    }
+
+    /**
+     * 用户评价咨询（多维度）
+     */
+    @Transactional
+    public ConsultationRecord rateConsultation(Long recordId, java.math.BigDecimal overallRating, String comment,
+            java.math.BigDecimal professionalismRating, java.math.BigDecimal communicationRating,
+            java.math.BigDecimal attitudeRating, java.math.BigDecimal problemSolvingRating,
+            java.math.BigDecimal overallRating2) {
+        ConsultationRecord record = consultationRecordRepository.findById(recordId)
+            .orElseThrow(() -> new RuntimeException("咨询记录不存在"));
+        
+        // 兼容两种调用方式
+        if (overallRating != null) {
+            record.setRating(overallRating);
+        }
         record.setUserComment(comment);
         
         return consultationRecordRepository.save(record);

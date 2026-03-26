@@ -70,12 +70,25 @@ public class WebViewFragment extends Fragment {
         loadHtmlFile(htmlFile);
 
         if (swipeRefreshLayout != null) {
+            WebView webView = mAgentWeb != null ? mAgentWeb.getWebCreator().getWebView() : null;
             swipeRefreshLayout.setOnRefreshListener(() -> {
-                if (mAgentWeb != null) {
-                    mAgentWeb.getWebCreator().getWebView().evaluateJavascript("if (typeof loadAppointments === 'function') { loadAppointments(true); } else { location.reload(); }", null);
+                if (webView != null) {
+                    webView.evaluateJavascript(
+                        "if (typeof refreshHome === 'function') { refreshHome(); } else if (typeof loadAppointments === 'function') { loadAppointments(true); } else { location.reload(); }",
+                        null
+                    );
                 }
                 swipeRefreshLayout.setRefreshing(false);
             });
+            // 仅当页面滚动到顶部时才允许下拉刷新，避免与上滑滚动冲突
+            if (webView != null) {
+                swipeRefreshLayout.setOnChildScrollUpCallback((parent, child) -> {
+                    if (webView.getScrollY() > 0) {
+                        return true; // 可继续上滑 = 不触发刷新
+                    }
+                    return false; // 在顶部 = 允许刷新
+                });
+            }
         }
     }
 

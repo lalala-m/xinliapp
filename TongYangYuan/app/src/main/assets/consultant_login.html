@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>咨询师登录 - 童康源</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        :root {
+            --blue: #6FA6F8;
+            --blue-dark: #4A8AE8;
+            --blue-light: #EEF3FE;
+            --text-primary: #2C3345;
+            --text-secondary: #627089;
+            --text-hint: #9BA5BF;
+            --border: #E8ECF2;
+            --danger: #FF5252;
+            --success: #4CAF50;
+            --radius: 20px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(180deg, #EEF3FE 0%, #FFFFFF 55%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            max-width: 520px;
+            margin: 0 auto;
+        }
+
+        /* 顶部留白 + logo */
+        .header {
+            padding: 56px 32px 24px;
+            text-align: center;
+        }
+
+        .logo-wrap {
+            width: 72px;
+            height: 72px;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            border-radius: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 8px 24px rgba(255, 165, 0, 0.35);
+        }
+
+        .logo-wrap svg { width: 40px; height: 40px; }
+
+        .header h1 {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .header p {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        /* 标签切换 */
+        .tab-bar {
+            display: flex;
+            margin: 0 24px 20px;
+            background: var(--blue-light);
+            border-radius: 14px;
+            padding: 4px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            border: none;
+            border-radius: 11px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            background: transparent;
+            color: var(--text-secondary);
+        }
+
+        .tab-btn.active {
+            background: white;
+            color: var(--blue);
+            box-shadow: 0 2px 8px rgba(111, 166, 248, 0.2);
+        }
+
+        /* 卡片 */
+        .card {
+            margin: 0 16px 16px;
+            background: white;
+            border-radius: var(--radius);
+            padding: 24px 20px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+        }
+
+        .field-group {
+            margin-bottom: 20px;
+        }
+
+        .field-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .input-row {
+            display: flex;
+            align-items: center;
+            background: #F8F9FC;
+            border-radius: 12px;
+            padding: 0 16px;
+            border: 1.5px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .input-row:focus-within {
+            border-color: var(--blue);
+            background: white;
+        }
+
+        .input-row.error {
+            border-color: var(--danger);
+        }
+
+        .input-prefix {
+            font-size: 15px;
+            color: var(--text-hint);
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+
+        .field-input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 14px 0;
+            font-size: 16px;
+            color: var(--text-primary);
+            outline: none;
+        }
+
+        .field-input::placeholder {
+            color: var(--text-hint);
+        }
+
+        .field-error {
+            font-size: 12px;
+            color: var(--danger);
+            margin-top: 6px;
+            display: none;
+        }
+
+        .field-error.show {
+            display: block;
+        }
+
+        /* 验证码 */
+        .code-input-wrap {
+            display: flex;
+            align-items: center;
+            background: #F8F9FC;
+            border-radius: 12px;
+            padding: 0 16px;
+            border: 1.5px solid transparent;
+            transition: border-color 0.2s;
+            gap: 10px;
+        }
+
+        .code-input-wrap:focus-within {
+            border-color: var(--blue);
+            background: white;
+        }
+
+        .code-input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 14px 0;
+            font-size: 16px;
+            color: var(--text-primary);
+            outline: none;
+        }
+
+        .code-input::placeholder {
+            color: var(--text-hint);
+        }
+
+        .send-btn {
+            padding: 8px 14px;
+            background: var(--blue);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+
+        .send-btn:disabled {
+            background: var(--text-hint);
+            cursor: not-allowed;
+        }
+
+        /* 按钮 */
+        .btn-primary {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--blue) 0%, var(--blue-dark) 100%);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-size: 17px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.15s;
+            margin-top: 8px;
+        }
+
+        .btn-primary:disabled {
+            background: var(--text-hint);
+            cursor: not-allowed;
+        }
+
+        .btn-primary:active:not(:disabled) {
+            transform: scale(0.98);
+            opacity: 0.9;
+        }
+
+        /* 登录面板 */
+        .login-pane {
+            display: none;
+        }
+
+        .login-pane.active {
+            display: block;
+        }
+
+        /* 底部协议 */
+        .agreement-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-top: 16px;
+            padding: 0 4px;
+        }
+
+        .agreement-row input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            margin-top: 2px;
+            accent-color: var(--blue);
+        }
+
+        .agreement-row label {
+            font-size: 12px;
+            color: var(--text-hint);
+            line-height: 1.5;
+        }
+
+        .agreement-row a {
+            color: var(--blue);
+            text-decoration: none;
+        }
+
+        /* 错误提示 */
+        .error-toast {
+            position: fixed;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: var(--danger);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 14px;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 9999;
+            max-width: 320px;
+            text-align: center;
+        }
+
+        .error-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .success-toast {
+            position: fixed;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: var(--success);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 14px;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 9999;
+            max-width: 320px;
+            text-align: center;
+        }
+
+        .success-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* 忘记密码 */
+        .forgot-row {
+            text-align: right;
+            margin-top: 12px;
+        }
+
+        .forgot-row a {
+            font-size: 13px;
+            color: var(--blue);
+            text-decoration: none;
+        }
+
+        /* 加载中 */
+        .loading-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9998;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .loading-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--blue-light);
+            border-top-color: var(--blue);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 返回 */
+        .back-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            margin: 16px 0 24px;
+            font-size: 14px;
+            color: var(--blue);
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .back-link:active { opacity: 0.7; }
+    </style>
+</head>
+<body>
+    <!-- 顶部留白 + logo -->
+    <div class="header">
+        <div class="logo-wrap">
+            <svg viewBox="0 0 40 40" fill="none">
+                <circle cx="20" cy="16" r="8" fill="white" opacity="0.9"/>
+                <circle cx="20" cy="33" r="13" fill="white"/>
+                <circle cx="20" cy="16" r="5" fill="#FFA500"/>
+                <path d="M13 32 Q20 26 27 32" stroke="#FFA500" stroke-width="2" stroke-linecap="round" fill="none"/>
+            </svg>
+        </div>
+        <h1>咨询师入口</h1>
+        <p>登录管理您的咨询师账号</p>
+    </div>
+
+    <!-- 标签切换：快捷登录 / 密码登录 -->
+    <div class="tab-bar">
+        <button class="tab-btn active" id="tabSms" onclick="switchTab('sms')">快捷登录</button>
+        <button class="tab-btn" id="tabPwd" onclick="switchTab('pwd')">密码登录</button>
+    </div>
+
+    <!-- ===== 快捷登录（手机号 + 验证码） ===== -->
+    <div class="card login-pane active" id="paneSms">
+        <div class="field-group">
+            <div class="field-label">手机号</div>
+            <div class="input-row" id="phoneRow">
+                <span class="input-prefix">+86</span>
+                <input type="tel" class="field-input" id="phoneInput"
+                       placeholder="请输入咨询师注册手机号" maxlength="11" autocomplete="off" inputmode="numeric">
+            </div>
+            <div class="field-error" id="phoneError">请输入正确的11位手机号</div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">验证码</div>
+            <div class="code-input-wrap" id="codeRow">
+                <input type="text" class="code-input" id="codeInput"
+                       placeholder="请输入6位验证码" maxlength="6" autocomplete="off" inputmode="numeric">
+                <button class="send-btn" id="sendBtn" onclick="sendCode()">获取验证码</button>
+            </div>
+            <div class="field-error" id="codeError">验证码错误</div>
+        </div>
+
+        <button class="btn-primary" id="smsLoginBtn" onclick="doSmsLogin()" disabled>
+            登录
+        </button>
+
+        <div class="agreement-row">
+            <input type="checkbox" id="agreeCheck">
+            <label for="agreeCheck">我已阅读并同意
+                <a href="#" onclick="openAgreement(); return false;">《用户服务协议》</a> 和 <a href="#" onclick="openPrivacy(); return false;">《隐私政策》</a>
+            </label>
+        </div>
+    </div>
+
+    <!-- ===== 密码登录 ===== -->
+    <div class="card login-pane" id="panePwd">
+        <div class="field-group">
+            <div class="field-label">手机号</div>
+            <div class="input-row">
+                <input type="tel" class="field-input" id="accountInput"
+                       placeholder="请输入手机号" autocomplete="off" inputmode="numeric" maxlength="11">
+            </div>
+            <div class="field-error" id="accountError">请输入账号</div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">密码</div>
+            <div class="input-row">
+                <input type="password" class="field-input" id="pwdInput"
+                       placeholder="请输入密码" autocomplete="off">
+            </div>
+            <div class="field-error" id="pwdError">请输入密码</div>
+        </div>
+
+        <div class="forgot-row">
+            <a href="#" onclick="showToast('请联系管理员找回密码'); return false;">忘记密码？</a>
+        </div>
+
+        <button class="btn-primary" id="pwdLoginBtn" onclick="doPwdLogin()">
+            登录
+        </button>
+    </div>
+
+    <!-- 返回普通登录 -->
+    <a class="back-link" href="auth.html">
+        ← 返回普通用户登录
+    </a>
+
+    <!-- 错误提示 -->
+    <div class="error-toast" id="errorToast"></div>
+    <div class="success-toast" id="successToast"></div>
+
+    <!-- 加载中 -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        // ========== 标签切换 ==========
+        function switchTab(tab) {
+            document.getElementById('tabSms').classList.toggle('active', tab === 'sms');
+            document.getElementById('tabPwd').classList.toggle('active', tab === 'pwd');
+            document.getElementById('paneSms').classList.toggle('active', tab === 'sms');
+            document.getElementById('panePwd').classList.toggle('active', tab === 'pwd');
+        }
+
+        // ========== 表单验证 ==========
+        function validatePhone(val) {
+            return /^1[3-9]\d{9}$/.test(val);
+        }
+
+        function validateCode(val) {
+            return /^\d{6}$/.test(val);
+        }
+
+        // 手机号输入监听
+        document.getElementById('phoneInput').addEventListener('input', function() {
+            const valid = validatePhone(this.value);
+            document.getElementById('smsLoginBtn').disabled = !(valid && validateCode(document.getElementById('codeInput').value));
+            document.getElementById('phoneRow').classList.toggle('error', this.value.length > 0 && !valid);
+        });
+
+        document.getElementById('codeInput').addEventListener('input', function() {
+            const valid = validateCode(this.value);
+            document.getElementById('smsLoginBtn').disabled = !(validatePhone(document.getElementById('phoneInput').value) && valid);
+        });
+
+        // ========== 发送验证码 ==========
+        let countdown = 0;
+        let countdownTimer = null;
+
+        async function sendCode() {
+            const phone = document.getElementById('phoneInput').value.trim();
+            if (!validatePhone(phone)) {
+                showError('请输入正确的手机号');
+                return;
+            }
+
+            const btn = document.getElementById('sendBtn');
+            if (countdown > 0) return;
+
+            btn.disabled = true;
+            btn.textContent = '发送中...';
+
+            try {
+                const apiBase = getApiBase();
+                const res = await fetch(apiBase + '/auth/sendCode?phone=' + encodeURIComponent(phone), {
+                    method: 'POST'
+                });
+                const json = await res.json();
+                if (json.code === 200) {
+                    showSuccess('验证码已发送');
+                    startCountdown(60);
+                } else {
+                    showError(json.message || '发送失败');
+                    btn.disabled = false;
+                    btn.textContent = '获取验证码';
+                }
+            } catch (e) {
+                showError('网络错误，请重试');
+                btn.disabled = false;
+                btn.textContent = '获取验证码';
+            }
+        }
+
+        function startCountdown(seconds) {
+            countdown = seconds;
+            const btn = document.getElementById('sendBtn');
+            btn.disabled = true;
+            btn.textContent = countdown + 's';
+            if (countdownTimer) clearInterval(countdownTimer);
+            countdownTimer = setInterval(() => {
+                countdown--;
+                if (countdown <= 0) {
+                    clearInterval(countdownTimer);
+                    btn.disabled = false;
+                    btn.textContent = '获取验证码';
+                } else {
+                    btn.textContent = countdown + 's';
+                }
+            }, 1000);
+        }
+
+        // ========== 快捷登录 ==========
+        async function doSmsLogin() {
+            const phone = document.getElementById('phoneInput').value.trim();
+            const code = document.getElementById('codeInput').value.trim();
+
+            if (!validatePhone(phone)) { showError('请输入正确的手机号'); return; }
+            if (!validateCode(code)) { showError('请输入6位验证码'); return; }
+            if (!document.getElementById('agreeCheck').checked) { showError('请先同意用户协议'); return; }
+
+            showLoading(true);
+            try {
+                const apiBase = getApiBase();
+                const res = await fetch(apiBase + '/auth/login/consultant/code?phone=' + encodeURIComponent(phone) + '&code=' + encodeURIComponent(code), {
+                    method: 'POST'
+                });
+                const json = await res.json();
+                if (json.code === 200 && json.data) {
+                    // 保存 token 和用户信息
+                    saveAuthData(json.data);
+                    showSuccess('登录成功');
+                    setTimeout(() => goToConsultantProfile(), 500);
+                } else {
+                    showError(json.message || '登录失败');
+                }
+            } catch (e) {
+                showError('网络错误，请重试');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // ========== 密码登录 ==========
+        async function doPwdLogin() {
+            const phone = document.getElementById('accountInput').value.trim();
+            const pwd = document.getElementById('pwdInput').value;
+
+            if (!phone) { showError('请输入手机号'); return; }
+            if (!pwd) { showError('请输入密码'); return; }
+
+            showLoading(true);
+            try {
+                const apiBase = getApiBase();
+                const res = await fetch(apiBase + '/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone: phone, password: pwd })
+                });
+                const json = await res.json();
+                if (json.code === 200 && json.data) {
+                    // 验证是否为咨询师
+                    if (json.data.userType !== 'CONSULTANT') {
+                        showError('该账号不是咨询师账号');
+                        return;
+                    }
+                    saveAuthData(json.data);
+                    showSuccess('登录成功');
+                    setTimeout(() => goToConsultantProfile(), 500);
+                } else {
+                    showError(json.message || '登录失败');
+                }
+            } catch (e) {
+                showError('网络错误，请重试');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // ========== 数据保存 ==========
+        function saveAuthData(data) {
+            if (window.Android && Android.saveAuthToken) {
+                Android.saveAuthToken(data.token || '');
+                Android.saveUserProfile(JSON.stringify({
+                    userId: data.userId,
+                    phone: data.phone,
+                    userType: data.userType,
+                    nickname: data.nickname || data.name || '',
+                    avatarUrl: data.consultant ? data.consultant.avatarUrl : (data.avatarUrl || ''),
+                    isLoggedIn: true
+                }));
+            }
+            // Web 端兼容
+            localStorage.setItem('authToken', data.token || '');
+            localStorage.setItem('userProfile', JSON.stringify({
+                userId: data.userId,
+                phone: data.phone,
+                userType: data.userType,
+                nickname: data.nickname || data.name || '',
+                avatarUrl: data.consultant ? data.consultant.avatarUrl : (data.avatarUrl || ''),
+                isLoggedIn: true
+            }));
+        }
+
+        function goToConsultantProfile() {
+            if (window.Android && Android.openConsultantProfile) {
+                Android.openConsultantProfile();
+            } else {
+                window.location.href = 'consultant_profile.html';
+            }
+        }
+
+        // ========== 工具 ==========
+        function getApiBase() {
+            if (window.Android && typeof Android.getBaseUrl === 'function') {
+                try { return Android.getBaseUrl() || ''; } catch (e) {}
+            }
+            return (window.API_BASE_URL || 'http://127.0.0.1:8080') + '/api';
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('errorToast');
+            el.textContent = msg;
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 2500);
+        }
+
+        function showSuccess(msg) {
+            const el = document.getElementById('successToast');
+            el.textContent = msg;
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 2000);
+        }
+
+        function showLoading(show) {
+            document.getElementById('loadingOverlay').classList.toggle('show', show);
+        }
+
+        function openAgreement() {
+            if (window.Android && Android.openWebPage) {
+                Android.openWebPage('agreement.html');
+            } else {
+                window.location.href = 'agreement.html';
+            }
+        }
+
+        function openPrivacy() {
+            if (window.Android && Android.openWebPage) {
+                Android.openWebPage('privacy.html');
+            } else {
+                window.location.href = 'privacy.html';
+            }
+        }
+    </script>
+</body>
+</html>

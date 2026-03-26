@@ -4,6 +4,8 @@ let pageSize = 10;
 let totalPages = 1;
 let consultants = [];
 let currentConsultant = null;
+let currentAvatarBase64 = ''; // 存储当前头像的 Base64 数据
+
 const SPECIALTY_OPTIONS = [
     '注意力与多动',
     '情绪管理',
@@ -14,6 +16,78 @@ const SPECIALTY_OPTIONS = [
     '行为管理与规则意识',
     '其他儿童青少年心理问题'
 ];
+
+// 头像文件选择处理
+function handleAvatarFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // 验证文件类型
+    if (!file.type.startsWith('image/')) {
+        AdminCommon.showError('请选择图片文件');
+        return;
+    }
+
+    // 验证文件大小 (最大 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+        AdminCommon.showError('图片大小不能超过 2MB');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const base64 = e.target.result;
+        currentAvatarBase64 = base64;
+
+        // 更新预览
+        const previewImg = document.getElementById('avatarPreviewImg');
+        if (previewImg) {
+            previewImg.src = base64;
+        }
+
+        // 清空 URL 输入框（优先使用 Base64）
+        const urlInput = document.getElementById('editAvatarUrl');
+        if (urlInput) {
+            urlInput.value = '';
+        }
+
+        AdminCommon.showSuccess('头像已选择');
+    };
+    reader.readAsDataURL(file);
+}
+
+// 清除头像
+function clearAvatar() {
+    currentAvatarBase64 = '';
+    const previewImg = document.getElementById('avatarPreviewImg');
+    if (previewImg) {
+        previewImg.src = '../images/default-avatar.svg';
+    }
+    const urlInput = document.getElementById('editAvatarUrl');
+    if (urlInput) {
+        urlInput.value = '';
+    }
+    const fileInput = document.getElementById('avatarInput');
+    if (fileInput) {
+        fileInput.value = '';
+    }
+}
+
+// 更新头像预览（根据URL或Base64）
+function updateAvatarPreview(avatarUrl) {
+    const previewImg = document.getElementById('avatarPreviewImg');
+    if (previewImg) {
+        if (avatarUrl && avatarUrl.startsWith('data:')) {
+            // Base64 图片
+            previewImg.src = avatarUrl;
+        } else if (avatarUrl) {
+            // URL 图片
+            previewImg.src = avatarUrl;
+        } else {
+            previewImg.src = '../images/default-avatar.png';
+        }
+    }
+}
 
 // 加载咨询师列表
 async function loadConsultants() {
@@ -109,7 +183,7 @@ function renderConsultants() {
         <tr>
             <td>${consultant.id}</td>
             <td>
-                <img src="${consultant.avatarUrl || '../images/default-avatar.png'}" 
+                <img src="${consultant.avatarUrl || '../images/default-avatar.svg'}" 
                      alt="${consultant.name}" 
                      style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
             </td>
@@ -217,19 +291,26 @@ function showConsultantModal(consultant, isEdit) {
         document.getElementById('modalTitle').textContent = '编辑咨询师';
         details.style.display = 'none';
         form.style.display = 'block';
-        
+
         // 隐藏手机号输入框 (编辑时不修改关联账号)
         const phoneGroup = document.getElementById('editPhone').closest('.form-group');
         if (phoneGroup) phoneGroup.style.display = 'none';
+
+        // 清空头像状态
+        currentAvatarBase64 = '';
 
         // 填充表单
         document.getElementById('editConsultantId').value = consultant.id;
         document.getElementById('editName').value = consultant.name || '';
         document.getElementById('editTitle').value = consultant.title || '';
+        document.getElementById('editAvatarUrl').value = consultant.avatarUrl || '';
         setSpecialtyValue(consultant.specialty || '');
         document.getElementById('editIntro').value = consultant.intro || '';
         document.getElementById('editIdentityTier').value = consultant.identityTier || 'BRONZE';
-        
+
+        // 更新头像预览
+        updateAvatarPreview(consultant.avatarUrl || '');
+
         // 添加按钮: 取消, 保存
         actions.innerHTML = `
             <button class="btn-secondary" onclick="cancelEdit()">取消</button>
@@ -245,9 +326,10 @@ function showConsultantModal(consultant, isEdit) {
         details.innerHTML = `
             <div style="display: flex; gap: 24px; align-items: flex-start;">
                 <div style="flex-shrink: 0; text-align: center;">
-                    <img src="${consultant.avatarUrl || '../images/default-avatar.png'}" 
-                         alt="${consultant.name}" 
-                         style="width: 120px; height: 120px; border-radius: 8px; object-fit: cover; border: 1px solid #f0f0f0;">
+                    <img src="${consultant.avatarUrl || '../images/default-avatar.svg'}"
+                         alt="${consultant.name}"
+                         style="width: 120px; height: 120px; border-radius: 8px; object-fit: cover; border: 1px solid #f0f0f0;"
+                         id="detailAvatarImg">
                     <div style="margin-top: 10px;">
                         <span class="status-badge ${consultant.available ? 'active' : 'inactive'}">
                             ${consultant.available ? '在线' : '离线'}
@@ -317,27 +399,36 @@ function showAddConsultantModal() {
     const details = document.getElementById('consultantDetails');
     const form = document.getElementById('consultantForm');
     const actions = document.getElementById('modalActions');
-    
+
     document.getElementById('modalTitle').textContent = '添加咨询师';
     details.style.display = 'none';
     form.style.display = 'block';
-    
-    // 清空表单
+
+    // 清空表单和头像状态
+    currentAvatarBase64 = '';
     document.getElementById('editConsultantId').value = '';
     document.getElementById('editName').value = '';
     document.getElementById('editPhone').value = '';
     document.getElementById('editPhone').closest('.form-group').style.display = 'block'; // 显示手机号输入框
     document.getElementById('editTitle').value = '';
+    document.getElementById('editAvatarUrl').value = '';
     setSpecialtyValue('');
     document.getElementById('editIntro').value = '';
     document.getElementById('editIdentityTier').value = 'BRONZE';
-    
+
+    // 重置头像预览
+    updateAvatarPreview('');
+
+    // 清空文件输入
+    const fileInput = document.getElementById('avatarInput');
+    if (fileInput) fileInput.value = '';
+
     // 添加按钮
     actions.innerHTML = `
         <button class="btn-secondary" onclick="closeModal()">取消</button>
         <button class="btn-primary" onclick="submitConsultantForm()">立即创建</button>
     `;
-    
+
     modal.classList.add('show');
 }
 
@@ -365,16 +456,19 @@ function cancelEdit() {
 // 编辑/更新咨询师 (提交表单)
 document.getElementById('consultantForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
-    
+
     const id = document.getElementById('editConsultantId').value;
+    const avatarUrl = document.getElementById('editAvatarUrl').value.trim();
     const data = {
         name: document.getElementById('editName').value,
         title: document.getElementById('editTitle').value,
         specialty: document.getElementById('editSpecialty').value,
         intro: document.getElementById('editIntro').value,
-        identityTier: document.getElementById('editIdentityTier').value
+        identityTier: document.getElementById('editIdentityTier').value,
+        // 头像：如果有Base64优先用Base64，否则用URL
+        avatarUrl: currentAvatarBase64 || avatarUrl || null
     };
-    
+
     try {
         let response;
         if (id) {
@@ -397,7 +491,8 @@ document.getElementById('consultantForm')?.addEventListener('submit', async func
                 title: data.title,
                 specialty: data.specialty,
                 intro: data.intro,
-                identityTier: data.identityTier
+                identityTier: data.identityTier,
+                avatarUrl: data.avatarUrl
             };
 
             response = await AdminCommon.request('/admin/consultants', {
@@ -405,7 +500,7 @@ document.getElementById('consultantForm')?.addEventListener('submit', async func
                 body: JSON.stringify(createData)
             });
         }
-        
+
         if (response && response.code === 200) {
             AdminCommon.showSuccess(id ? '更新成功' : '创建成功');
             closeModal();

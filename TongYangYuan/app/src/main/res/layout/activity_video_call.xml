@@ -1,109 +1,237 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#1A1A2E">
+    android:background="#0B0B14"
+    android:fitsSystemWindows="true">
 
-    <!-- 远程视频容器（占满全屏） -->
+    <!-- 远程视频容器 -->
     <FrameLayout
         android:id="@+id/remote_video_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#1A1A2E">
+        android:background="#0B0B14">
 
-        <!-- 远程视频占位背景 -->
-        <TextView
-            android:id="@+id/remote_video_placeholder"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:text="等待对方视频..."
-            android:textColor="#AAAAAA"
-            android:textSize="18sp" />
+        <LinearLayout
+            android:id="@+id/avatarWaitingView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingBottom="80dp">
+
+            <!-- 外圈光环动画（静态占位，实际动画靠代码控制可见性） -->
+            <FrameLayout android:layout_width="140dp" android:layout_height="140dp" android:layout_marginBottom="24dp">
+                <View
+                    android:id="@+id/avatarRing1"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/avatar_ring_bg"
+                    android:visibility="gone" />
+                <View
+                    android:id="@+id/avatarRing2"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/avatar_ring_bg"
+                    android:visibility="gone" />
+                <View
+                    android:layout_width="120dp"
+                    android:layout_height="120dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/avatar_gradient_bg" />
+                <TextView
+                    android:id="@+id/avatarInitial"
+                    android:layout_width="120dp"
+                    android:layout_height="120dp"
+                    android:layout_gravity="center"
+                    android:gravity="center"
+                    android:text="张"
+                    android:textColor="#FFFFFF"
+                    android:textSize="52sp"
+                    android:textStyle="bold" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/consultantNameText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="咨询师"
+                android:textColor="#FFFFFF"
+                android:textSize="26sp"
+                android:textStyle="bold"
+                android:shadowColor="#000000"
+                android:shadowDx="0"
+                android:shadowDy="2"
+                android:shadowRadius="8" />
+
+            <TextView
+                android:id="@+id/waitingHint"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="等待对方加入..."
+                android:textColor="#88FFFFFF"
+                android:textSize="15sp" />
+        </LinearLayout>
     </FrameLayout>
 
-    <!-- 本地视频容器（小窗口悬浮右上角） -->
+    <!-- 本地视频容器（右上角悬浮） -->
     <FrameLayout
         android:id="@+id/local_video_container"
-        android:layout_width="110dp"
-        android:layout_height="160dp"
+        android:layout_width="100dp"
+        android:layout_height="145dp"
         android:layout_gravity="top|end"
-        android:layout_margin="16dp"
-        android:background="#333333"
-        android:elevation="8dp">
+        android:layout_marginTop="48dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/local_video_bg"
+        android:elevation="8dp"
+        android:visibility="gone">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:text="本地预览"
-            android:textColor="#888888"
-            android:textSize="12sp" />
+            android:textColor="#66FFFFFF"
+            android:textSize="11sp" />
     </FrameLayout>
 
-    <!-- 顶部状态文字 -->
-    <TextView
-        android:id="@+id/status_text"
-        android:layout_width="wrap_content"
+    <!-- 顶部状态栏 -->
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="top|center_horizontal"
-        android:layout_marginTop="48dp"
-        android:background="#80000000"
-        android:paddingHorizontal="20dp"
-        android:paddingVertical="10dp"
-        android:text="正在连接..."
-        android:textColor="#FFFFFF"
-        android:textSize="16sp"
-        android:textStyle="bold" />
+        android:layout_gravity="top"
+        android:background="@drawable/top_gradient_bg"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="12dp">
+
+        <ImageButton
+            android:id="@+id/btn_back"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="返回"
+            android:padding="8dp"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            app:tint="#CCFFFFFF" />
+
+        <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/status_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/status_badge_bg"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="6dp"
+            android:text="正在连接..."
+            android:textColor="#FFFFFFFF"
+            android:textSize="13sp" />
+
+        <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+
+        <View android:layout_width="40dp" android:layout_height="40dp" />
+    </LinearLayout>
+
+    <!-- 底部渐变遮罩（让按钮更突出） -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="160dp"
+        android:layout_gravity="bottom"
+        android:background="@drawable/bottom_gradient_bg" />
 
     <!-- 底部控制按钮 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:layout_marginBottom="48dp"
         android:gravity="center"
         android:orientation="horizontal"
-        android:padding="16dp">
+        android:paddingHorizontal="32dp"
+        android:paddingBottom="36dp">
 
-        <!-- 静音按钮 -->
-        <ImageButton
-            android:id="@+id/btn_mute"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:layout_marginEnd="20dp"
-            android:background="@drawable/circle_btn_bg"
-            android:contentDescription="静音"
-            android:padding="14dp"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_mic"
-            app:tint="#FFFFFF" />
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
 
-        <!-- 挂断按钮（红色大按钮） -->
-        <ImageButton
-            android:id="@+id/btn_hangup"
-            android:layout_width="68dp"
-            android:layout_height="68dp"
-            android:layout_marginEnd="20dp"
-            android:background="@drawable/circle_btn_red_bg"
-            android:contentDescription="挂断"
-            android:padding="16dp"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_phone_hangup"
-            app:tint="#FFFFFF" />
+            <ImageButton
+                android:id="@+id/btn_mute"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:background="@drawable/ctrl_btn_bg"
+                android:contentDescription="静音"
+                android:padding="14dp"
+                android:scaleType="fitCenter"
+                android:src="@android:drawable/ic_btn_speak_now"
+                app:tint="#FFFFFF" />
+            <TextView
+                android:id="@+id/mute_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="静音"
+                android:textColor="#AAFFFFFF"
+                android:textSize="11sp" />
+        </LinearLayout>
 
-        <!-- 开关摄像头按钮 -->
-        <ImageButton
-            android:id="@+id/btn_video"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:background="@drawable/circle_btn_bg"
-            android:contentDescription="开关摄像头"
-            android:padding="14dp"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_camera"
-            app:tint="#FFFFFF" />
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="24dp"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <ImageButton
+                android:id="@+id/btn_hangup"
+                android:layout_width="68dp"
+                android:layout_height="68dp"
+                android:background="@drawable/hangup_btn_bg"
+                android:contentDescription="挂断"
+                android:padding="18dp"
+                android:scaleType="fitCenter"
+                android:src="@android:drawable/ic_menu_call"
+                app:tint="#FFFFFF" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="挂断"
+                android:textColor="#AAFFFFFF"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <ImageButton
+                android:id="@+id/btn_video"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:background="@drawable/ctrl_btn_bg"
+                android:contentDescription="开关摄像头"
+                android:padding="14dp"
+                android:scaleType="fitCenter"
+                android:src="@android:drawable/ic_menu_camera"
+                app:tint="#FFFFFF" />
+            <TextView
+                android:id="@+id/video_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="关摄像头"
+                android:textColor="#AAFFFFFF"
+                android:textSize="11sp" />
+        </LinearLayout>
     </LinearLayout>
 
 </FrameLayout>

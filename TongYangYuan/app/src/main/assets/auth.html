@@ -446,7 +446,7 @@
         <div class="agreement-row">
             <input type="checkbox" id="agreeCheck">
             <label for="agreeCheck">我已阅读并同意
-                <a href="#">《用户服务协议》</a> 和 <a href="#">《隐私政策》</a>
+                <a href="#" onclick="openAgreement(); return false;">《用户服务协议》</a> 和 <a href="#" onclick="openPrivacy(); return false;">《隐私政策》</a>
             </label>
         </div>
     </div>
@@ -483,7 +483,7 @@
         <div class="agreement-row">
             <input type="checkbox" id="agreeCheck2">
             <label for="agreeCheck2">我已阅读并同意
-                <a href="#">《用户服务协议》</a> 和 <a href="#">《隐私政策》</a>
+                <a href="#" onclick="openAgreement(); return false;">《用户服务协议》</a> 和 <a href="#" onclick="openPrivacy(); return false;">《隐私政策》</a>
             </label>
         </div>
 
@@ -745,6 +745,24 @@
             toast.classList.add('show');
             clearTimeout(toast._timer);
             toast._timer = setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        // ---------- 打开用户服务协议 ----------
+        function openAgreement() {
+            if (window.Android && typeof Android.openWebPage === 'function') {
+                Android.openWebPage('agreement.html');
+            } else {
+                window.location.href = 'agreement.html';
+            }
+        }
+
+        // ---------- 打开隐私政策 ----------
+        function openPrivacy() {
+            if (window.Android && typeof Android.openWebPage === 'function') {
+                Android.openWebPage('privacy.html');
+            } else {
+                window.location.href = 'privacy.html';
+            }
         }
 
         // ---------- 页面卸载清理 ----------

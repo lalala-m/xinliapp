@@ -42,6 +42,8 @@ public class SecurityConfig {
                         "/livekit/**",
                         "/messages/**",
                         "/uploads/**",
+                        "/home/config",
+                        "/api/call/**",
                         "/v3/api-docs/**",
                         "/swagger-ui/**",
                         "/swagger-ui.html"

@@ -6,304 +6,669 @@
     <title>童康源 - 首页</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        .hero-card {
-            background: radial-gradient(circle at top right, rgba(255,255,255,0.4), transparent),
-                        linear-gradient(135deg, #BDEBC8 0%, #A9C9FF 100%);
-            border-radius: 28px;
-            padding: 32px 28px 36px;
-            margin: 0 0 20px;
-            color: #1E2A3B;
-            box-shadow: 0 20px 40px rgba(111, 166, 248, 0.16);
-        }
-
-        .hero-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            border-radius: 999px;
-            background: rgba(255, 255, 255, 0.2);
-            font-size: 13px;
-            margin-bottom: 12px;
-        }
-
-        .hero-title {
-            font-size: 28px;
-            font-weight: 800;
-            margin-bottom: 8px;
-        }
-
-        .hero-subtitle {
-            font-size: 15px;
-            opacity: 0.85;
-        }
-
-        .hero-actions {
-            display: flex;
-            gap: 12px;
-            margin-top: 28px;
-        }
-
-        .hero-actions .btn {
-            flex: 1;
-            min-height: 52px;
-        }
-
-        .stat-row {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 12px;
-            margin-top: 28px;
-        }
-
-        .stat-card {
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: 18px;
-            padding: 12px;
-            text-align: center;
-            position: relative;
-        }
-
-        .stat-card-icon {
-            width: 24px;
-            height: 24px;
-            margin: 0 auto 8px;
-            color: #6FA6F8;
-        }
-
-        .stat-value {
-            font-size: 20px;
-            font-weight: 700;
-        }
-
-        .stat-label {
-            font-size: 12px;
-            color: rgba(30, 42, 59, 0.7);
-        }
-
-        .section-title {
-            font-size: 16px;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin: 24px 0 12px;
-        }
-
-        .quick-actions {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 12px;
-        }
-
-        .quick-card {
-            border-radius: 20px;
+        .top-app-bar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
             padding: 18px;
-            background: var(--background);
-            box-shadow: var(--shadow);
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            position: relative;
-        }
-
-        .quick-card-icon {
-            width: 32px;
-            height: 32px;
-            margin-bottom: 4px;
-            color: #6FA6F8;
-        }
-
-        .quick-card small {
-            color: var(--text-secondary);
-        }
-
-        .consultant-highlight {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .consultant-item {
-            display: flex;
-            align-items: center;
-            gap: 18px;
-            padding: 16px 0;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-        }
-
-        .consultant-item:last-child {
-            border-bottom: none;
-        }
-
-        .consultant-avatar {
-            width: 78px;
-            height: 78px;
-            border-radius: 24px;
-            background: linear-gradient(135deg, #6FA6F8, #BDEBC8);
-            color: white;
+            padding-top: calc(18px + env(safe-area-inset-top));
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: 700;
-            font-size: 24px;
-            box-shadow: 0 14px 32px rgba(111, 166, 248, 0.25);
+            gap: 16px;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        .top-bar-left { position: absolute; left: 8px; top: calc(env(safe-area-inset-top)); display: flex; align-items: center; }
+        .top-child-switcher {
+            display: flex; align-items: center; gap: 6px; padding: 6px 10px;
+            background: rgba(111,166,248,0.1); border: 1px solid rgba(111,166,248,0.3);
+            border-radius: 20px; cursor: pointer; transition: all 0.2s; max-width: 150px;
+        }
+        .top-child-switcher:active { transform: scale(0.96); background: rgba(111,166,248,0.15); }
+        .top-child-avatar {
+            width: 26px; height: 26px; border-radius: 50%;
+            background: linear-gradient(135deg, #6FA6F8 0%, #A9C9FF 100%);
+            display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: 600; flex-shrink: 0;
+        }
+        .top-child-avatar.girl { background: linear-gradient(135deg, #FFB7C5 0%, #FF8FAB 100%); }
+        .top-child-info { flex: 1; min-width: 0; overflow: hidden; }
+        .top-child-name { font-size: 13px; font-weight: 600; color: var(--primary-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
+        .top-child-age { font-size: 10px; color: var(--text-secondary); line-height: 1.1; }
+        .top-switch-arrow { font-size: 9px; color: var(--primary-color); flex-shrink: 0; }
+
+        /* 首页内容区：左右距屏幕 20px（避免与全局 .content 的 16px 叠加变窄） */
+        .content.page-home {
+            padding-left: 20px;
+            padding-right: 20px;
+            padding-top: 16px;
+            padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px));
         }
 
-        .consultant-meta {
+        /* 轮播广告栏 */
+        .banner-carousel {
+            margin: 12px 0 0;
+            border-radius: 20px;
+            overflow: hidden;
+            background: linear-gradient(135deg, #BDEBC8 0%, #A9C9FF 100%);
+            min-height: 170px;
+            position: relative;
+        }
+        .banner-slides {
+            width: 100%;
+            min-height: 170px;
+            position: relative;
+            overflow: hidden;
+        }
+        .banner-slide {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            box-sizing: border-box;
+            background-size: cover;
+            background-position: center;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        .banner-slide.active {
+            opacity: 1;
+        }
+        .banner-slide-content {
+            text-align: center;
+            color: #1E2A3B;
+            z-index: 1;
+        }
+        .banner-slide-content h3 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+        .banner-slide-content p { font-size: 13px; opacity: 0.9; }
+        .banner-dots {
+            position: absolute;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 6px;
+            z-index: 2;
+        }
+        .banner-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.5);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .banner-dot.active { background: white; width: 18px; border-radius: 3px; }
+
+        /* 六宫格按钮 */
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+            margin: 0 0 20px;
+        }
+        .action-btn {
+            aspect-ratio: 1;
+            background: var(--background);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .action-btn:active { transform: scale(0.96); box-shadow: var(--shadow-hover); }
+        .action-btn-icon {
+            width: 48px; height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6FA6F8 0%, #A9C9FF 100%);
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 20px;
+        }
+        .action-btn span { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+
+        /* 广告卡片（背景图由 JS 设置；无图时用渐变） */
+        .ad-card {
+            margin: 0 0 24px;
+            padding: 20px 24px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #BDEBC8 40%, #A9C9FF 100%);
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 12px 28px rgba(111,166,248,0.2);
+            cursor: pointer;
+            transition: all 0.2s;
+            min-height: 100px;
+            position: relative;
+            overflow: hidden;
+        }
+        .ad-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(189,235,200,0.88) 40%, rgba(169,201,255,0.88) 100%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .ad-card.has-bg-image::before {
+            background: linear-gradient(135deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.25) 100%);
+        }
+        .ad-card-text,
+        .ad-card-btn {
+            position: relative;
+            z-index: 1;
+        }
+        .ad-card:active { transform: scale(0.98); }
+        .ad-card-text { flex: 1; }
+        .ad-card-text h4 { font-size: 18px; font-weight: 700; color: #1E2A3B; margin-bottom: 6px; }
+        .ad-card-text p { font-size: 14px; color: rgba(30,42,59,0.85); }
+        .ad-card-btn {
+            padding: 12px 20px;
+            background: #1E2A3B;
+            color: white;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+        }
+
+        /* 推荐咨询师 */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 0 0 12px;
+        }
+        .section-title { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+        .section-more { font-size: 13px; color: #6FA6F8; font-weight: 500; cursor: pointer; }
+        /* 推荐导师：一行一张，全宽横向卡片 */
+        .consultant-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin: 0 0 24px;
+        }
+        .consultant-card {
+            background: var(--background);
+            border-radius: 20px;
+            padding: 16px 18px;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+        }
+        .consultant-card:active { transform: scale(0.98); }
+        .consultant-card-main {
+            display: flex;
+            align-items: center;
+            gap: 14px;
             flex: 1;
+            min-width: 0;
         }
-
-        .consultant-meta h4 {
-            margin: 0;
-            font-size: 16px;
+        .consultant-avatar {
+            width: 64px; height: 64px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #6FA6F8, #BDEBC8);
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-weight: 700; font-size: 22px;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+        .consultant-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .consultant-info { flex: 1; min-width: 0; }
+        .consultant-name { font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+        .consultant-title { font-size: 13px; color: var(--text-secondary); line-height: 1.35; }
+        .consultant-rating {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 15px;
+            font-weight: 600;
             color: var(--text-primary);
         }
-
-        .consultant-meta p {
-            margin: 4px 0 0;
-            color: var(--text-secondary);
-            font-size: 13px;
+        .consultant-rating .star { color: #FFB400; font-size: 14px; }
+        .consultant-list-placeholder {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+            width: 100%;
         }
 
-        .consultant-score {
-            text-align: right;
-            font-size: 13px;
-            color: var(--text-secondary);
+        /* 正在开发弹窗 */
+        .dev-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 9998;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 32px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+        .dev-modal-overlay.show { opacity: 1; visibility: visible; }
+        .dev-modal-card {
+            background: white;
+            border-radius: 24px;
+            padding: 32px;
+            max-width: 320px;
+            text-align: center;
+            box-shadow: 0 24px 48px rgba(0,0,0,0.15);
+            transform: scale(0.9);
+            transition: transform 0.3s;
+        }
+        .dev-modal-overlay.show .dev-modal-card { transform: scale(1); }
+        .dev-modal-icon {
+            width: 64px; height: 64px;
+            margin: 0 auto 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6FA6F8 0%, #A9C9FF 100%);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 28px;
+        }
+        .dev-modal-title { font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; }
+        .dev-modal-desc { font-size: 14px; color: var(--text-secondary); margin-bottom: 24px; }
+        .dev-modal-btn {
+            padding: 14px 32px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 24px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* 孩子选择弹窗 */
+        .child-picker-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); z-index: 998;
+            opacity: 0; visibility: hidden; transition: all 0.3s;
+        }
+        .child-picker-overlay.show { opacity: 1; visibility: visible; }
+        .child-picker-modal {
+            position: fixed; bottom: 0; left: 50%;
+            transform: translateX(-50%) translateY(100%);
+            width: 100%; max-width: 520px;
+            background: white; border-radius: 24px 24px 0 0;
+            z-index: 999; transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+            padding-bottom: env(safe-area-inset-bottom, 0);
+        }
+        .child-picker-modal.show { transform: translateX(-50%) translateY(0); }
+        .picker-header { padding: 20px; border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: space-between; }
+        .picker-title { font-size: 18px; font-weight: 600; }
+        .picker-close { width: 32px; height: 32px; border-radius: 50%; background: var(--surface); border: none; cursor: pointer; }
+        .picker-content { padding: 16px 20px; max-height: 400px; overflow-y: auto; }
+        .picker-child-item {
+            display: flex; align-items: center; gap: 16px; padding: 16px;
+            border-radius: 16px; cursor: pointer; margin-bottom: 8px;
+            background: var(--surface); border: 2px solid transparent;
+        }
+        .picker-child-item.selected { border-color: var(--primary-color); background: rgba(111,166,248,0.08); }
+        .picker-child-item .item-avatar {
+            width: 48px; height: 48px; border-radius: 50%;
+            background: linear-gradient(135deg, #6FA6F8 0%, #A9C9FF 100%);
+            display: flex; align-items: center; justify-content: center; color: white; font-size: 18px; font-weight: 600;
+        }
+        .picker-child-item .item-avatar.girl { background: linear-gradient(135deg, #FFB7C5 0%, #FF8FAB 100%); }
+        .picker-add-btn {
+            display: flex; align-items: center; justify-content: center; gap: 8px; padding: 16px;
+            border-radius: 16px; border: 2px dashed #E0E0E0; background: transparent; cursor: pointer; width: 100%;
         }
     </style>
 </head>
 <body>
+    <div class="child-picker-overlay" id="childPickerOverlay" onclick="hideChildPicker()"></div>
+    <div class="child-picker-modal" id="childPickerModal">
+        <div class="picker-header">
+            <span class="picker-title">选择孩子</span>
+            <button class="picker-close" onclick="hideChildPicker()">×</button>
+        </div>
+        <div class="picker-content" id="childPickerContent"></div>
+    </div>
+
+    <div class="dev-modal-overlay" id="devModal">
+        <div class="dev-modal-card">
+            <div class="dev-modal-icon">🚧</div>
+            <div class="dev-modal-title">正在开发</div>
+            <div class="dev-modal-desc" id="devModalDesc">该功能即将上线，敬请期待</div>
+            <button class="dev-modal-btn" onclick="closeDevModal()">知道了</button>
+        </div>
+    </div>
+
     <div class="top-app-bar glass">
+        <div class="top-bar-left">
+            <div class="top-child-switcher" id="topChildSwitcher" onclick="showChildPicker()">
+                <div class="top-child-avatar" id="topChildAvatar">子</div>
+                <div class="top-child-info">
+                    <div class="top-child-name" id="topChildName">请选择</div>
+                    <div class="top-child-age" id="topChildAge"></div>
+                </div>
+                <span class="top-switch-arrow">▼</span>
+            </div>
+        </div>
         <div class="title">童康源</div>
     </div>
 
-    <div class="content">
-        <div class="hero-card">
-            <div class="hero-chip">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 8v4l2.5 2.5" />
-                </svg>
-                今日在线导师
-            </div>
-            <div class="hero-title">童康源成长守护</div>
-            <div class="hero-subtitle">全链路家庭教育支持，定制孩子专属方案</div>
+    <div class="content page-home">
+        <!-- 轮播广告 -->
+        <div class="banner-carousel" id="bannerCarousel">
+            <div class="banner-slides" id="bannerSlides"></div>
+            <div class="banner-dots" id="bannerDots"></div>
+        </div>
 
-            <div class="hero-actions">
-                <button class="btn btn-primary" onclick="navigateTo('consult')">立即匹配咨询师</button>
-                <button class="btn btn-secondary" onclick="openRechargePage()">开通会员</button>
+        <!-- 六宫格 -->
+        <div class="action-grid">
+            <div class="action-btn" onclick="onActionClick('consult')">
+                <div class="action-btn-icon">💬</div>
+                <span>咨询指导</span>
             </div>
-
-            <div class="stat-row">
-                <div class="stat-card">
-                    <img src="icons/family-witness.svg" alt="家庭见证" class="stat-card-icon">
-                    <div class="stat-value">680+</div>
-                    <div class="stat-label">家庭见证改变</div>
-                </div>
-                <div class="stat-card">
-                    <img src="icons/certified-mentor.svg" alt="认证导师" class="stat-card-icon">
-                    <div class="stat-value">30位</div>
-                    <div class="stat-label">童康源认证导师</div>
-                </div>
-                <div class="stat-card">
-                    <img src="icons/satisfaction-rate.svg" alt="满意度" class="stat-card-icon">
-                    <div class="stat-value">98%</div>
-                    <div class="stat-label">续费满意度</div>
-                </div>
+            <div class="action-btn" onclick="onActionClick('sport')">
+                <div class="action-btn-icon">🏃</div>
+                <span>运动健康</span>
+            </div>
+            <div class="action-btn" onclick="onActionClick('research')">
+                <div class="action-btn-icon">📚</div>
+                <span>研学拓展</span>
+            </div>
+            <div class="action-btn" onclick="onActionClick('life')">
+                <div class="action-btn-icon">🛠</div>
+                <span>生活技能</span>
+            </div>
+            <div class="action-btn" onclick="onActionClick('tech')">
+                <div class="action-btn-icon">🤖</div>
+                <span>智慧科技</span>
+            </div>
+            <div class="action-btn" onclick="onActionClick('one2one')">
+                <div class="action-btn-icon">👤</div>
+                <span>一对一指导</span>
             </div>
         </div>
 
-        <div class="section-title">快捷入口</div>
-        <div class="quick-actions">
-            <div class="quick-card" onclick="navigateTo('consult')">
-                <img src="icons/consultation-plan.svg" alt="咨询计划" class="quick-card-icon">
-                <strong>今日咨询计划</strong>
-                <small>3条待跟进 · 点击查看</small>
+        <!-- 广告卡片 -->
+        <div class="ad-card" id="adCard" onclick="onAdCardClick()">
+            <div class="ad-card-text">
+                <h4 id="adCardTitle">首单优惠 40%</h4>
+                <p id="adCardSubtitle">轻松打开心灵窗户</p>
             </div>
-            <div class="quick-card" onclick="window.location.href='learning.html'">
-                <img src="icons/child-profile.svg" alt="在线学习" class="quick-card-icon">
-                <strong>在线学习</strong>
-                <small>家长视频课堂</small>
-            </div>
-            <!-- <div class="quick-card" onclick="window.location.href='diet.html'">
-                <img src="icons/camera.svg" alt="膳食分析" class="quick-card-icon" style="color: #4CAF50;">
-                <strong>膳食分析</strong>
-                <small>AI 识别营养成分</small>
-            </div>
-            <div class="quick-card" onclick="window.location.href='pose.html'">
-                <img src="icons/camera.svg" alt="体态矫正" class="quick-card-icon" style="color: #FF5252;">
-                <strong>体态矫正</strong>
-                <small>AI 识别不良体态</small>
-            </div> -->
+            <button class="ad-card-btn" id="adCardBtn">点击咨询</button>
         </div>
 
-        <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
-            推荐导师
-            <span onclick="navigateTo('consult')" style="font-size: 13px; color: #6FA6F8; font-weight: normal; cursor: pointer;">全部导师 ></span>
+        <!-- 推荐咨询师 -->
+        <div class="section-header">
+            <span class="section-title">⭐ 推荐导师</span>
+            <span class="section-more" onclick="navigateTo('consult')">查看全部 ></span>
         </div>
-        <div class="card static-card consultant-highlight" id="consultantList">
-            <!-- 咨询师列表将动态加载 -->
-            <div style="text-align: center; padding: 20px; color: #999;">正在加载推荐导师...</div>
-        </div>
-
-        <div class="section-title">守护提醒</div>
-        <div class="card" style="line-height:1.6;">
-            · 本周亲子练习更新完成，记得查收<br>
-            · 孩子成长记录已生成，建议和导师复盘<br>
-            · 预约沟通后24小时内可开启免费加急通道
+        <div class="consultant-grid" id="consultantList">
+            <div class="consultant-list-placeholder">正在加载...</div>
         </div>
     </div>
 
     <script src="js/app.js"></script>
     <script>
+        let childProfiles = [], currentChildId = -1;
+        let homeConfig = { banners: [], adCard: {} };
+
+        function getApiBase() {
+            if (window.Android && typeof Android.getBaseUrl === 'function') {
+                try { return Android.getBaseUrl() || ''; } catch (e) {}
+            }
+            return (window.API_BASE_URL || 'http://127.0.0.1:8080') + '/api';
+        }
+
+        async function loadHomeConfig() {
+            try {
+                const res = await fetch(getApiBase() + '/home/config');
+                const json = await res.json();
+                if (json.code === 200 && json.data) {
+                    homeConfig = json.data;
+                    renderBanners();
+                    renderAdCard();
+                }
+            } catch (e) {
+                renderBanners();
+                renderAdCard();
+            }
+        }
+
+        let bannerTimer = null;
+        function renderBanners() {
+            const banners = homeConfig.banners || [];
+            const slidesEl = document.getElementById('bannerSlides');
+            const dotsEl = document.getElementById('bannerDots');
+
+            if (banners.length === 0) return;
+
+            // 渲染所有轮播图（图片用 JSON.stringify 包一层，避免 base64/特殊字符弄坏 CSS）
+            slidesEl.innerHTML = banners.map((b, i) => {
+                const img = (b.image && String(b.image).trim()) ? String(b.image).trim() : '';
+                const bg = img
+                    ? 'background-image:url(' + JSON.stringify(img) + ');background-size:cover;background-position:center;'
+                    : 'background:linear-gradient(135deg, rgba(189,235,200,0.9) 0%, rgba(169,201,255,0.9) 100%);';
+                return '<div class="banner-slide' + (i === 0 ? ' active' : '') + '" style="' + bg + '">' +
+                    '<div class="banner-slide-content">' +
+                    '<h3>' + (b.title || '') + '</h3>' +
+                    '<p>' + (b.subtitle || '') + '</p>' +
+                    '</div></div>';
+            }).join('');
+
+            // 渲染指示点
+            dotsEl.innerHTML = banners.map((_, i) =>
+                '<div class="banner-dot' + (i === 0 ? ' active' : '') + '" onclick="bannerGoTo(' + i + ')"></div>'
+            ).join('');
+
+            // 自动轮播（3秒）
+            let idx = 0;
+            if (bannerTimer) clearInterval(bannerTimer);
+            if (banners.length > 1) {
+                bannerTimer = setInterval(() => {
+                    idx = (idx + 1) % banners.length;
+                    bannerShow(idx);
+                }, 3000);
+            }
+        }
+
+        function bannerShow(i) {
+            const banners = homeConfig.banners || [];
+            const slides = document.querySelectorAll('.banner-slide');
+            const dots = document.querySelectorAll('.banner-dot');
+            slides.forEach((s, j) => s.classList.toggle('active', j === i));
+            dots.forEach((d, j) => d.classList.toggle('active', j === i));
+        }
+
+        function bannerGoTo(i) {
+            bannerShow(i);
+            // 重置自动轮播计时
+            let cur = i;
+            if (bannerTimer) clearInterval(bannerTimer);
+            if ((homeConfig.banners || []).length > 1) {
+                bannerTimer = setInterval(() => {
+                    cur = (cur + 1) % (homeConfig.banners || []).length;
+                    bannerShow(cur);
+                }, 3000);
+            }
+        }
+
+        function renderAdCard() {
+            const ad = homeConfig.adCard || {};
+            document.getElementById('adCardTitle').textContent = ad.title || '首单优惠 40%';
+            document.getElementById('adCardSubtitle').textContent = ad.subtitle || '轻松打开心灵窗户';
+            document.getElementById('adCardBtn').textContent = ad.buttonText || '点击咨询';
+            var el = document.getElementById('adCard');
+            var img = ad.image && String(ad.image).trim() ? String(ad.image).trim() : '';
+            if (img) {
+                el.style.backgroundImage = 'url(' + JSON.stringify(img) + ')';
+                el.classList.add('has-bg-image');
+            } else {
+                el.style.backgroundImage = '';
+                el.classList.remove('has-bg-image');
+            }
+        }
+
+        function onAdCardClick() {
+            const link = (homeConfig.adCard || {}).link;
+            if (link) window.location.href = link;
+            else navigateTo('consult');
+        }
+
+        function onActionClick(type) {
+            const hasBackend = { consult: true, one2one: true };
+            if (hasBackend[type]) {
+                navigateTo('consult');
+            } else {
+                showDevModal(type);
+            }
+        }
+
+        function showDevModal(type) {
+            const names = { sport: '运动健康', research: '研学拓展', life: '生活技能', tech: '智慧科技' };
+            document.getElementById('devModalDesc').textContent = names[type] + '功能即将上线，敬请期待';
+            document.getElementById('devModal').classList.add('show');
+        }
+        function closeDevModal() {
+            document.getElementById('devModal').classList.remove('show');
+        }
+
         function loadConsultants() {
+            const container = document.getElementById('consultantList');
+            let consultants = [];
             if (window.Android && Android.getConsultants) {
                 try {
-                    const json = Android.getConsultants();
-                    const consultants = JSON.parse(json);
-                    renderConsultants(consultants);
-                } catch (e) {
-                    console.error('加载咨询师失败', e);
-                    document.getElementById('consultantList').innerHTML = 
-                        '<div style="text-align: center; padding: 20px; color: #999;">加载失败</div>';
-                }
+                    consultants = JSON.parse(Android.getConsultants() || '[]');
+                } catch (e) {}
             }
+            if (consultants.length === 0) {
+                fetch(getApiBase() + '/consultants').then(r => r.json()).then(json => {
+                    if (json.code === 200 && json.data) renderConsultants(json.data);
+                    else container.innerHTML = '<div class="consultant-list-placeholder">暂无推荐导师</div>';
+                }).catch(() => {
+                    container.innerHTML = '<div class="consultant-list-placeholder">加载失败</div>';
+                });
+                return;
+            }
+            renderConsultants(consultants);
         }
 
         function renderConsultants(consultants) {
             const container = document.getElementById('consultantList');
             if (!consultants || consultants.length === 0) {
-                container.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">暂无推荐导师</div>';
+                container.innerHTML = '<div class="consultant-list-placeholder">暂无推荐导师</div>';
                 return;
             }
-
-            // 只显示前2个
-            const displayList = consultants.slice(0, 2);
-            
-            let html = displayList.map(c => `
-                <div class="consultant-item" onclick="window.navigateToConsultantDetail && window.navigateToConsultantDetail('${c.name}')">
-                    <div class="consultant-avatar" style="background: ${c.avatarColor || 'linear-gradient(135deg, #6FA6F8, #BDEBC8)'}">
-                        ${c.name ? c.name.charAt(0) : '师'}
-                    </div>
-                    <div class="consultant-meta">
-                        <h4>${c.name || '咨询师'} · ${c.title || '导师'}</h4>
-                        <p>${c.specialty || '心理咨询'}</p>
-                    </div>
-                    <div class="consultant-score">
-                        ⭐️ ${c.rating || '5.0'}<br>${c.servedCount || '0'}家庭
-                    </div>
-                </div>
-            `).join('');
-
-            html += `
-                <button class="btn btn-secondary" style="margin-top: 8px; width: 100%;" onclick="navigateTo('consult')">
-                    查看更多导师并选择
-                </button>
-            `;
-            
-            container.innerHTML = html;
+            const list = consultants.slice(0, 8);
+            container.innerHTML = list.map(c => {
+                const avatarStyle = c.avatarUrl ? 'background: none;' : 'background: ' + (c.avatarColor || 'linear-gradient(135deg, #6FA6F8, #BDEBC8)') + ';';
+                const avatarHtml = c.avatarUrl
+                    ? '<img src="' + String(c.avatarUrl).replace(/"/g, '&quot;') + '" alt="">'
+                    : (c.name ? c.name.charAt(0) : '师');
+                var ratingNum = c.rating != null ? (typeof c.rating === 'number' ? c.rating.toFixed(1) : String(c.rating)) : '5.0';
+                return '<div class="consultant-card" onclick="window.navigateToConsultantDetail && navigateToConsultantDetail(\'' + (c.name || '').replace(/'/g, "\\'") + '\')">' +
+                    '<div class="consultant-card-main">' +
+                    '<div class="consultant-avatar" style="' + avatarStyle + '">' + avatarHtml + '</div>' +
+                    '<div class="consultant-info">' +
+                    '<div class="consultant-name">' + (c.name || '咨询师') + '</div>' +
+                    '<div class="consultant-title">' + (c.title || '导师') + '</div>' +
+                    '</div></div>' +
+                    '<div class="consultant-rating"><span class="star">⭐</span>' + ratingNum + '</div>' +
+                    '</div>';
+            }).join('');
         }
 
-        document.addEventListener('DOMContentLoaded', loadConsultants);
+        function loadChildrenForSwitcher() {
+            if (window.Android && Android.getChildProfiles) {
+                try { childProfiles = JSON.parse(Android.getChildProfiles() || '[]') || []; } catch (e) { childProfiles = []; }
+            }
+            if (window.Android && Android.getCurrentChildId) {
+                try { currentChildId = parseInt(Android.getCurrentChildId()); } catch (e) { currentChildId = -1; }
+            }
+            updateTopChildSwitcherUI();
+        }
+        function updateTopChildSwitcherUI() {
+            const avatar = document.getElementById('topChildAvatar');
+            const name = document.getElementById('topChildName');
+            const age = document.getElementById('topChildAge');
+            const cur = childProfiles.find(c => (typeof c.id === 'string' ? parseInt(c.id) : c.id) === currentChildId) || childProfiles[0];
+            if (cur) {
+                avatar.textContent = (cur.name || '子').charAt(0);
+                avatar.className = 'top-child-avatar' + (cur.gender === 'GIRL' ? ' girl' : '');
+                name.textContent = cur.name || '未命名';
+                age.textContent = cur.birthDate ? (calculateChildAge(cur.birthDate) > 0 ? calculateChildAge(cur.birthDate) + '岁' : '') : '';
+            } else {
+                avatar.textContent = childProfiles.length ? '+' : '子';
+                avatar.className = 'top-child-avatar';
+                name.textContent = childProfiles.length ? '添加孩子' : '请选择';
+                age.textContent = '';
+            }
+        }
+        function calculateChildAge(bd) {
+            if (!bd) return 0;
+            const birth = new Date(bd);
+            const today = new Date();
+            let a = today.getFullYear() - birth.getFullYear();
+            if (today.getMonth() < birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())) a--;
+            return Math.max(0, a);
+        }
+        function showChildPicker() {
+            loadChildrenForSwitcher();
+            const content = document.getElementById('childPickerContent');
+            if (childProfiles.length === 0) {
+                content.innerHTML = '<div style="text-align: center; padding: 32px; color: #999;"><a href="javascript:void(0)" onclick="openChildInfoPage(); hideChildPicker();" style="color: #6FA6F8;">去添加孩子信息</a></div>';
+            } else {
+                content.innerHTML = childProfiles.map(c => {
+                    const cid = typeof c.id === 'string' ? parseInt(c.id) : c.id;
+                    const sel = cid === currentChildId;
+                    return '<div class="picker-child-item ' + (sel ? 'selected' : '') + '" onclick="switchToChild(\'' + c.id + '\', \'' + (c.name || '').replace(/'/g, "\\'") + '\')">' +
+                        '<div class="item-avatar ' + (c.gender === 'GIRL' ? 'girl' : '') + '">' + (c.name || '子').charAt(0) + '</div>' +
+                        '<div class="item-info"><div style="font-weight:600;">' + (c.name || '未命名') + '</div><div style="font-size:12px;color:#999;">' + (c.gender === 'GIRL' ? '女孩' : '男孩') + (c.birthDate ? ' · ' + calculateChildAge(c.birthDate) + '岁' : '') + '</div></div>' +
+                        '</div>';
+                }).join('') + '<button class="picker-add-btn" onclick="openChildInfoPage(); hideChildPicker();">+ 添加孩子</button>';
+            }
+            document.getElementById('childPickerOverlay').classList.add('show');
+            document.getElementById('childPickerModal').classList.add('show');
+        }
+        function hideChildPicker() {
+            document.getElementById('childPickerOverlay').classList.remove('show');
+            document.getElementById('childPickerModal').classList.remove('show');
+        }
+        function switchToChild(id, nm) {
+            currentChildId = typeof id === 'string' ? parseInt(id) : id;
+            if (window.Android && Android.setCurrentChild) Android.setCurrentChild(String(id), nm || '');
+            updateTopChildSwitcherUI();
+            hideChildPicker();
+            if (window.Android && Android.showToast) Android.showToast('已切换为：' + (nm || ''));
+        }
+        function openChildInfoPage() {
+            if (window.Android && Android.openChildManagement) Android.openChildManagement();
+            else if (window.Android && Android.openWebPage) Android.openWebPage('child_info.html');
+        }
+
+        function refreshHome() {
+            loadHomeConfig();
+            loadConsultants();
+            if (window.Android && Android.showToast) Android.showToast('已刷新');
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadChildrenForSwitcher();
+            loadHomeConfig();
+            loadConsultants();
+        });
     </script>
 </body>
 </html>

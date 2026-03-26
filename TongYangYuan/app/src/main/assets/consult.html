@@ -6,10 +6,51 @@
     <title>咨询指导</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
+        .category-tabs {
+            display: flex;
+            gap: 8px;
+            padding: 16px;
+            background: white;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .category-tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        .category-tab {
+            flex-shrink: 0;
+            padding: 10px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #F0F0F0;
+            color: #666666;
+            border: 2px solid transparent;
+        }
+
+        .category-tab.active {
+            background: rgba(111, 166, 248, 0.1);
+            border-color: #6FA6F8;
+            color: #6FA6F8;
+            font-weight: 600;
+        }
+
+        .category-tab:active {
+            transform: scale(0.95);
+        }
+
+        .category-tab .tab-icon {
+            margin-right: 6px;
+        }
+
         .tabs {
             display: flex;
             gap: 16px;
-            padding: 16px;
+            padding: 0 16px 16px 16px;
             background: white;
         }
 
@@ -37,11 +78,36 @@
             transform: scale(0.98);
         }
 
+        .category-header {
+            padding: 16px 16px 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .category-icon {
+            width: 20px;
+            height: 20px;
+            color: #6FA6F8;
+        }
+
+        .category-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #333333;
+        }
+
+        .category-count {
+            font-size: 12px;
+            color: #999999;
+            margin-left: auto;
+        }
+
         .questions-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 8px;
-            padding: 16px;
+            padding: 8px 16px 16px 16px;
         }
 
         .question-card {
@@ -75,6 +141,46 @@
             font-size: 16px;
         }
 
+        .selected-summary {
+            margin: 0 16px 16px 16px;
+            padding: 12px 16px;
+            background: rgba(111, 166, 248, 0.08);
+            border-radius: 12px;
+            border: 1px dashed rgba(111, 166, 248, 0.3);
+        }
+
+        .selected-label {
+            font-size: 13px;
+            color: #666666;
+            margin-bottom: 8px;
+        }
+
+        .selected-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .selected-tag {
+            padding: 6px 12px;
+            background: #6FA6F8;
+            color: white;
+            border-radius: 16px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .selected-tag .remove-icon {
+            cursor: pointer;
+            opacity: 0.8;
+        }
+
+        .selected-tag .remove-icon:active {
+            opacity: 0.5;
+        }
+
         .view-consultants-btn {
             margin: 16px;
             width: calc(100% - 32px);
@@ -86,6 +192,7 @@
             color: #999999;
             font-size: 14px;
         }
+
         .custom-input-container {
             padding: 0 16px 16px 16px;
             display: flex;
@@ -127,20 +234,46 @@
     </div>
 
     <div class="content">
-        <div class="tip-text">请选择您当前最关注的问题</div>
+        <div class="tip-text">请选择您当前最关注的问题（可多选）</div>
 
+        <!-- 问题分类标签 -->
+        <div class="category-tabs" id="categoryTabs">
+            <!-- 分类标签动态生成 -->
+        </div>
+
+        <!-- 单项/多项切换 -->
         <div class="tabs">
             <button class="tab active" id="singleTab" onclick="switchTab(true)">单项问题</button>
             <button class="tab" id="multiTab" onclick="switchTab(false)">多项问题</button>
         </div>
 
+        <!-- 当前分类标题 -->
+        <div class="category-header" id="categoryHeader">
+            <svg class="category-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 8v4M12 16h.01"/>
+            </svg>
+            <span class="category-title" id="currentCategoryName">情绪问题</span>
+            <span class="category-count" id="currentCategoryCount">0 个问题</span>
+        </div>
+
+        <!-- 问题卡片 -->
         <div class="questions-grid" id="questionsGrid">
             <!-- 问题卡片将动态生成 -->
         </div>
 
+        <!-- 自定义问题输入 -->
         <div class="custom-input-container">
             <input type="text" class="custom-input" id="customInput" placeholder="请输入自定义问题" onkeypress="handleKeyPress(event)">
             <button class="btn-add" onclick="addCustomQuestion()">添加</button>
+        </div>
+
+        <!-- 已选择问题汇总 -->
+        <div class="selected-summary" id="selectedSummary" style="display: none;">
+            <div class="selected-label">已选择的问题：</div>
+            <div class="selected-tags" id="selectedTags">
+                <!-- 已选择标签动态生成 -->
+            </div>
         </div>
 
         <button class="btn btn-primary view-consultants-btn" onclick="viewConsultants()">
@@ -152,45 +285,188 @@
 
     <script src="js/app.js"></script>
     <script>
-        const singleQuestions = [
-            "抑郁症", "焦虑症", "心理创伤", "双相情感障碍", "强迫症", "PTSD创伤应激综合症",
-            "睡眠问题", "躯体化反应", "社交恐惧", "回避型人格", "自杀倾向", "自残行为问题",
-            "边缘型人格障碍(BPD)", "注意力缺陷多动障碍ADHD", "暴饮暴食", "微笑抑郁症",
-            "哀失与哀伤辅导", "成瘾问题", "偏执型人格障碍", "人格障碍", "妄想性障碍",
-            "自恋型人格特质", "表演型人格", "恋物癖", "冲动控制/破坏性行为", "产后抑郁",
-            "躁狂症", "斯德哥尔摩综合症", "性别认同", "自闭症", "进食障碍(厌食症)",
-            "惊恐", "异装症", "器质性精神障碍", "异食症", "更年期情绪问题",
-            "幽闭恐惧症", "怀孕/围产期/产后心理健康", "巨物恐惧症"
+        // 问题分类数据
+        const questionCategories = [
+            {
+                id: 'emotion',
+                name: '情绪问题',
+                icon: 'emotion',
+                questions: [
+                    '抑郁症', '焦虑症', '心理创伤', '双相情感障碍', '强迫症', 
+                    'PTSD创伤应激综合症', '睡眠问题', '躯体化反应', '社交恐惧', 
+                    '回避型人格', '自杀倾向', '自残行为问题', '边缘型人格障碍(BPD)',
+                    '暴饮暴食', '微笑抑郁症', '产后抑郁', '躁狂症', '惊恐障碍'
+                ]
+            },
+            {
+                id: 'behavior',
+                name: '行为问题',
+                icon: 'behavior',
+                questions: [
+                    '冲动控制障碍', '攻击性行为', '对立违抗', '品行障碍', 
+                    '抽动障碍', '拔毛癖', '说谎行为', '偷窃行为', 
+                    '过度依赖', '分离焦虑', '强迫行为', '成瘾问题',
+                    '自伤行为', '刻板行为', '多动行为', '注意力不集中'
+                ]
+            },
+            {
+                id: 'learning',
+                name: '学习问题',
+                icon: 'learning',
+                questions: [
+                    '注意力缺陷多动障碍ADHD', '学习困难', '阅读障碍', '数学障碍',
+                    '书写障碍', '学校恐惧症', '考试焦虑', '厌学情绪',
+                    '逃学行为', '学业压力', '学习方法问题', '学习动机不足',
+                    '记忆力问题', '拖延行为'
+                ]
+            },
+            {
+                id: 'social',
+                name: '人际交往',
+                icon: 'social',
+                questions: [
+                    '同伴关系困难', '校园霸凌', '社交恐惧', '沟通障碍',
+                    '友谊问题', '亲子关系', '师生关系', '恋爱困惑',
+                    '人际关系紧张', '社交技能不足', '孤独感', '融入困难'
+                ]
+            },
+            {
+                id: 'development',
+                name: '成长发展',
+                icon: 'development',
+                questions: [
+                    '自闭症谱系障碍', '发育迟缓', '感统失调', '运动协调障碍',
+                    '语言发育迟缓', '智力发育问题', '性别认同', '性教育困惑',
+                    '性早熟/晚熟', '生长发育焦虑'
+                ]
+            },
+            {
+                id: 'family',
+                name: '家庭问题',
+                icon: 'family',
+                questions: [
+                    '离异家庭适应', '丧亲之痛', '家庭暴力目睹', '寄养家庭适应',
+                    '二胎家庭冲突', '留守儿童问题', '父母教育方式', '家庭氛围紧张',
+                    '亲子沟通障碍', '祖孙关系'
+                ]
+            }
         ];
 
-        let isSingleMode = true;
-        let selectedQuestions = new Set();
+        // 所有问题的扁平列表（用于快速查找）
+        const allQuestionsFlat = questionCategories.flatMap(cat => cat.questions);
+
+        // 自定义问题（用户添加的）
         let customQuestions = [];
 
-        function switchTab(single) {
-            isSingleMode = single;
-            selectedQuestions.clear();
-            // 切换模式时清空自定义问题，或者保留？通常切换模式意味着重新选择
-            // 这里选择保留自定义问题列表，但清空选中状态
-            // customQuestions = []; 
-            
-            document.getElementById('singleTab').classList.toggle('active', single);
-            document.getElementById('multiTab').classList.toggle('active', !single);
-            
-            renderQuestions();
-        }
+        // 当前状态
+        let currentCategory = 'emotion';
+        let isSingleMode = true;
+        let selectedQuestions = new Set();
 
-        function renderQuestions() {
-            const grid = document.getElementById('questionsGrid');
-            const allQuestions = [...singleQuestions, ...customQuestions];
-            grid.innerHTML = allQuestions.map(q => `
-                <div class="question-card ${selectedQuestions.has(q) ? 'selected' : ''}" 
-                     onclick="toggleQuestion('${q}')">
-                    ${q}
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            renderCategoryTabs();
+            switchCategory('emotion');
+        });
+
+        // 渲染分类标签
+        function renderCategoryTabs() {
+            const container = document.getElementById('categoryTabs');
+            const icons = {
+                'emotion': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',
+                'behavior': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>',
+                'learning': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/></svg>',
+                'social': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+                'development': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>',
+                'family': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>'
+            };
+
+            container.innerHTML = questionCategories.map(cat => `
+                <div class="category-tab ${currentCategory === cat.id ? 'active' : ''}" 
+                     onclick="switchCategory('${cat.id}')">
+                    <span class="tab-icon">${icons[cat.icon] || ''}</span>
+                    ${cat.name}
                 </div>
             `).join('');
         }
 
+        // 切换分类
+        function switchCategory(categoryId) {
+            currentCategory = categoryId;
+            const category = questionCategories.find(c => c.id === categoryId);
+            
+            if (!category) return;
+
+            // 更新分类标签状态
+            document.querySelectorAll('.category-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.textContent.includes(category.name));
+            });
+
+            // 更新分类标题
+            document.getElementById('currentCategoryName').textContent = category.name;
+            document.getElementById('currentCategoryCount').textContent = `${category.questions.length} 个问题`;
+
+            // 切换到多项模式时，保留当前选中；单项模式时清空
+            if (isSingleMode) {
+                selectedQuestions.clear();
+            }
+
+            renderQuestions();
+            updateSelectedSummary();
+        }
+
+        // 切换单项/多项模式
+        function switchTab(single) {
+            isSingleMode = single;
+            
+            document.getElementById('singleTab').classList.toggle('active', single);
+            document.getElementById('multiTab').classList.toggle('active', !single);
+            
+            // 单项模式只保留一个
+            if (single && selectedQuestions.size > 1) {
+                const first = Array.from(selectedQuestions)[0];
+                selectedQuestions.clear();
+                selectedQuestions.add(first);
+            }
+            
+            renderQuestions();
+            updateSelectedSummary();
+        }
+
+        // 渲染问题卡片
+        function renderQuestions() {
+            const grid = document.getElementById('questionsGrid');
+            const category = questionCategories.find(c => c.id === currentCategory);
+            
+            if (!category) return;
+
+            const allQuestions = [...category.questions, ...customQuestions.filter(q => 
+                !category.questions.includes(q)
+            )];
+
+            grid.innerHTML = allQuestions.map(q => {
+                const isSelected = selectedQuestions.has(q);
+                return `
+                    <div class="question-card ${isSelected ? 'selected' : ''}" 
+                         onclick="toggleQuestion('${escapeHtml(q)}')">
+                        ${escapeHtml(q)}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 转义 HTML 特殊字符
+        function escapeHtml(text) {
+            if (!text) return '';
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // 切换问题选中状态
         function toggleQuestion(question) {
             if (isSingleMode) {
                 selectedQuestions.clear();
@@ -202,39 +478,59 @@
                     selectedQuestions.add(question);
                 }
             }
-            renderQuestions();
             
-            if (selectedQuestions.size > 0) {
-                showToast(`已选择：${Array.from(selectedQuestions).join('、')}`);
-            }
+            renderQuestions();
+            updateSelectedSummary();
         }
 
+        // 更新已选择问题汇总
+        function updateSelectedSummary() {
+            const summary = document.getElementById('selectedSummary');
+            const tagsContainer = document.getElementById('selectedTags');
+
+            if (selectedQuestions.size === 0) {
+                summary.style.display = 'none';
+                return;
+            }
+
+            summary.style.display = 'block';
+            tagsContainer.innerHTML = Array.from(selectedQuestions).map(q => `
+                <div class="selected-tag">
+                    ${escapeHtml(q)}
+                    <span class="remove-icon" onclick="event.stopPropagation(); removeQuestion('${escapeHtml(q)}')">×</span>
+                </div>
+            `).join('');
+        }
+
+        // 移除已选择的问题
+        function removeQuestion(question) {
+            selectedQuestions.delete(question);
+            renderQuestions();
+            updateSelectedSummary();
+        }
+
+        // 添加自定义问题
         function addCustomQuestion() {
             const input = document.getElementById('customInput');
             const val = input.value.trim();
+            
             if (!val) {
                 showToast('请输入问题内容');
                 return;
             }
             
-            if (singleQuestions.includes(val) || customQuestions.includes(val)) {
+            if (allQuestionsFlat.includes(val) || customQuestions.includes(val)) {
                 showToast('该问题已存在');
-                // 如果已存在，直接选中
                 toggleQuestion(val);
                 input.value = '';
                 return;
             }
 
             customQuestions.push(val);
-            // 添加后自动选中
             toggleQuestion(val);
             input.value = '';
             
-            // 滚动到底部
-            setTimeout(() => {
-                const grid = document.getElementById('questionsGrid');
-                grid.scrollTop = grid.scrollHeight;
-            }, 100);
+            showToast('已添加自定义问题');
         }
 
         function handleKeyPress(e) {
@@ -243,21 +539,20 @@
             }
         }
 
+        // 查看咨询师推荐
         function viewConsultants() {
             const questions = Array.from(selectedQuestions).join(',');
+            if (!questions) {
+                showToast('请先选择问题');
+                return;
+            }
+            
             if (window.Android && Android.navigateToConsultantList) {
-                // 传递选中的问题（包括自定义问题）
                 Android.navigateToConsultantList(questions);
             } else {
-                showToast('查看咨询师列表' + (questions ? ': ' + questions : ''));
+                showToast('查看咨询师列表: ' + questions);
             }
         }
-
-        // 初始化
-        document.addEventListener('DOMContentLoaded', function() {
-            renderQuestions();
-        });
     </script>
 </body>
 </html>
-

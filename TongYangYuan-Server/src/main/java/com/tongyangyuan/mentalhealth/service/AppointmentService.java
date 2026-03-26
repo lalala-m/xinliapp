@@ -18,13 +18,16 @@ public class AppointmentService {
     private final AppointmentRepository appointmentRepository;
     private final com.tongyangyuan.mentalhealth.repository.ConsultantRepository consultantRepository;
     private final org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
+    private final ChatMessageService chatMessageService;
 
-    public AppointmentService(AppointmentRepository appointmentRepository, 
+    public AppointmentService(AppointmentRepository appointmentRepository,
                               com.tongyangyuan.mentalhealth.repository.ConsultantRepository consultantRepository,
-                              org.springframework.data.redis.core.StringRedisTemplate redisTemplate) {
+                              org.springframework.data.redis.core.StringRedisTemplate redisTemplate,
+                              ChatMessageService chatMessageService) {
         this.appointmentRepository = appointmentRepository;
         this.consultantRepository = consultantRepository;
         this.redisTemplate = redisTemplate;
+        this.chatMessageService = chatMessageService;
     }
 
     public List<Appointment> getAppointmentsByConsultantId(Long consultantId) {
@@ -33,9 +36,8 @@ public class AppointmentService {
         return appointmentRepository.findByConsultantIdOrderByCreatedAtDesc(actualConsultantId);
     }
 
-    @org.springframework.cache.annotation.Cacheable(value = "parent_appointments", key = "#parentUserId")
     public List<Appointment> getAppointmentsByParentUserId(Long parentUserId) {
-        log.info("查询用户预约列表: parentUserId={} (Cache Miss if seen)", parentUserId);
+        log.info("查询用户预约列表: parentUserId={}", parentUserId);
         return appointmentRepository.findByParentUserIdOrderByCreatedAtDesc(parentUserId);
     }
 
@@ -117,7 +119,11 @@ public class AppointmentService {
             String cacheKey = "parent_appointments::" + appointment.getParentUserId();
             redisTemplate.delete(cacheKey);
             log.info("清除用户预约缓存: {}", cacheKey);
-            
+
+            // 通过 WebSocket 通知咨询师有新预约
+            chatMessageService.notifyConsultantNewAppointment(saved);
+            log.info("已通知咨询师有新预约: consultantUserId={}", consultant.getUserId());
+
             return saved;
             
         } finally {

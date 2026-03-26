@@ -55,16 +55,20 @@ public class ConsultationRecordController {
     }
     
     /**
-     * 获取用户的咨询记录
+     * 获取用户的咨询记录（支持筛选）
      */
     @GetMapping("/user")
     public ResponseEntity<ApiResponse<Page<ConsultationRecord>>> getUserRecords(
             @RequestHeader("Authorization") String token,
+            @RequestParam(required = false) Long childId,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Long userId = jwtUtil.extractUserId(token.replace("Bearer ", ""));
         Pageable pageable = PageRequest.of(page, size);
-        Page<ConsultationRecord> records = consultationRecordService.getUserRecords(userId, pageable);
+        Page<ConsultationRecord> records = consultationRecordService.getUserRecords(
+                userId, childId, startDate, endDate, pageable);
         return ResponseEntity.ok(ApiResponse.success(records));
     }
 
@@ -81,14 +85,44 @@ public class ConsultationRecordController {
     }
     
     /**
-     * 用户评价咨询
+     * 用户评价咨询（支持多维度评分）
      */
-    @PutMapping("/{id}/rating")
+    @PostMapping("/{id}/rating")
     public ResponseEntity<ApiResponse<ConsultationRecord>> rateConsultation(
             @PathVariable Long id,
-            @RequestParam BigDecimal rating,
-            @RequestParam String comment) {
-        ConsultationRecord updated = consultationRecordService.rateConsultation(id, rating, comment);
+            @RequestBody RatingRequest request) {
+        ConsultationRecord updated = consultationRecordService.rateConsultation(
+                id, request.getRating(), request.getComment(),
+                request.getProfessionalismRating(), request.getCommunicationRating(),
+                request.getAttitudeRating(), request.getProblemSolvingRating(), request.getOverallRating());
         return ResponseEntity.ok(ApiResponse.success(updated));
+    }
+
+    /**
+     * 评价请求体
+     */
+    public static class RatingRequest {
+        private java.math.BigDecimal rating;
+        private String comment;
+        private java.math.BigDecimal professionalismRating;
+        private java.math.BigDecimal communicationRating;
+        private java.math.BigDecimal attitudeRating;
+        private java.math.BigDecimal problemSolvingRating;
+        private java.math.BigDecimal overallRating;
+
+        public java.math.BigDecimal getRating() { return rating; }
+        public void setRating(java.math.BigDecimal rating) { this.rating = rating; }
+        public String getComment() { return comment; }
+        public void setComment(String comment) { this.comment = comment; }
+        public java.math.BigDecimal getProfessionalismRating() { return professionalismRating; }
+        public void setProfessionalismRating(java.math.BigDecimal v) { this.professionalismRating = v; }
+        public java.math.BigDecimal getCommunicationRating() { return communicationRating; }
+        public void setCommunicationRating(java.math.BigDecimal v) { this.communicationRating = v; }
+        public java.math.BigDecimal getAttitudeRating() { return attitudeRating; }
+        public void setAttitudeRating(java.math.BigDecimal v) { this.attitudeRating = v; }
+        public java.math.BigDecimal getProblemSolvingRating() { return problemSolvingRating; }
+        public void setProblemSolvingRating(java.math.BigDecimal v) { this.problemSolvingRating = v; }
+        public java.math.BigDecimal getOverallRating() { return overallRating; }
+        public void setOverallRating(java.math.BigDecimal v) { this.overallRating = v; }
     }
 }

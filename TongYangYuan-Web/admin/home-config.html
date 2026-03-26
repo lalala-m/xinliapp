@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>首页配置 - 童养园管理后台</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <style>
+        .config-section {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow);
+        }
+        
+        .config-section h3 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .banner-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .banner-item {
+            display: flex;
+            gap: 16px;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            align-items: flex-start;
+        }
+        
+        .banner-preview {
+            width: 200px;
+            height: 120px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #BDEBC8 0%, #A9C9FF 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        
+        .banner-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .banner-preview-text {
+            text-align: center;
+            color: #1E2A3B;
+            padding: 10px;
+        }
+        
+        .banner-preview-text h4 {
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+        
+        .banner-preview-text p {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        .banner-form {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .form-row .form-group {
+            flex: 1;
+        }
+        
+        .banner-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: auto;
+        }
+        
+        /* 广告卡片配置 */
+        .ad-card-preview {
+            background: linear-gradient(135deg, #BDEBC8 40%, #A9C9FF 100%);
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .ad-card-preview-text h4 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1E2A3B;
+            margin-bottom: 6px;
+        }
+        
+        .ad-card-preview-text p {
+            font-size: 14px;
+            color: rgba(30, 42, 59, 0.85);
+        }
+        
+        .ad-card-preview-btn {
+            padding: 12px 24px;
+            background: #1E2A3B;
+            color: white;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .ad-card-form {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+        
+        .ad-card-form .form-group.full-width {
+            grid-column: span 2;
+        }
+        
+        .preview-container {
+            margin-bottom: 20px;
+        }
+        
+        /* 图片上传 */
+        .image-upload-area {
+            border: 2px dashed #d9d9d9;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+        
+        .image-upload-area:hover {
+            border-color: #40a9ff;
+        }
+        
+        .image-upload-area img {
+            max-width: 100%;
+            max-height: 150px;
+            border-radius: 4px;
+        }
+        
+        .image-upload-area .placeholder {
+            color: #999;
+            font-size: 14px;
+        }
+        
+        .image-upload-area .hint {
+            color: #999;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h2>童养园管理后台</h2>
+            </div>
+            <nav class="nav-menu">
+                <a href="index.html" class="nav-item">
+                    <span class="icon">📊</span>
+                    <span>数据概览</span>
+                </a>
+                <a href="users.html" class="nav-item">
+                    <span class="icon">👥</span>
+                    <span>用户管理</span>
+                </a>
+                <a href="consultants.html" class="nav-item">
+                    <span class="icon">👨‍⚕️</span>
+                    <span>咨询师管理</span>
+                </a>
+                <a href="learning.html" class="nav-item">
+                    <span class="icon">📚</span>
+                    <span>学习资源</span>
+                </a>
+                <a href="appointments.html" class="nav-item">
+                    <span class="icon">📅</span>
+                    <span>预约管理</span>
+                </a>
+                <a href="home-config.html" class="nav-item active">
+                    <span class="icon">🏠</span>
+                    <span>首页配置</span>
+                </a>
+                <a href="#" class="nav-item" id="logoutBtn">
+                    <span class="icon">🚪</span>
+                    <span>退出登录</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 顶部栏 -->
+            <header class="top-bar">
+                <div class="breadcrumb">
+                    <span>首页</span>
+                    <span class="separator">/</span>
+                    <span>首页配置</span>
+                </div>
+                <div class="user-info">
+                    <span id="adminName">管理员</span>
+                    <span class="badge">ADMIN</span>
+                </div>
+            </header>
+
+            <!-- 轮播图配置 -->
+            <div class="config-section">
+                <h3>🎠 轮播广告管理</h3>
+                <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+                    最多支持5张轮播图，建议尺寸 750×450 像素，支持 JPG/PNG 格式
+                </p>
+                <div class="banner-list" id="bannerList">
+                    <!-- 轮播图列表 -->
+                </div>
+                <button class="btn-primary" onclick="addBanner()" id="addBannerBtn" style="margin-top: 16px;">
+                    + 添加轮播图
+                </button>
+            </div>
+
+            <!-- 广告卡片配置 -->
+            <div class="config-section">
+                <h3>📢 广告卡片管理</h3>
+                <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+                    首页底部的醒目广告卡片配置
+                </p>
+                
+                <!-- 预览 -->
+                <div class="preview-container">
+                    <p style="font-size: 12px; color: #999; margin-bottom: 8px;">效果预览：</p>
+                    <div class="ad-card-preview" id="adCardPreview">
+                        <div class="ad-card-preview-text">
+                            <h4 id="previewTitle">首单优惠 40%</h4>
+                            <p id="previewSubtitle">轻松打开心灵窗户</p>
+                        </div>
+                        <div class="ad-card-preview-btn" id="previewBtn">点击咨询</div>
+                    </div>
+                </div>
+                
+                <!-- 表单 -->
+                <div class="ad-card-form">
+                    <div class="form-group">
+                        <label>标题</label>
+                        <input type="text" id="adTitle" class="form-control" placeholder="例如：首单优惠 40%">
+                    </div>
+                    <div class="form-group">
+                        <label>按钮文字</label>
+                        <input type="text" id="adButtonText" class="form-control" placeholder="例如：点击咨询">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>副标题</label>
+                        <input type="text" id="adSubtitle" class="form-control" placeholder="例如：轻松打开心灵窗户">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>跳转链接（可选）</label>
+                        <input type="text" id="adLink" class="form-control" placeholder="点击后跳转的页面链接">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>背景图片（可选）</label>
+                        <div class="image-upload-area" id="adImageUpload" onclick="document.getElementById('adImageInput').click()">
+                            <img id="adImagePreview" style="display: none;">
+                            <div class="placeholder" id="adImagePlaceholder">
+                                <div style="font-size: 24px; margin-bottom: 8px;">🖼️</div>
+                                <div>点击上传图片或拖拽到此处</div>
+                                <div class="hint">支持 JPG/PNG，建议尺寸 600×200</div>
+                            </div>
+                        </div>
+                        <input type="file" id="adImageInput" accept="image/*" style="display: none;" onchange="handleAdImageSelect(event)">
+                        <input type="hidden" id="adImageUrl">
+                        <button type="button" class="btn-secondary" onclick="clearAdImage()" style="margin-top: 8px;">清除图片</button>
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <button class="btn-primary" onclick="saveAdCard()">保存广告卡片</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/config.js?v=3.3"></script>
+    <script src="js/admin-common.js?v=3.3"></script>
+    <script src="js/home-config.js?v=3.3"></script>
+</body>
+</html>

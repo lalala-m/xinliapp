@@ -8,14 +8,37 @@
     <style>
         .consultant-card {
             display: flex;
-            gap: 20px;
+            gap: 16px;
             padding: 20px;
             align-items: center;
+            width: 100%;
+        }
+
+        .list-item.consultant-card {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            margin-bottom: 16px;
+            border-radius: 20px;
+            padding: 0 !important;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 让列表容器占满宽度并移除外边距 */
+        #consultantsList {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+        }
+
+        .content {
+            padding: 0 !important;
+            padding-bottom: 110px !important;
         }
 
         .avatar {
-            width: 96px;
-            height: 96px;
+            width: 100px;
+            height: 100px;
             border-radius: 24px;
             background: linear-gradient(135deg, #BDEBC8 0%, #A9C9FF 100%);
             display: flex;
@@ -23,7 +46,7 @@
             justify-content: center;
             flex-shrink: 0;
             overflow: hidden;
-            box-shadow: 0 12px 24px rgba(111, 166, 248, 0.16);
+            box-shadow: 0 8px 16px rgba(111, 166, 248, 0.16);
         }
 
         .avatar svg {
@@ -198,6 +221,18 @@
 
         function renderConsultants() {
             const list = document.getElementById('consultantsList');
+
+            if (!consultants || consultants.length === 0) {
+                list.innerHTML = `
+                    <div style="text-align:center;padding:48px 24px;color:#9BA5BF;">
+                        <div style="font-size:48px;margin-bottom:16px;">📭</div>
+                        <div style="font-size:16px;font-weight:500;margin-bottom:8px;">暂无咨询师数据</div>
+                        <div style="font-size:13px;">请确认后端服务已启动且数据库中有咨询师</div>
+                    </div>
+                `;
+                return;
+            }
+
             list.innerHTML = consultants.map(consultant => {
                 const safeName = escapeHtml(consultant.name || '咨询师');
                 const safeTitle = escapeHtml(consultant.title || '');
@@ -262,13 +297,16 @@
                     const parsed = JSON.parse(json);
                     if (Array.isArray(parsed) && parsed.length) {
                         consultants = parsed;
+                    } else {
+                        console.warn('咨询师数据库为空，请确认后端 /consultants 接口有数据');
                     }
                 } catch (e) {
                     console.error('加载咨询师数据失败', e);
                 }
-            } else if (Array.isArray(window.FALLBACK_CONSULTANTS)) {
-                consultants = window.FALLBACK_CONSULTANTS;
+            } else {
+                console.warn('Android 接口不可用，无法获取咨询师列表');
             }
+            // 移除了 mock fallback，只有数据库/服务器有真实数据才显示
 
             // 过滤逻辑
             if (questions) {

@@ -2,6 +2,7 @@ package com.example.tongyangyuan;
 
 import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -12,11 +13,10 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.annotation.OptIn;
-import androidx.media3.common.util.UnstableApi;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import com.example.tongyangyuan.data.PreferenceStore;
 import com.example.tongyangyuan.database.NetworkConfig;
@@ -28,33 +28,19 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URI;
-
-import io.livekit.android.room.ConnectOptions;
-import io.livekit.android.room.Room;
-import io.livekit.android.room.RoomListener;
-import io.livekit.android.room.TrackPublication;
-import io.livekit.android.room.track.LocalVideoTrack;
-import io.livekit.android.room.track.RemoteParticipant;
-import io.livekit.android.room.track.RemoteVideoTrack;
-import io.livekit.android.room.track.VideoTrack;
-import io.livekit.android.view.VideoView;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 视频通话 Activity - LiveKit + OpenIM 信令
  *
  * 信令层：OpenIMService（通知对方发起/接听/结束通话）
- * 媒体层：LiveKit SDK（实际音视频传输）
- *
- * 流程：
- * 1. 从后端获取 LiveKit Token
- * 2. 连接 LiveKit Room
- * 3. 发布本地视频、订阅远端视频
- * 4. 通过 OpenIMService 发送/接收通话信令
+ * 媒体层：LiveKit SDK 2.x（由 {@link LiveKitSessionManager} 封装）
  */
-@OptIn(markerClass = UnstableApi.class)
-public class VideoCallActivity extends AppCompatActivity implements RoomListener {
+public class VideoCallActivity extends AppCompatActivity {
 
     private static final String TAG = "VideoCallActivity";
+    private static final int REQ_MEDIA_PERMISSIONS = 1001;
 
     // Intent Extra Keys
     public static final String KEY_CONSULTANT_NAME = "consultant_name";
@@ -76,12 +62,12 @@ public class VideoCallActivity extends AppCompatActivity implements RoomListener
     private boolean isCaller;
     private String currentSessionId;
 
-    // LiveKit
-    private Room livekitRoom;
     private String livekitServerUrl;
     private String livekitToken;
-    private LocalVideoTrack localVideoTrack;
-    private RemoteVideoTrack remoteVideoTrack;
+    /** 避免 fetch 回调与 onCallAnswered 重复发起 LiveKit 连接 */
+    private boolean liveKitConnectStarted;
+
+    private LiveKitSessionManager liveKitSession;
 
     // OpenIM
     private OpenIMService openIMService;
@@ -91,9 +77,18 @@ public class VideoCallActivity extends AppCompatActivity implements RoomListener
     private FrameLayout remoteVideoContainer;
     private FrameLayout localVideoContainer;
     private TextView statusText;
+    private TextView muteLabel;
+    private TextView videoLabel;
     private ImageButton muteButton;
     private ImageButton videoButton;
     private ImageButton hangupButton;
+    private ImageButton backButton;
+    private View avatarWaitingView;
+    private View avatarRing1;
+    private View avatarRing2;
+    private TextView avatarInitial;
+    private TextView consultantNameText;
+    private TextView waitingHint;
     private boolean isMuted = false;
     private boolean isVideoEnabled = true;
 
@@ -115,7 +110,11 @@ public class VideoCallActivity extends AppCompatActivity implements RoomListener
         public void onCallAnswered(String sessionId, boolean accepted) {
             mainHandler.post(() -> {
                 if (accepted) {
-                    startLiveKitRoom();
+                    // 主叫已在 startOutgoingCall 里拉 token；被叫在 acceptCall 里拉 token。
+                    // 若 token 已就绪但尚未连上，再补一次。
+                    if (livekitToken != null && livekitServerUrl != null) {
+                        startLiveKitRoom();
+                    }
                 } else {
                     Toast.makeText(VideoCallActivity.this, consultantName + " 拒绝了通话", Toast.LENGTH_SHORT).show();
                     finish();
@@ -133,6 +132,46 @@ public class VideoCallActivity extends AppCompatActivity implements RoomListener
         }
     };
 
+    private final LiveKitSessionManager.Callbacks liveKitCallbacks = new LiveKitSessionManager.Callbacks() {
+        @Override
+        public void onConnected() {
+            mainHandler.post(() -> {
+                if (avatarWaitingView != null) avatarWaitingView.setVisibility(View.GONE);
+                if (remoteVideoContainer != null) remoteVideoContainer.setBackgroundColor(0);
+                stopRingAnimation();
+                statusText.setText("通话中");
+            });
+        }
+
+        @Override
+        public void onRoomDisconnected() {
+            mainHandler.post(() -> Log.i(TAG, "LiveKit room disconnected"));
+        }
+
+        @Override
+        public void onRemoteParticipantLeft() {
+            mainHandler.post(() -> {
+                Toast.makeText(VideoCallActivity.this, consultantName + " 已离开通话", Toast.LENGTH_SHORT).show();
+                disconnectRoom();
+                finish();
+            });
+        }
+
+        @Override
+        public void onRemoteVideoReady() {
+            mainHandler.post(() ->
+                    statusText.setText("与 " + consultantName + " 通话中"));
+        }
+
+        @Override
+        public void onError(@Nullable String message) {
+            mainHandler.post(() -> {
+                Log.e(TAG, "LiveKit: " + message);
+                statusText.setText("通话出错");
+            });
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -140,10 +179,38 @@ public class VideoCallActivity extends AppCompatActivity implements RoomListener
 
         extractIntentData();
         initUI();
+        liveKitSession = new LiveKitSessionManager(this, this);
         initServices();
+
+        ensureMediaPermissions();
 
         if (isCaller) {
             startOutgoingCall();
+        }
+    }
+
+    private void ensureMediaPermissions() {
+        List<String> need = new ArrayList<>();
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            need.add(Manifest.permission.RECORD_AUDIO);
+        }
+        if (!isAudioCall && ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            need.add(Manifest.permission.CAMERA);
+        }
+        if (!need.isEmpty()) {
+            ActivityCompat.requestPermissions(this, need.toArray(new String[0]), REQ_MEDIA_PERMISSIONS);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode != REQ_MEDIA_PERMISSIONS) return;
+        for (int r : grantResults) {
+            if (r != PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(this, "需要摄像头与麦克风权限才能视频通话", Toast.LENGTH_LONG).show();
+                return;
+            }
         }
     }
 
@@ -175,19 +242,78 @@ public class VideoCallActivity extends AppCompatActivity implements RoomListener
         localVideoContainer = findViewById(R.id.local_video_container);
         statusText = findViewById(R.id.status_text);
         muteButton = findViewById(R.id.btn_mute);
+        muteLabel = findViewById(R.id.mute_label);
         videoButton = findViewById(R.id.btn_video);
+        videoLabel = findViewById(R.id.video_label);
         hangupButton = findViewById(R.id.btn_hangup);
+        backButton = findViewById(R.id.btn_back);
+        avatarWaitingView = findViewById(R.id.avatarWaitingView);
+        avatarRing1 = findViewById(R.id.avatarRing1);
+        avatarRing2 = findViewById(R.id.avatarRing2);
+        avatarInitial = findViewById(R.id.avatarInitial);
+        consultantNameText = findViewById(R.id.consultantNameText);
+        waitingHint = findViewById(R.id.waitingHint);
 
-        if (isAudioCall) {
-            videoButton.setVisibility(View.GONE);
-            localVideoContainer.setVisibility(View.GONE);
+        // 设置头像名字
+        if (consultantNameText != null && consultantName != null) {
+            consultantNameText.setText(consultantName);
+        }
+        if (avatarInitial != null && consultantName != null && !consultantName.isEmpty()) {
+            avatarInitial.setText(consultantName.substring(0, 1));
         }
 
+        // 音频模式隐藏摄像头按钮
+        if (isAudioCall) {
+            if (videoButton != null) videoButton.setVisibility(View.GONE);
+            if (videoLabel != null) videoLabel.setVisibility(View.GONE);
+            if (localVideoContainer != null) localVideoContainer.setVisibility(View.GONE);
+        }
+
+        // 返回按钮
+        if (backButton != null) {
+            backButton.setOnClickListener(v -> endCall());
+        }
         hangupButton.setOnClickListener(v -> endCall());
         muteButton.setOnClickListener(v -> toggleMute());
         videoButton.setOnClickListener(v -> toggleVideo());
 
+        // 振铃动画：光环 + 头像抖动
+        startRingAnimation();
+
         statusText.setText("正在连接 " + consultantName + "...");
+    }
+
+    private void startRingAnimation() {
+        if (avatarRing1 == null || avatarRing2 == null) return;
+        avatarRing1.setVisibility(View.VISIBLE);
+        avatarRing2.setVisibility(View.VISIBLE);
+        android.animation.ObjectAnimator scaleX1 = android.animation.ObjectAnimator.ofFloat(avatarRing1, "scaleX", 1f, 1.5f);
+        android.animation.ObjectAnimator scaleY1 = android.animation.ObjectAnimator.ofFloat(avatarRing1, "scaleY", 1f, 1.5f);
+        android.animation.ObjectAnimator alpha1 = android.animation.ObjectAnimator.ofFloat(avatarRing1, "alpha", 0.7f, 0f);
+        scaleX1.setDuration(2000); scaleY1.setDuration(2000); alpha1.setDuration(2000);
+        scaleX1.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
+        scaleY1.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
+        alpha1.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
+        android.animation.AnimatorSet set1 = new android.animation.AnimatorSet();
+        set1.playTogether(scaleX1, scaleY1, alpha1);
+        set1.start();
+
+        android.animation.ObjectAnimator scaleX2 = android.animation.ObjectAnimator.ofFloat(avatarRing2, "scaleX", 1f, 1.5f);
+        android.animation.ObjectAnimator scaleY2 = android.animation.ObjectAnimator.ofFloat(avatarRing2, "scaleY", 1f, 1.5f);
+        android.animation.ObjectAnimator alpha2 = android.animation.ObjectAnimator.ofFloat(avatarRing2, "alpha", 0.7f, 0f);
+        scaleX2.setDuration(2000); scaleY2.setDuration(2000); alpha2.setDuration(2000);
+        scaleX2.setStartDelay(1000); scaleY2.setStartDelay(1000); alpha2.setStartDelay(1000);
+        scaleX2.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
+        scaleY2.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
+        alpha2.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
+        android.animation.AnimatorSet set2 = new android.animation.AnimatorSet();
+        set2.playTogether(scaleX2, scaleY2, alpha2);
+        set2.start();
+    }
+
+    private void stopRingAnimation() {
+        if (avatarRing1 != null) avatarRing1.setVisibility(View.GONE);
+        if (avatarRing2 != null) avatarRing2.setVisibility(View.GONE);
     }
 
     private void initServices() {
@@ -208,11 +334,11 @@ public class VideoCallActivity extends AppCompatActivity implements RoomListener
     }
 
     /**
-     * 被叫：接听
+     * 被叫：接听（同样需要向后端拉取 LiveKit Token）
      */
     private void acceptCall() {
         openIMService.acceptCall(currentSessionId, callType);
-        startLiveKitRoom();
+        fetchLiveKitTokenAndConnect();
     }
 
     /**
@@ -228,13 +354,17 @@ public class VideoCallActivity extends AppCompatActivity implements RoomListener
                 HttpURLConnection conn = (HttpURLConnection) URI.create(urlStr).toURL().openConnection();
                 conn.setConnectTimeout(5000);
 
-                if (conn.getResponseCode() == 200) {
-                    BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                    StringBuilder sb = new StringBuilder();
+                int code = conn.getResponseCode();
+                java.io.InputStream stream = code == 200 ? conn.getInputStream() : conn.getErrorStream();
+                StringBuilder sb = new StringBuilder();
+                if (stream != null) {
+                    BufferedReader br = new BufferedReader(new InputStreamReader(stream));
                     String line;
                     while ((line = br.readLine()) != null) sb.append(line);
                     br.close();
+                }
 
+                if (code == 200) {
                     JSONObject json = new JSONObject(sb.toString());
                     String token = json.optString("token", null);
                     String serverUrl = json.optString("serverUrl", null);
@@ -250,7 +380,12 @@ public class VideoCallActivity extends AppCompatActivity implements RoomListener
                         });
                     }
                 } else {
-                    mainHandler.post(() -> statusText.setText("视频服务不可用"));
+                    String detail = sb.length() > 0 ? sb.toString() : ("HTTP " + code);
+                    Log.e(TAG, "LiveKit token HTTP " + code + ": " + detail);
+                    mainHandler.post(() -> {
+                        statusText.setText("视频服务不可用");
+                        Toast.makeText(this, "获取通话凭证失败: " + detail, Toast.LENGTH_LONG).show();
+                    });
                 }
                 conn.disconnect();
             } catch (Exception e) {
@@ -269,138 +404,38 @@ public class VideoCallActivity extends AppCompatActivity implements RoomListener
             statusText.setText("音视频服务未配置，等待对方接听...");
             return;
         }
-
-        mainHandler.post(() -> statusText.setText("正在建立连接..."));
-
-        String roomName = "apt_" + appointmentId;
-
-        try {
-            livekitRoom = io.livekit.android.room.RoomDefaults.createRoom(this);
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to create LiveKit room", e);
-            mainHandler.post(() -> statusText.setText("LiveKit 创建失败"));
+        if (liveKitConnectStarted) {
             return;
         }
+        liveKitConnectStarted = true;
 
-        ConnectOptions connectOptions = new ConnectOptions(
-                livekitServerUrl,
-                livekitToken,
-                roomName,
-                new io.livekit.android.room.options.RoomOptions()
-        );
-
-        livekitRoom.connect(connectOptions, this);
-    }
-
-    /**
-     * 发布本地视频轨道
-     */
-    private void publishLocalVideo() {
-        if (isAudioCall || livekitRoom == null) return;
-
-        try {
-            localVideoTrack = livekitRoom.getLocalParticipant().createCameraTrack(new io.livekit.android.room.track.CameraCapturerOptions());
-            livekitRoom.getLocalParticipant().publishVideoTrack(localVideoTrack, new io.livekit.android.room.options.VideoTrackPublishOptions());
-
-            mainHandler.post(() -> {
-                if (localVideoContainer != null && localVideoTrack != null) {
-                    VideoView videoView = new VideoView(this);
-                    localVideoTrack.attach(videoView);
-                    localVideoContainer.addView(videoView);
-                }
-            });
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to publish local video", e);
-        }
-    }
-
-    // ==================== RoomListener 实现 ====================
-
-    @Override
-    public void onConnected(@NonNull Room room) {
-        Log.i(TAG, "LiveKit room connected");
         mainHandler.post(() -> {
-            statusText.setText("通话中");
-            if (!isAudioCall) {
-                publishLocalVideo();
-            }
+            statusText.setText("正在建立连接...");
+            liveKitSession.connect(
+                    livekitServerUrl,
+                    livekitToken,
+                    isAudioCall,
+                    remoteVideoContainer,
+                    localVideoContainer,
+                    liveKitCallbacks
+            );
         });
     }
-
-    @Override
-    public void onDisconnected(@NonNull Room room, @Nullable Exception exception) {
-        Log.i(TAG, "Disconnected from LiveKit room");
-    }
-
-    @Override
-    public void onParticipantConnected(@NonNull Room room, @NonNull RemoteParticipant participant) {
-        Log.i(TAG, "Remote participant connected: " + participant.getIdentity());
-        mainHandler.post(() -> {
-            statusText.setText("与 " + consultantName + " 通话中");
-            // 订阅远端视频
-            for (TrackPublication pub : participant.getVideoTracks()) {
-                if (pub.getTrack() instanceof RemoteVideoTrack) {
-                    remoteVideoTrack = (RemoteVideoTrack) pub.getTrack();
-                    showRemoteVideo();
-                }
-            }
-        });
-    }
-
-    @Override
-    public void onParticipantDisconnected(@NonNull Room room, @NonNull RemoteParticipant participant) {
-        Log.i(TAG, "Remote participant disconnected: " + participant.getIdentity());
-        mainHandler.post(() -> {
-            Toast.makeText(this, consultantName + " 已离开通话", Toast.LENGTH_SHORT).show();
-            disconnectRoom();
-            finish();
-        });
-    }
-
-    @Override
-    public void onActiveSpeakersChanged(@NonNull Room room, @NonNull java.util.List<RemoteParticipant> speakers) {
-        // 可用于说话人高亮
-    }
-
-    @Override
-    public void onVideoTrackSubscribed(@NonNull Room room, @NonNull RemoteParticipant participant,
-                                       @NonNull TrackPublication publication) {
-        if (publication.getTrack() instanceof RemoteVideoTrack) {
-            remoteVideoTrack = (RemoteVideoTrack) publication.getTrack();
-            mainHandler.post(this::showRemoteVideo);
-        }
-    }
-
-    private void showRemoteVideo() {
-        if (remoteVideoContainer != null && remoteVideoTrack != null) {
-            remoteVideoContainer.removeAllViews();
-            VideoView videoView = new VideoView(this);
-            remoteVideoTrack.attach(videoView);
-            remoteVideoContainer.addView(videoView);
-        }
-    }
-
-    @Override
-    public void onError(@NonNull Room room, @NonNull Exception exception) {
-        Log.e(TAG, "LiveKit error: " + exception.getMessage(), exception);
-        mainHandler.post(() -> statusText.setText("通话出错"));
-    }
-
-    // ==================== 控制按钮 ====================
 
     private void toggleMute() {
-        if (livekitRoom == null) return;
         isMuted = !isMuted;
-        livekitRoom.getLocalParticipant().setMicrophoneEnabled(!isMuted);
+        liveKitSession.setMicrophoneEnabled(!isMuted);
         muteButton.setAlpha(isMuted ? 0.5f : 1.0f);
+        if (muteLabel != null) muteLabel.setText(isMuted ? "取消" : "静音");
     }
 
     private void toggleVideo() {
-        if (localVideoTrack == null || livekitRoom == null) return;
+        if (isAudioCall) return;
         isVideoEnabled = !isVideoEnabled;
-        localVideoTrack.setEnabled(isVideoEnabled);
+        liveKitSession.setCameraEnabled(isVideoEnabled);
         videoButton.setAlpha(isVideoEnabled ? 1.0f : 0.5f);
         localVideoContainer.setVisibility(isVideoEnabled ? View.VISIBLE : View.GONE);
+        if (videoLabel != null) videoLabel.setText(isVideoEnabled ? "关摄像头" : "开摄像头");
     }
 
     /**
@@ -415,13 +450,9 @@ public class VideoCallActivity extends AppCompatActivity implements RoomListener
     }
 
     private void disconnectRoom() {
-        if (livekitRoom != null) {
-            try {
-                livekitRoom.disconnect();
-            } catch (Exception e) {
-                Log.e(TAG, "Disconnect room error", e);
-            }
-            livekitRoom = null;
+        liveKitConnectStarted = false;
+        if (liveKitSession != null) {
+            liveKitSession.disconnect(true);
         }
     }
 

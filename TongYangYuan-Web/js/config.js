@@ -5,9 +5,16 @@ const CONFIG = {
     APP_NAME: '童养园咨询师端',
     VERSION: '1.0.0',
 
-    // API 配置
-    API_BASE_URL: 'http://localhost:8080/api',
-    WS_BASE_URL: 'http://localhost:8080/api/ws',
+    // API 配置（自动适配当前访问的 hostname:8080，局域网同 IP 访问时自动走局域网）
+    API_BASE_URL: (function() {
+        const h = window.location.hostname;
+        // 从当前页面 hostname 推断后端地址（同机器 localhost / 局域网同 IP）
+        return 'http://' + h + ':8080/api';
+    })(),
+    WS_BASE_URL: (function() {
+        const h = window.location.hostname;
+        return 'http://' + h + ':8080/api/ws';
+    })(),
 
     // 存储键名
     STORAGE_KEYS: {

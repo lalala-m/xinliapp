@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>我的主页 - 咨询师</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        :root {
+            --primary: #6FA6F8;
+            --primary-dark: #4A8AE8;
+            --primary-light: #EEF3FE;
+            --gold: #FFD700;
+            --text-primary: #2C3345;
+            --text-secondary: #627089;
+            --text-hint: #9BA5BF;
+            --border: #E8ECF2;
+            --danger: #FF5252;
+            --success: #4CAF50;
+            --radius: 20px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(180deg, #EEF3FE 0%, #F8F9FC 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+        }
+
+        /* 顶部栏 */
+        .top-bar {
+            display: flex;
+            align-items: center;
+            padding: 18px 20px;
+            padding-top: calc(18px + env(safe-area-inset-top));
+            gap: 12px;
+        }
+
+        .top-bar .back-btn {
+            width: 36px; height: 36px;
+            background: rgba(111, 166, 248, 0.1);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .top-bar .back-btn:active { opacity: 0.7; }
+
+        .top-bar .title {
+            flex: 1;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .top-bar .action-btn {
+            padding: 6px 16px;
+            background: var(--primary);
+            color: white;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+        }
+
+        .top-bar .action-btn:active { opacity: 0.8; }
+
+        .top-bar .action-btn.save-mode {
+            background: var(--success);
+        }
+
+        /* 头像区 */
+        .avatar-section {
+            text-align: center;
+            padding: 8px 0 24px;
+        }
+
+        .avatar-wrap {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+        }
+
+        .avatar-circle {
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), #BDEBC8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 36px;
+            font-weight: 700;
+            overflow: hidden;
+            border: 3px solid white;
+            box-shadow: 0 4px 16px rgba(111, 166, 248, 0.3);
+            transition: transform 0.2s;
+        }
+
+        .avatar-circle:active { transform: scale(0.96); }
+
+        .avatar-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .avatar-edit-badge {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 28px;
+            height: 28px;
+            background: var(--primary);
+            border-radius: 50%;
+            border: 2px solid white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+        }
+
+        .avatar-hint {
+            font-size: 12px;
+            color: var(--text-hint);
+            margin-top: 8px;
+        }
+
+        /* 资料卡片 */
+        .profile-card {
+            margin: 0 16px 16px;
+            background: white;
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+        }
+
+        .profile-card-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .form-field {
+            margin-bottom: 18px;
+        }
+
+        .form-field:last-child {
+            margin-bottom: 0;
+        }
+
+        .form-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            font-size: 15px;
+            color: var(--text-primary);
+            background: #F8F9FC;
+            outline: none;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+        }
+
+        .form-input:focus {
+            border-color: var(--primary);
+            background: white;
+        }
+
+        .form-input.readonly {
+            background: #F0F2F5;
+            color: var(--text-hint);
+        }
+
+        .form-input.error {
+            border-color: var(--danger);
+        }
+
+        textarea.form-input {
+            resize: vertical;
+            min-height: 80px;
+            line-height: 1.5;
+        }
+
+        .form-hint {
+            font-size: 11px;
+            color: var(--text-hint);
+            margin-top: 4px;
+        }
+
+        /* 认证状态 */
+        .verify-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 6px;
+        }
+
+        .verify-badge.verified {
+            background: #E8F5E9;
+            color: #4CAF50;
+        }
+
+        .verify-badge.unverified {
+            background: #FFF3E0;
+            color: #FF9800;
+        }
+
+        /* 统计卡片 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 14px 8px;
+            background: var(--primary-light);
+            border-radius: 12px;
+        }
+
+        .stat-item:nth-child(2) { background: rgba(255, 183, 197, 0.15); }
+        .stat-item:nth-child(3) { background: rgba(189, 235, 200, 0.2); }
+
+        .stat-value {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-item:nth-child(2) .stat-value { color: #FF8FAB; }
+        .stat-item:nth-child(3) .stat-value { color: #66BB6A; }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* 分割线 */
+        .section-divider {
+            margin: 8px 16px;
+            border-bottom: 1px dashed var(--border);
+        }
+
+        /* 底部菜单 */
+        .menu-card {
+            margin: 0 16px 16px;
+            background: white;
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .menu-item:last-child { border-bottom: none; }
+        .menu-item:active { background: rgba(111, 166, 248, 0.06); }
+
+        .menu-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: var(--primary-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            margin-right: 14px;
+            flex-shrink: 0;
+        }
+
+        .menu-icon.orange { background: rgba(255, 152, 0, 0.1); }
+        .menu-icon.red { background: rgba(255, 82, 82, 0.1); }
+
+        .menu-content {
+            flex: 1;
+        }
+
+        .menu-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .menu-desc {
+            font-size: 12px;
+            color: var(--text-hint);
+            margin-top: 2px;
+        }
+
+        .menu-arrow {
+            color: var(--text-hint);
+            font-size: 14px;
+        }
+
+        /* 退出登录 */
+        .logout-btn {
+            display: block;
+            margin: 24px 16px 32px;
+            padding: 16px;
+            background: white;
+            border-radius: var(--radius);
+            text-align: center;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--danger);
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+            transition: opacity 0.2s;
+        }
+
+        .logout-btn:active { opacity: 0.8; }
+
+        /* 加载 */
+        .loading-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 60px;
+            color: var(--text-hint);
+            font-size: 14px;
+            gap: 10px;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--primary-light);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 14px;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 9999;
+            max-width: 320px;
+            text-align: center;
+            color: white;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--danger); }
+
+        /* 隐藏文件选择 */
+        #avatarFileInput { display: none; }
+
+        /* 视图模式 */
+        .view-mode .form-input {
+            pointer-events: none;
+        }
+
+        .edit-mode .profile-readonly {
+            display: none;
+        }
+
+        .view-mode .edit-controls {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部栏 -->
+    <div class="top-bar">
+        <div class="back-btn" onclick="goBack()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6FA6F8" stroke-width="2.5" stroke-linecap="round">
+                <path d="M15 18l-6-6 6-6"/>
+            </svg>
+        </div>
+        <div class="title" id="pageTitle">我的主页</div>
+        <button class="action-btn" id="editBtn" onclick="toggleEdit()">编辑</button>
+    </div>
+
+    <!-- 头像区 -->
+    <div class="avatar-section" id="avatarSection">
+        <div class="avatar-wrap" onclick="triggerAvatarChange()">
+            <div class="avatar-circle" id="avatarCircle">
+                <span id="avatarInitial">?</span>
+            </div>
+            <div class="avatar-edit-badge">✏️</div>
+        </div>
+        <div class="avatar-hint" id="avatarHint">点击更换头像</div>
+        <input type="file" id="avatarFileInput" accept="image/*" onchange="handleAvatarSelect(event)">
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="profile-card" id="statsCard">
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-value" id="statRating">5.0</div>
+                <div class="stat-label">评分</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="statServed">0</div>
+                <div class="stat-label">服务家庭</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="statVerified">--</div>
+                <div class="stat-label">认证状态</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 基本信息 -->
+    <div class="profile-card view-mode" id="basicCard">
+        <div class="profile-card-title">基本信息</div>
+
+        <div class="form-field">
+            <label class="form-label">姓名</label>
+            <input type="text" class="form-input" id="inputName" placeholder="请输入姓名" maxlength="20">
+        </div>
+
+        <div class="form-field">
+            <label class="form-label">职称头衔</label>
+            <input type="text" class="form-input" id="inputTitle" placeholder="例如：国家二级心理咨询师" maxlength="50">
+        </div>
+
+        <div class="form-field">
+            <label class="form-label">擅长领域</label>
+            <input type="text" class="form-input" id="inputSpecialty" placeholder="例如：儿童心理咨询、家庭教育" maxlength="200">
+            <div class="form-hint">多个领域用逗号分隔</div>
+        </div>
+    </div>
+
+    <!-- 个人介绍 -->
+    <div class="profile-card view-mode" id="introCard">
+        <div class="profile-card-title">个人介绍</div>
+        <div class="form-field">
+            <textarea class="form-input" id="inputIntro" placeholder="介绍一下自己，让家长更了解您..." maxlength="500" rows="4"></textarea>
+            <div class="form-hint" id="introHint">0/500</div>
+        </div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- 快捷菜单 -->
+    <div class="menu-card">
+        <div class="menu-item" onclick="openPage('consultant_certification.html')">
+            <div class="menu-icon orange">📜</div>
+            <div class="menu-content">
+                <div class="menu-title">黄V认证</div>
+                <div class="menu-desc" id="certStatus">查看认证状态</div>
+            </div>
+            <div class="menu-arrow">›</div>
+        </div>
+        <div class="menu-item" onclick="openPage('consultant_training.html')">
+            <div class="menu-icon">📚</div>
+            <div class="menu-content">
+                <div class="menu-title">培训课程</div>
+                <div class="menu-desc">学习专业技能</div>
+            </div>
+            <div class="menu-arrow">›</div>
+        </div>
+        <div class="menu-item" onclick="openPage('my_consultations.html')">
+            <div class="menu-icon">💬</div>
+            <div class="menu-content">
+                <div class="menu-title">我的咨询</div>
+                <div class="menu-desc">查看咨询记录</div>
+            </div>
+            <div class="menu-arrow">›</div>
+        </div>
+    </div>
+
+    <!-- 退出登录 -->
+    <div class="logout-btn" id="logoutBtn" onclick="doLogout()">
+        退出登录
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script src="js/app.js"></script>
+    <script>
+        // ========== 状态 ==========
+        let consultantData = {};
+        let isEditing = false;
+        let pendingAvatarBase64 = '';
+        let authToken = '';
+        let apiBase = '';
+
+        // ========== 初始化 ==========
+        document.addEventListener('DOMContentLoaded', async function() {
+            apiBase = getApiBase();
+            authToken = getAuthToken();
+
+            if (!authToken) {
+                showToast('请先登录', 'error');
+                setTimeout(() => goToLogin(), 1500);
+                return;
+            }
+
+            await loadProfile();
+        });
+
+        function getApiBase() {
+            if (window.Android && typeof Android.getBaseUrl === 'function') {
+                try { return Android.getBaseUrl() || ''; } catch (e) {}
+            }
+            return (window.API_BASE_URL || 'http://127.0.0.1:8080') + '/api';
+        }
+
+        function getAuthToken() {
+            if (window.Android && Android.getConsultantAuthToken) {
+                try { return Android.getConsultantAuthToken() || ''; } catch (e) {}
+            }
+            return localStorage.getItem('authToken') || '';
+        }
+
+        // ========== 加载资料 ==========
+        async function loadProfile() {
+            showLoading(true);
+            try {
+                const res = await fetchWithAuth(apiBase + '/consultants/me');
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json.code === 200 && json.data) {
+                        consultantData = json.data;
+                        renderProfile();
+                    } else {
+                        showToast(json.message || '获取资料失败', 'error');
+                    }
+                } else {
+                    showToast('获取资料失败，请重新登录', 'error');
+                }
+            } catch (e) {
+                showToast('网络错误', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function fetchWithAuth(url, options = {}) {
+            return fetch(url, {
+                ...options,
+                headers: {
+                    ...(options.headers || {}),
+                    'Authorization': 'Bearer ' + authToken,
+                    'Content-Type': 'application/json'
+                }
+            });
+        }
+
+        // ========== 渲染资料 ==========
+        function renderProfile() {
+            const c = consultantData;
+
+            // 头像
+            const circle = document.getElementById('avatarCircle');
+            const initial = document.getElementById('avatarInitial');
+            if (c.avatarUrl) {
+                circle.innerHTML = '<img src="' + escapeHtml(c.avatarUrl) + '" alt="头像">';
+            } else {
+                circle.innerHTML = '<span id="avatarInitial">' + (c.name ? c.name.charAt(0) : '?') + '</span>';
+            }
+
+            // 统计
+            document.getElementById('statRating').textContent =
+                c.rating ? parseFloat(c.rating).toFixed(1) : '5.0';
+            document.getElementById('statServed').textContent = c.servedCount || 0;
+
+            const tierEl = document.getElementById('statVerified');
+            const tierMap = { PLATINUM: '内部', GOLD: '蓝V', SILVER: '黄V', BRONZE: '普通' };
+            tierEl.textContent = tierMap[c.identityTier] || '普通';
+
+            // 表单
+            document.getElementById('inputName').value = c.name || '';
+            document.getElementById('inputTitle').value = c.title || '';
+            document.getElementById('inputSpecialty').value = c.specialty || '';
+            document.getElementById('inputIntro').value = c.intro || '';
+            updateIntroHint();
+
+            // 认证状态
+            const certStatus = document.getElementById('certStatus');
+            if (c.isCertificateVerified) {
+                certStatus.textContent = '✅ 已认证';
+            } else if (c.depositAmount > 0) {
+                certStatus.textContent = '⏳ 认证中';
+            } else {
+                certStatus.textContent = '📋 还未认证';
+            }
+        }
+
+        function updateIntroHint() {
+            const len = (document.getElementById('inputIntro').value || '').length;
+            document.getElementById('introHint').textContent = len + '/500';
+        }
+
+        document.getElementById('inputIntro').addEventListener('input', updateIntroHint);
+
+        // ========== 编辑/保存 ==========
+        function toggleEdit() {
+            isEditing = !isEditing;
+            const btn = document.getElementById('editBtn');
+            const cards = document.querySelectorAll('#basicCard, #introCard');
+            const inputs = document.querySelectorAll('#basicCard input, #introCard input, #introCard textarea');
+
+            if (isEditing) {
+                btn.textContent = '保存';
+                btn.classList.add('save-mode');
+                cards.forEach(c => c.classList.add('edit-mode'));
+                cards.forEach(c => c.classList.remove('view-mode'));
+                inputs.forEach(i => i.removeAttribute('readonly'));
+                inputs.forEach(i => i.style.pointerEvents = 'auto');
+            } else {
+                saveProfile();
+            }
+        }
+
+        async function saveProfile() {
+            // 收集数据
+            const updates = {
+                name: document.getElementById('inputName').value.trim(),
+                title: document.getElementById('inputTitle').value.trim(),
+                specialty: document.getElementById('inputSpecialty').value.trim(),
+                intro: document.getElementById('inputIntro').value.trim()
+            };
+
+            // 如果有新头像
+            if (pendingAvatarBase64) {
+                updates.avatarUrl = pendingAvatarBase64;
+            }
+
+            if (!updates.name) {
+                showToast('请输入姓名', 'error');
+                return;
+            }
+
+            showLoading(true);
+            try {
+                const res = await fetchWithAuth(apiBase + '/consultants/me', {
+                    method: 'PUT',
+                    body: JSON.stringify(updates)
+                });
+                const json = await res.json();
+                if (json.code === 200) {
+                    consultantData = json.data;
+                    pendingAvatarBase64 = '';
+                    renderProfile();
+                    exitEditMode();
+                    showToast('保存成功！', 'success');
+                    // 同步更新 app 端存储的头像
+                    if (updates.avatarUrl && window.Android && Android.saveUserProfile) {
+                        try {
+                            const profile = JSON.parse(Android.getUserProfile ? Android.getUserProfile() : '{}');
+                            profile.avatarUrl = updates.avatarUrl;
+                            Android.saveUserProfile(JSON.stringify(profile));
+                        } catch(e) {}
+                    }
+                } else {
+                    showToast(json.message || '保存失败', 'error');
+                }
+            } catch (e) {
+                showToast('保存失败，请重试', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function exitEditMode() {
+            isEditing = false;
+            const btn = document.getElementById('editBtn');
+            btn.textContent = '编辑';
+            btn.classList.remove('save-mode');
+            const cards = document.querySelectorAll('#basicCard, #introCard');
+            cards.forEach(c => c.classList.add('view-mode'));
+            cards.forEach(c => c.classList.remove('edit-mode'));
+            const inputs = document.querySelectorAll('#basicCard input, #introCard input, #introCard textarea');
+            inputs.forEach(i => {
+                i.setAttribute('readonly', 'true');
+                i.style.pointerEvents = 'none';
+            });
+        }
+
+        // ========== 头像上传 ==========
+        function triggerAvatarChange() {
+            if (!isEditing) {
+                showToast('请先点击「编辑」再更换头像', 'error');
+                return;
+            }
+            document.getElementById('avatarFileInput').click();
+        }
+
+        function handleAvatarSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (file.size > 2 * 1024 * 1024) {
+                showToast('图片大小不能超过 2MB', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                pendingAvatarBase64 = e.target.result;
+                const circle = document.getElementById('avatarCircle');
+                circle.innerHTML = '<img src="' + pendingAvatarBase64 + '" alt="头像">';
+                showToast('头像已选择，点击「保存」生效', 'success');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // ========== 导航 ==========
+        function goBack() {
+            if (window.Android && Android.goBack) {
+                Android.goBack();
+            } else {
+                window.history.back();
+            }
+        }
+
+        function goToLogin() {
+            if (window.Android && Android.openConsultantLogin) {
+                Android.openConsultantLogin();
+            } else {
+                window.location.href = 'consultant_login.html';
+            }
+        }
+
+        function openPage(page) {
+            if (window.Android && Android.openWebPage) {
+                Android.openWebPage(page);
+            } else {
+                window.location.href = page;
+            }
+        }
+
+        function doLogout() {
+            if (!confirm('确定要退出登录吗？')) return;
+            if (window.Android && Android.logout) {
+                Android.logout();
+            }
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userProfile');
+            goToLogin();
+        }
+
+        // ========== 工具 ==========
+        function showLoading(show) {
+            const el = document.getElementById('loadingOverlay');
+            if (el) el.style.display = show ? 'flex' : 'none';
+        }
+
+        function showToast(msg, type = 'success') {
+            const el = document.getElementById('toast');
+            el.textContent = msg;
+            el.className = 'toast ' + type + ' show';
+            setTimeout(() => el.classList.remove('show'), 2500);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

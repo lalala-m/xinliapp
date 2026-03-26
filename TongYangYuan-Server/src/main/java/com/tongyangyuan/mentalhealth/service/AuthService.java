@@ -213,6 +213,7 @@ public class AuthService {
         result.put("nickname", user.getNickname() != null ? user.getNickname() : "");
         result.put("avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : "");
         result.put("wxOpenId", user.getWxOpenId() != null ? user.getWxOpenId() : "");
+        result.put("currentChildId", user.getCurrentChildId());
         return result;
     }
 

@@ -40,6 +40,11 @@ replay_*.log
 .DS_Store
 .trae.zip
 
+# Environment files (contain secrets)
+.env
+.env.*
+!.env.example
+
 # Embedded git repos (not needed, handled separately)
 TongYangYuan-Server/.git
 xinliapp-github/

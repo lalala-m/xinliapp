@@ -128,30 +128,34 @@ const Chat = {
     // 连接 WebSocket
     connectWebSocket() {
         const token = API.getToken();
-        const socket = new SockJS(CONFIG.WS_BASE_URL + (token ? '?token=' + token : ''), null, {
+        const socket = new SockJS(CONFIG.WS_BASE_URL, null, {
             transports: ['websocket']
         });
         this.stompClient = Stomp.over(socket);
         this.stompClient.debug = null; // 关闭调试日志
 
-        this.stompClient.connect({}, (frame) => {
-            console.log('Connected: ' + frame);
-            
-            // 订阅个人消息队列
-            this.stompClient.subscribe('/user/queue/messages', (messageOutput) => {
-                const message = JSON.parse(messageOutput.body);
-                this.handleIncomingMessage(message);
-            });
+        // Token 放入 STOMP CONNECT 帧的 Authorization 头，供 WebSocketChannelInterceptor 验证
+        this.stompClient.connect(
+            { 'Authorization': 'Bearer ' + token },
+            (frame) => {
+                console.log('STOMP Connected: ' + frame);
 
-            this.stompClient.subscribe('/user/queue/webrtc', (messageOutput) => {
-                const signal = JSON.parse(messageOutput.body);
-                this.handleWebRTCSignal(signal);
-            });
-        }, (error) => {
-            console.error('STOMP error:', error);
-            // 断线重连
-            setTimeout(() => this.connectWebSocket(), 5000);
-        });
+                // 订阅个人消息队列
+                this.stompClient.subscribe('/user/queue/messages', (messageOutput) => {
+                    const message = JSON.parse(messageOutput.body);
+                    this.handleIncomingMessage(message);
+                });
+
+                this.stompClient.subscribe('/user/queue/webrtc', (messageOutput) => {
+                    const signal = JSON.parse(messageOutput.body);
+                    this.handleWebRTCSignal(signal);
+                });
+            }, (error) => {
+                console.error('STOMP error:', error);
+                // 断线重连
+                setTimeout(() => this.connectWebSocket(), 5000);
+            }
+        );
     },
 
     // 处理收到的消息

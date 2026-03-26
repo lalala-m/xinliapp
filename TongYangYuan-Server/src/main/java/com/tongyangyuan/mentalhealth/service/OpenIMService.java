@@ -26,7 +26,17 @@ public class OpenIMService {
 
     public OpenIMService(OpenIMProperties props) {
         this.props = props;
-        this.restTemplate = new RestTemplate();
+        this.restTemplate = createRestTemplateWithTimeout();
+    }
+
+    private RestTemplate createRestTemplateWithTimeout() {
+        RestTemplate template = new RestTemplate();
+        org.springframework.http.client.SimpleClientHttpRequestFactory factory =
+            new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(java.time.Duration.ofSeconds(5));
+        factory.setReadTimeout(java.time.Duration.ofSeconds(5));
+        template.setRequestFactory(factory);
+        return template;
     }
 
     /**

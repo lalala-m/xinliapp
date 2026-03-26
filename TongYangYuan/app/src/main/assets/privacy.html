@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>隐私政策 - 童康源</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        :root {
+            --blue: #6FA6F8;
+            --blue-dark: #4A8AE8;
+            --text-primary: #2C3345;
+            --text-secondary: #627089;
+            --text-hint: #9BA5BF;
+            --border: #E8ECF2;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #F4F7FF;
+            min-height: 100vh;
+            color: var(--text-primary);
+            max-width: 520px;
+            margin: 0 auto;
+        }
+
+        .header {
+            position: sticky;
+            top: 0;
+            background: white;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--border);
+            z-index: 100;
+        }
+
+        .back-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: #F0F4FF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .back-btn:active { background: #E0E8FF; }
+
+        .back-btn svg { width: 20px; height: 20px; color: var(--blue); }
+
+        .header h1 {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .content {
+            padding: 20px;
+            background: white;
+            margin: 16px;
+            border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(111, 166, 248, 0.08);
+        }
+
+        .content h2 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--blue-dark);
+            margin: 20px 0 10px;
+        }
+
+        .content h2:first-child { margin-top: 0; }
+
+        .content p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+            margin-bottom: 12px;
+        }
+
+        .content p:last-child { margin-bottom: 0; }
+
+        .content ul {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .content li { margin-bottom: 6px; }
+
+        .bottom-spacer { height: 40px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <button class="back-btn" onclick="goBack()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 18l-6-6 6-6"/>
+            </svg>
+        </button>
+        <h1>隐私政策</h1>
+    </div>
+
+    <div class="content">
+        <h2>一、信息收集</h2>
+        <p>我们承诺尊重并保护您的个人隐私。在您使用童康源服务时，我们可能会收集以下信息：</p>
+        <ul>
+            <li><strong>注册信息：</strong>手机号码、昵称、头像等您主动提供的信息</li>
+            <li><strong>孩子信息：</strong>孩子的姓名、出生日期、性别、健康状况等与咨询服务相关的信息</li>
+            <li><strong>设备信息：</strong>设备型号、操作系统版本、应用版本等设备基本信息</li>
+            <li><strong>使用数据：</strong>您的咨询记录、使用习惯、功能偏好等操作数据</li>
+        </ul>
+
+        <h2>二、信息使用</h2>
+        <p>我们收集您的信息仅用于以下目的：</p>
+        <ul>
+            <li>提供、维护和改进我们的服务</li>
+            <li>匹配您与合适的咨询师</li>
+            <li>保存您的咨询记录和成长档案</li>
+            <li>向您推送个性化内容和建议</li>
+            <li>处理您的账户安全和身份验证</li>
+            <li>响应您的客户服务请求</li>
+        </ul>
+
+        <h2>三、信息共享</h2>
+        <p>除以下情况外，我们不会与第三方共享您的个人信息：</p>
+        <ul>
+            <li><strong>咨询师：</strong>为了提供咨询服务，我们需要将必要的咨询信息共享给咨询师</li>
+            <li><strong>服务提供商：</strong>为我们提供云存储、数据分析、支付服务等的第三方服务商</li>
+            <li><strong>法律要求：</strong>根据法律法规、司法机关或政府部门的要求进行披露</li>
+        </ul>
+        <p>我们要求所有接收您信息的第三方按照本政策保护您的信息安全。</p>
+
+        <h2>四、信息存储</h2>
+        <p>您的信息将安全存储在加密服务器上。我们会采取合理的安全措施保护您的数据不被未经授权的访问、使用或泄露。您的个人信息存储期限为实现本政策所述目的所需的必要时间。</p>
+
+        <h2>五、Cookie 与追踪</h2>
+        <p>我们的应用可能使用 Cookie 和类似技术来提升用户体验，包括记住您的偏好设置、分析应用使用情况等。您可以在设备设置中关闭相关功能，但这可能影响部分服务功能。</p>
+
+        <h2>六、第三方服务</h2>
+        <p>我们的服务可能包含指向第三方网站的链接。我们对第三方网站的隐私保护措施不承担责任。建议您在访问第三方网站时查阅其隐私政策。</p>
+
+        <h2>七、未成年人隐私</h2>
+        <p>我们非常重视未成年人的隐私保护。如您是未成年人，请在监护人的陪同下使用本服务并阅读本政策。我们的服务主要面向家长，用户应为成年人。</p>
+
+        <h2>八、您的权利</h2>
+        <p>您对您的个人信息享有以下权利：</p>
+        <ul>
+            <li>访问和查看您的个人信息</li>
+            <li>更正不准确或不完整的信息</li>
+            <li>删除您的个人信息</li>
+            <li>撤回您的同意授权</li>
+            <li>导出您的个人信息数据</li>
+            <li>注销您的账户</li>
+        </ul>
+        <p>如需行使上述权利，请联系我们的客服团队。</p>
+
+        <h2>九、政策更新</h2>
+        <p>我们可能会不时更新本隐私政策。重大变更将通过应用内通知或弹窗告知您。继续使用我们的服务即表示您同意更新后的政策。</p>
+
+        <h2>十、联系我们</h2>
+        <p>如您对本隐私政策有任何疑问、意见或投诉，请联系我们的隐私保护团队：</p>
+        <p>邮箱：privacy@tongyangyuan.com</p>
+        <p>我们将尽快在法律允许的范围内回复您的请求。</p>
+
+        <p style="color: var(--text-hint); margin-top: 20px;"><strong>更新日期：2024年1月1日</strong></p>
+    </div>
+
+    <div class="bottom-spacer"></div>
+
+    <script src="js/app.js"></script>
+    <script>
+        function goBack() {
+            if (window.Android && typeof Android.goBack === 'function') {
+                Android.goBack();
+            } else {
+                history.back();
+            }
+        }
+    </script>
+</body>
+</html>

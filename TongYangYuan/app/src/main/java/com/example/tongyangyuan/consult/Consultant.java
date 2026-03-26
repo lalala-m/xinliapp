@@ -35,6 +35,8 @@ public class Consultant implements Serializable {
     private final List<String> identityTags;
     private final IdentityTier identityTier;
     private final String displayIdentityTag;
+    // serverId = 后端 consultants.id（咨询师档案主键，用于业务关联如提交预约）
+    private long serverId;
     private long userId;
 
     public Consultant(long userId, String name, String title, String specialty, double rating,
@@ -121,6 +123,14 @@ public class Consultant implements Serializable {
 
     public void setUserId(long userId) {
         this.userId = userId;
+    }
+
+    public long getServerId() {
+        return serverId;
+    }
+
+    public void setServerId(long serverId) {
+        this.serverId = serverId;
     }
 
     public String getAvatarUrl() {

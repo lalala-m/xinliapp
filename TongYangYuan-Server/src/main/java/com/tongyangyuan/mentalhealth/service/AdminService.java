@@ -188,13 +188,15 @@ public class AdminService {
 
     public List<Consultant> getAllConsultants() {
         List<Consultant> consultants = consultantRepository.findAll(Sort.by(Sort.Direction.DESC, "gmtCreate"));
-        // 填充头像
+        // 优先使用 Consultant 自己的头像，如果没有再从 User 填充
         for (Consultant consultant : consultants) {
-            userRepository.findById(consultant.getUserId()).ifPresent(user -> {
-                if (user.getAvatarUrl() != null && !user.getAvatarUrl().isEmpty()) {
-                    consultant.setAvatarUrl(user.getAvatarUrl());
-                }
-            });
+            if (consultant.getAvatarUrl() == null || consultant.getAvatarUrl().isEmpty()) {
+                userRepository.findById(consultant.getUserId()).ifPresent(user -> {
+                    if (user.getAvatarUrl() != null && !user.getAvatarUrl().isEmpty()) {
+                        consultant.setAvatarUrl(user.getAvatarUrl());
+                    }
+                });
+            }
         }
         return consultants;
     }
@@ -202,11 +204,14 @@ public class AdminService {
     public Consultant getConsultantById(Long id) {
         Consultant consultant = consultantRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("咨询师不存在"));
-        userRepository.findById(consultant.getUserId()).ifPresent(user -> {
-            if (user.getAvatarUrl() != null && !user.getAvatarUrl().isEmpty()) {
-                consultant.setAvatarUrl(user.getAvatarUrl());
-            }
-        });
+        // 优先使用 Consultant 自己的头像，如果没有再从 User 填充
+        if (consultant.getAvatarUrl() == null || consultant.getAvatarUrl().isEmpty()) {
+            userRepository.findById(consultant.getUserId()).ifPresent(user -> {
+                if (user.getAvatarUrl() != null && !user.getAvatarUrl().isEmpty()) {
+                    consultant.setAvatarUrl(user.getAvatarUrl());
+                }
+            });
+        }
         return consultant;
     }
 
@@ -243,6 +248,10 @@ public class AdminService {
         consultant.setIntro(request.getIntro());
         consultant.setIdentityTier(request.getIdentityTier() != null ? request.getIdentityTier() : Consultant.IdentityTier.BRONZE);
         consultant.setAvailable(true);
+        // 设置头像
+        if (request.getAvatarUrl() != null && !request.getAvatarUrl().isEmpty()) {
+            consultant.setAvatarUrl(request.getAvatarUrl());
+        }
 
         return consultantRepository.save(consultant);
     }
@@ -252,7 +261,33 @@ public class AdminService {
     public Consultant updateConsultant(Long id, Consultant consultant) {
         Consultant existing = getConsultantById(id);
 
-        BeanUtil.copyProperties(consultant, existing, CopyOptions.create().setIgnoreNullValue(true));
+        // 手动复制属性，确保 avatarUrl 能被正确更新
+        if (consultant.getName() != null) {
+            existing.setName(consultant.getName());
+        }
+        if (consultant.getTitle() != null) {
+            existing.setTitle(consultant.getTitle());
+        }
+        if (consultant.getSpecialty() != null) {
+            existing.setSpecialty(consultant.getSpecialty());
+        }
+        if (consultant.getIntro() != null) {
+            existing.setIntro(consultant.getIntro());
+        }
+        if (consultant.getIdentityTier() != null) {
+            existing.setIdentityTier(consultant.getIdentityTier());
+        }
+        if (consultant.getAvatarUrl() != null) {
+            existing.setAvatarUrl(consultant.getAvatarUrl());
+            // 同步头像到关联的 User 表
+            userRepository.findById(existing.getUserId()).ifPresent(user -> {
+                user.setAvatarUrl(consultant.getAvatarUrl());
+                userRepository.save(user);
+            });
+        }
+        if (consultant.getAvailable() != null) {
+            existing.setAvailable(consultant.getAvailable());
+        }
 
         return consultantRepository.save(existing);
     }

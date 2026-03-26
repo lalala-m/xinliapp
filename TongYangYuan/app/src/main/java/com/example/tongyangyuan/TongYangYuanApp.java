@@ -3,6 +3,8 @@ package com.example.tongyangyuan;
 import android.app.Application;
 import android.util.Log;
 
+import com.example.tongyangyuan.data.AppointmentStore;
+import com.example.tongyangyuan.data.PreferenceStore;
 import com.example.tongyangyuan.database.DataSyncService;
 import com.example.tongyangyuan.openim.OpenIMService;
 
@@ -19,6 +21,14 @@ public class TongYangYuanApp extends Application {
 
         // 同步 MySQL 数据
         syncDataFromMySQL();
+
+        // 开启预约定时同步（已登录用户每30秒拉取一次后端）
+        PreferenceStore prefStore = new PreferenceStore(this);
+        if (prefStore.getUserId() > 0) {
+            AppointmentStore appointmentStore = new AppointmentStore(this);
+            appointmentStore.startPeriodicSync(this);
+            Log.d(TAG, "Appointment periodic sync started");
+        }
     }
 
     private void syncDataFromMySQL() {

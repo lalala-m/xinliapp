@@ -4,8 +4,10 @@ import com.tongyangyuan.mentalhealth.dto.ApiResponse;
 import com.tongyangyuan.mentalhealth.dto.LoginRequest;
 import com.tongyangyuan.mentalhealth.dto.RegisterRequest;
 import com.tongyangyuan.mentalhealth.dto.WeChatLoginRequest;
+import com.tongyangyuan.mentalhealth.entity.Consultant;
 import com.tongyangyuan.mentalhealth.entity.User;
 import com.tongyangyuan.mentalhealth.service.AuthService;
+import com.tongyangyuan.mentalhealth.service.ConsultantService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,15 +18,72 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final ConsultantService consultantService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, ConsultantService consultantService) {
         this.authService = authService;
+        this.consultantService = consultantService;
     }
 
     @PostMapping("/login")
     public ApiResponse<Map<String, Object>> login(@RequestBody LoginRequest request) {
         try {
             Map<String, Object> result = authService.login(request.getPhone(), request.getPassword());
+            return ApiResponse.success("登录成功", result);
+        } catch (Exception e) {
+            return ApiResponse.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 咨询师登录（手机号+密码）
+     * 返回：token + userInfo + consultantInfo（含头像）
+     */
+    @PostMapping("/login/consultant")
+    public ApiResponse<Map<String, Object>> consultantLogin(@RequestBody LoginRequest request) {
+        try {
+            Map<String, Object> result = authService.login(request.getPhone(), request.getPassword());
+            // 检查是否为咨询师类型
+            String userType = (String) result.get("userType");
+            if (!"CONSULTANT".equals(userType)) {
+                return ApiResponse.error("该账号不是咨询师账号，请使用普通用户登录");
+            }
+            // 附加咨询师详细信息（含头像）
+            Long userId = ((Number) result.get("userId")).longValue();
+            try {
+                Consultant consultant = consultantService.getConsultantByUserId(userId);
+                if (consultant != null) {
+                    result.put("consultant", consultant);
+                }
+            } catch (Exception ignored) {
+                // 找不到咨询师信息不影响登录
+            }
+            return ApiResponse.success("登录成功", result);
+        } catch (Exception e) {
+            return ApiResponse.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 咨询师快捷登录（手机号+验证码）
+     */
+    @PostMapping("/login/consultant/code")
+    public ApiResponse<Map<String, Object>> consultantLoginWithCode(
+            @RequestParam String phone,
+            @RequestParam String code) {
+        try {
+            Map<String, Object> result = authService.loginWithCode(phone, code);
+            String userType = (String) result.get("userType");
+            if (!"CONSULTANT".equals(userType)) {
+                return ApiResponse.error("该账号不是咨询师账号");
+            }
+            Long userId = ((Number) result.get("userId")).longValue();
+            try {
+                Consultant consultant = consultantService.getConsultantByUserId(userId);
+                if (consultant != null) {
+                    result.put("consultant", consultant);
+                }
+            } catch (Exception ignored) {}
             return ApiResponse.success("登录成功", result);
         } catch (Exception e) {
             return ApiResponse.error(e.getMessage());

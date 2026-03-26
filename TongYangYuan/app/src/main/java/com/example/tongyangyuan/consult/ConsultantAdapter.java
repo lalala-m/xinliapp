@@ -93,7 +93,7 @@ public class ConsultantAdapter extends RecyclerView.Adapter<ConsultantAdapter.Co
                         .into(imgAvatar);
             } else {
                 // 无头像时使用颜色
-                imgAvatar.setImageResource(R.drawable.ic_avatar_placeholder);
+                imgAvatar.setImageResource(R.drawable.ic_person);
                 int colorRes = "green".equals(consultant.getAvatarColor()) ? R.color.brand_green_deep : R.color.brand_blue_deep;
                 imgAvatar.setColorFilter(ContextCompat.getColor(itemView.getContext(), colorRes));
             }

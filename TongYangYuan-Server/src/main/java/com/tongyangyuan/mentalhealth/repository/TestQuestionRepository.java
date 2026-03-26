@@ -11,4 +11,7 @@ public interface TestQuestionRepository extends JpaRepository<TestQuestion, Long
     
     // 获取学习包的测试题
     List<TestQuestion> findByPackageIdAndActiveTrueOrderBySortOrderAsc(Long packageId);
+    
+    // 按排序字段查询
+    List<TestQuestion> findByPackageIdOrderBySortOrderAsc(Long packageId);
 }

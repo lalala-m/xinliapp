@@ -6,14 +6,18 @@ import com.example.tongyangyuan.data.PreferenceStore;
 
 public class NetworkConfig {
 
-    // 开发环境（模拟器连接本地服务）
-    private static final String LOCAL_BASE_URL = "http://10.0.2.2:8080/api";
+    // 模拟器访问本机后端：须先在电脑执行 adb reverse tcp:8080 tcp:8080（模拟器已连接时）
+    // 10.0.2.2 在部分 Windows/Hyper-V 环境下会连不上，127.0.0.1 + adb reverse 更稳
+    private static final String EMULATOR_BASE_URL = "http://127.0.0.1:8080/api";
 
-    // 生产环境 - 服务器地址
+    // 真机连接电脑本地后端（手机和电脑需在同一 WiFi）
+    private static final String LOCAL_LAN_BASE_URL = "http://172.17.81.135:8080/api";
+
+    // 生产环境 - 远程服务器地址
     private static final String PRODUCTION_BASE_URL = "http://106.120.183.117:8080/api";
 
-    // 当前环境配置 - 开发环境用 LOCAL，真机测试/生产用 PRODUCTION
-    private static final boolean USE_PRODUCTION = true;
+    // 环境：0=生产(106) 1=模拟器(127.0.0.1 + adb reverse) 2=真机本地(电脑IP，同一WiFi局域网)
+    private static final int ENV_MODE = 1;
 
     private static String cachedBaseUrl = null;
 
@@ -21,14 +25,19 @@ public class NetworkConfig {
         if (cachedBaseUrl != null) {
             return cachedBaseUrl;
         }
-
-        // 根据环境选择
-        if (USE_PRODUCTION) {
-            cachedBaseUrl = PRODUCTION_BASE_URL;
-        } else {
-            cachedBaseUrl = LOCAL_BASE_URL;
+        switch (ENV_MODE) {
+            case 0:
+                cachedBaseUrl = PRODUCTION_BASE_URL;
+                break;
+            case 1:
+                cachedBaseUrl = EMULATOR_BASE_URL;
+                break;
+            case 2:
+                cachedBaseUrl = LOCAL_LAN_BASE_URL;
+                break;
+            default:
+                cachedBaseUrl = PRODUCTION_BASE_URL;
         }
-
         return cachedBaseUrl;
     }
 
