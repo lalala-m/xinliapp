@@ -1,0 +1,6 @@
+enable: etcd
+etcd:
+  rootDirectory: openim
+  address: [ tongyuan-etcd:2379 ]
+  username: ''
+  password: ''

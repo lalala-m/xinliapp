@@ -15,6 +15,7 @@ services:
     volumes:
       - ./mysql/data:/var/lib/mysql
       - ./mysql/conf:/etc/mysql/conf.d
+      - ./mysql/init-openim.sql:/docker-entrypoint-initdb.d/02-openim.sql
     command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     networks:
       - tongyuan-net
@@ -53,7 +54,7 @@ services:
       - "7882:7882/udp"  # UDP 媒体
     volumes:
       - ./livekit/config.yaml:/etc/livekit.yaml
-    command: --config /etc/livekit.yaml
+    command: --config /etc/livekit.yaml --node-ip 172.17.81.135
     networks:
       - tongyuan-net
     healthcheck:
@@ -64,7 +65,7 @@ services:
 
   # OpenIM 即时通讯服务
   openim:
-    image: ghcr.io/openimsdk/open-im-server:latest
+    image: ghcr.io/openimsdk/openim-server:latest
     container_name: tongyangyuan-openim
     restart: always
     ports:
@@ -74,11 +75,15 @@ services:
       - ./openim/config:/etc/openim-server/config
     environment:
       - TZ=Asia/Shanghai
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - tongyuan-net
     depends_on:
-      - mysql
-      - redis
+      mysql:
+        condition: service_started
+      redis:
+        condition: service_started
 
   # 后端 Spring Boot 应用
   backend:
@@ -97,8 +102,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      livekit:
-        condition: service_healthy
+      # livekit 使用 network_mode: host，不在同一网络，移除 health 依赖
     networks:
       - tongyuan-net
 

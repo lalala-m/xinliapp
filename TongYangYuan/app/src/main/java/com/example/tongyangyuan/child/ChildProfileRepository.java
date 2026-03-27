@@ -170,6 +170,8 @@ public class ChildProfileRepository {
                         for (int i = 0; i < data.length(); i++) {
                             org.json.JSONObject item = data.getJSONObject(i);
                             ChildProfile profile = new ChildProfile();
+                            // 使用服务器返回的 id 作为本地存储的 id（转换为字符串）
+                            profile.setId(String.valueOf(item.optLong("id")));
                             profile.setName(item.optString("name"));
                             try {
                                 profile.setGender(ChildProfile.Gender.valueOf(item.optString("gender", "BOY")));
@@ -252,8 +254,11 @@ public class ChildProfileRepository {
                     for (ChildProfile profile : profiles) {
                         org.json.JSONObject obj = profile.toJson();
                         obj.put("parentUserId", userId);
-                        // 移除本地ID，让服务器生成或映射
-                        obj.remove("id"); 
+                        // 保留服务器 ID，如果本地没有服务器 ID 则不上传 id 字段
+                        String localId = profile.getId();
+                        if (localId == null || localId.startsWith("child-") || localId.startsWith("temp-")) {
+                            obj.remove("id");
+                        }
                         
                         // 处理 medicalHistory (List -> String)
                         JSONArray historyArray = obj.optJSONArray("medicalHistory");
@@ -268,9 +273,32 @@ public class ChildProfileRepository {
                         os.write(jsonArray.toString().getBytes("UTF-8"));
                     }
                     
-                    if (conn.getResponseCode() != 200) {
-                        // 上传失败但不影响本地保存
-                        // callback.onError(new Exception("Upload failed"));
+                    // 读取服务器返回的数据（包含服务器生成的 id）
+                    if (conn.getResponseCode() == 200) {
+                        java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(conn.getInputStream()));
+                        StringBuilder serverResponse = new StringBuilder();
+                        String respLine;
+                        while ((respLine = br.readLine()) != null) {
+                            serverResponse.append(respLine);
+                        }
+                        
+                        org.json.JSONObject respJson = new org.json.JSONObject(serverResponse.toString());
+                        if (respJson.getInt("code") == 200) {
+                            JSONArray savedChildren = respJson.getJSONArray("data");
+                            // 更新本地数据库中的 id 为服务器返回的 id
+                            for (int i = 0; i < savedChildren.length() && i < profiles.size(); i++) {
+                                org.json.JSONObject savedChild = savedChildren.getJSONObject(i);
+                                long serverId = savedChild.optLong("id", -1);
+                                if (serverId != -1) {
+                                    // 更新本地实体的 id
+                                    ChildProfileEntity entity = dao.getChildProfileById(profiles.get(i).getId());
+                                    if (entity != null) {
+                                        entity.setId(String.valueOf(serverId));
+                                        dao.updateChildProfile(entity);
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
                 

@@ -2,13 +2,16 @@ package com.tongyangyuan.mentalhealth.controller;
 
 import com.tongyangyuan.mentalhealth.dto.ApiResponse;
 import com.tongyangyuan.mentalhealth.dto.ChatMessageDTO;
+import com.tongyangyuan.mentalhealth.dto.WebRTCSignal;
 import com.tongyangyuan.mentalhealth.entity.ChatMessage;
 import com.tongyangyuan.mentalhealth.service.ChatMessageService;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.ZoneId;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/messages")
@@ -49,6 +52,8 @@ public class ChatMessageController {
             
             ChatMessageDTO dto = convertToDTO(saved);
 
+            forwardCallSignalingToWebrtcIfNeeded(saved);
+
             // 推送给接收者
             messagingTemplate.convertAndSendToUser(
                 saved.getReceiverUserId().toString(),
@@ -67,6 +72,46 @@ public class ChatMessageController {
         } catch (Exception e) {
             return ApiResponse.error(e.getMessage());
         }
+    }
+
+    /**
+     * 家长端通过 POST /messages 发送 SYSTEM 消息 CALL:action:callType:sessionId；
+     * 咨询师 Web（chat.js）来电弹窗订阅的是 /user/queue/webrtc，故此处同步转发。
+     */
+    private void forwardCallSignalingToWebrtcIfNeeded(ChatMessage saved) {
+        if (saved.getMessageType() != ChatMessage.MessageType.SYSTEM) {
+            return;
+        }
+        String content = saved.getContent();
+        if (content == null || !content.startsWith("CALL:")) {
+            return;
+        }
+        String[] parts = content.split(":", 4);
+        if (parts.length < 4) {
+            return;
+        }
+        String action = parts[1];
+        if (!"call".equals(action) && !"accept".equals(action) && !"reject".equals(action) && !"end".equals(action)) {
+            return;
+        }
+        String callTypePart = parts[2].isEmpty() ? "video" : parts[2];
+        String sessionId = parts[3];
+
+        WebRTCSignal sig = new WebRTCSignal();
+        sig.setType(action);
+        sig.setFromUserId(saved.getSenderUserId());
+        sig.setToUserId(saved.getReceiverUserId());
+        sig.setAppointmentId(saved.getAppointmentId());
+        Map<String, Object> data = new HashMap<>();
+        data.put("callType", callTypePart);
+        data.put("sessionId", sessionId);
+        sig.setData(data);
+
+        messagingTemplate.convertAndSendToUser(
+                saved.getReceiverUserId().toString(),
+                "/queue/webrtc",
+                sig
+        );
     }
 
     private ChatMessageDTO convertToDTO(ChatMessage message) {

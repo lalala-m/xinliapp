@@ -145,7 +145,7 @@
                 ${renderInput('孩子兴趣活动', 'activities', data?.activities || '')}
 
                 <div class="section-title" style="margin-top: 24px;">孩子身体状态</div>
-                <div class="radio-group">
+                <div class="radio-group" data-role="bodyStatusGroup">
                     ${bodyStatusOptions.map(status => `
                         <div class="radio ${data?.bodyStatus === status ? 'active' : ''}"
                              onclick="selectBodyStatus('${container.dataset.childId}', '${status}', this)">
@@ -180,6 +180,10 @@
             `;
 
             document.getElementById('childrenContainer').appendChild(container);
+            // 从服务端/本地加载时仅渲染了 .active，未触发 click，须同步 dataset，否则提交时 bodyStatus 仍为空
+            if (data && data.bodyStatus) {
+                container.dataset.bodyStatus = data.bodyStatus;
+            }
             updateRemoveButtons();
         }
 
@@ -290,9 +294,10 @@
 
         function selectBodyStatus(childId, status, el) {
             const card = document.querySelector(`[data-child-id="${childId}"]`);
-            card.querySelectorAll('.radio-group')[1]
-                .querySelectorAll('.radio')
-                .forEach(btn => btn.classList.remove('active'));
+            const group = card.querySelector('[data-role="bodyStatusGroup"]');
+            if (group) {
+                group.querySelectorAll('.radio').forEach(btn => btn.classList.remove('active'));
+            }
             el.classList.add('active');
             card.dataset.bodyStatus = status;
             const detail = card.querySelector('[data-role="bodyStatusDetail"]');
@@ -382,6 +387,7 @@
             if (medicalHistory.length === 0) medicalHistory.push('无');
 
             const genderValue = card.querySelector('[data-role="gender"] .radio.active')?.textContent === '女孩' ? 'GIRL' : 'BOY';
+            const bodyStatusFromUi = card.querySelector('[data-role="bodyStatusGroup"] .radio.active')?.textContent.trim() || '';
             return {
                 id: card.dataset.childId,
                 name: getValue('name'),
@@ -396,7 +402,7 @@
                 homeAddress: getValue('homeAddress'),
                 interests: getValue('interests'),
                 activities: getValue('activities'),
-                bodyStatus: card.dataset.bodyStatus || '',
+                bodyStatus: card.dataset.bodyStatus || bodyStatusFromUi,
                 bodyStatusDetail: card.querySelector('[data-role="bodyStatusDetail"] textarea')?.value.trim() || '',
                 medicalHistory,
                 medicalHistoryOther: card.querySelector('[data-role="medicalHistoryOther"] textarea')?.value.trim() || '',

@@ -325,8 +325,32 @@
     <script src="js/app.js"></script>
     <script>
         let childProfiles = [];
-        let currentChildId = -1;
+        let currentChildId = '';
         let currentChildPickerCallback = null;
+
+        function readAndroidCurrentChildIdStr() {
+            if (window.Android && typeof Android.getCurrentChildIdStr === 'function') {
+                try {
+                    const s = Android.getCurrentChildIdStr();
+                    if (s != null && String(s).length > 0) {
+                        return String(s);
+                    }
+                } catch (e) { /* ignore */ }
+            }
+            if (window.Android && typeof Android.getCurrentChildId === 'function') {
+                try {
+                    const n = Android.getCurrentChildId();
+                    if (n != null && n >= 0) {
+                        return String(n);
+                    }
+                } catch (e) { /* ignore */ }
+            }
+            return '';
+        }
+
+        function childIdsEqual(a, b) {
+            return String(a) === String(b);
+        }
 
         /**
          * 初始化孩子切换器
@@ -355,14 +379,7 @@
                 }
             }
 
-            // 获取当前孩子
-            if (window.Android && typeof Android.getCurrentChildId === 'function') {
-                try {
-                    currentChildId = parseInt(Android.getCurrentChildId());
-                } catch (e) {
-                    currentChildId = -1;
-                }
-            }
+            currentChildId = readAndroidCurrentChildIdStr();
 
             updateSwitcherUI();
         }
@@ -375,11 +392,8 @@
             const name = document.getElementById('switcherName');
             const age = document.getElementById('switcherAge');
 
-            // 查找当前孩子
-            const currentChild = childProfiles.find(c => {
-                const cid = typeof c.id === 'string' ? parseInt(c.id) : c.id;
-                return cid === currentChildId;
-            });
+            // 查找当前孩子（id 可能是服务器数字或本地 UUID 字符串）
+            const currentChild = childProfiles.find(c => childIdsEqual(c.id, currentChildId));
 
             if (currentChild) {
                 const initial = (currentChild.name || '子').charAt(0);
@@ -443,14 +457,7 @@
             const content = document.getElementById('childPickerContent');
             const switcher = document.getElementById('childSwitcher');
 
-            // 更新当前孩子ID
-            if (window.Android && typeof Android.getCurrentChildId === 'function') {
-                try {
-                    currentChildId = parseInt(Android.getCurrentChildId());
-                } catch (e) {
-                    currentChildId = -1;
-                }
-            }
+            currentChildId = readAndroidCurrentChildIdStr();
 
             // 生成孩子列表
             if (childProfiles.length === 0) {
@@ -462,8 +469,7 @@
                 `;
             } else {
                 content.innerHTML = childProfiles.map(child => {
-                    const cid = typeof child.id === 'string' ? parseInt(child.id) : child.id;
-                    const isSelected = cid === currentChildId;
+                    const isSelected = childIdsEqual(child.id, currentChildId);
                     const initial = (child.name || '子').charAt(0);
                     const gender = child.gender === 'GIRL' ? 'girl' : '';
                     const genderText = child.gender === 'GIRL' ? '女孩' : '男孩';
@@ -520,8 +526,7 @@
          * 选择孩子
          */
         function selectChild(childId, childName, gender) {
-            const id = typeof childId === 'string' ? parseInt(childId) : childId;
-            currentChildId = id;
+            currentChildId = String(childId);
 
             // 同步到本地和服务器
             if (window.Android && typeof Android.setCurrentChild === 'function') {
@@ -533,10 +538,7 @@
 
             // 调用回调
             if (currentChildPickerCallback) {
-                const child = childProfiles.find(c => {
-                    const cid = typeof c.id === 'string' ? parseInt(c.id) : c.id;
-                    return cid === id;
-                });
+                const child = childProfiles.find(c => childIdsEqual(c.id, childId));
                 currentChildPickerCallback(child);
             }
 

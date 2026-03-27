@@ -63,6 +63,7 @@ public class ChildController {
                 for (Child child : children) {
                     child.setParentUserId(parentId);
                 }
+                // 区分新增和更新：如果有 id 则更新，否则新增
                 List<Child> saved = childRepository.saveAll(children);
                 return ApiResponse.success("批量保存成功", saved);
             }

@@ -131,6 +131,28 @@ public class WebAppInterface {
         return record != null ? record.getServerId() : -1;
     }
 
+    /**
+     * splash.html「跳过动画」及通用跳转入口。
+     * @param page "home" → MainActivity; 其余走 openWebPage(fileName)
+     */
+    @JavascriptInterface
+    public void navigateTo(String page) {
+        if (context == null) return;
+        if ("home".equalsIgnoreCase(page)) {
+            // 未登录时强制跳转登录页，避免游客绕过登录
+            if (!preferenceStore.isLoggedIn()) {
+                openWebPage("auth.html");
+                return;
+            }
+            Intent intent = new Intent(context, MainActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            context.startActivity(intent);
+        } else {
+            openWebPage(page);
+        }
+        finishHost();
+    }
+
     @JavascriptInterface
     public void navigateToLearning() {
         openWebPage("learning.html");
@@ -823,17 +845,10 @@ public class WebAppInterface {
             return;
         }
         Intent intent = new Intent(context, MainActivity.class);
-        if (context instanceof Activity) {
-            Activity activity = (Activity) context;
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            intent.putExtra("TARGET_FRAGMENT", "MESSAGE_FRAGMENT");
-            activity.startActivity(intent);
-            activity.finish();
-        } else {
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            intent.putExtra("TARGET_FRAGMENT", "MESSAGE_FRAGMENT");
-            context.startActivity(intent);
-        }
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.putExtra("TARGET_FRAGMENT", "MESSAGE_FRAGMENT");
+        context.startActivity(intent);
+        finishHost();
     }
 
     private int calculateAge(String childId) {
@@ -1432,6 +1447,19 @@ public class WebAppInterface {
         return preferenceStore.getCurrentChildId();
     }
 
+    /**
+     * 当前孩子 id 的字符串形式：服务器数字 id 或本地 UUID，供 H5 与档案 id 做一致比较。
+     */
+    @JavascriptInterface
+    public String getCurrentChildIdStr() {
+        long n = preferenceStore.getCurrentChildId();
+        if (n >= 0) {
+            return String.valueOf(n);
+        }
+        String s = preferenceStore.getCurrentChildIdString();
+        return s != null ? s : "";
+    }
+
     @JavascriptInterface
     public String getCurrentChildName() {
         return preferenceStore.getCurrentChildName();
@@ -1440,14 +1468,27 @@ public class WebAppInterface {
     @JavascriptInterface
     public void setCurrentChild(String childId, String childName) {
         try {
-            long id = Long.parseLong(childId);
-            preferenceStore.setCurrentChildId(id);
+            if (TextUtils.isEmpty(childId)) {
+                showToast("切换孩子失败");
+                return;
+            }
+            String trimmed = childId.trim();
+            try {
+                long id = Long.parseLong(trimmed);
+                preferenceStore.setCurrentChildId(id);
+            } catch (NumberFormatException e) {
+                // 本地档案可能仍为 UUID，无法解析为 long
+                preferenceStore.setCurrentChildId(-1);
+                preferenceStore.setCurrentChildIdString(trimmed);
+            }
             if (!TextUtils.isEmpty(childName)) {
                 preferenceStore.setCurrentChildName(childName);
             }
-            // 同步到服务器
-            syncCurrentChildToServer(id);
-            Log.d(TAG, "已设置当前孩子: id=" + childId + ", name=" + childName);
+            long syncId = preferenceStore.getCurrentChildId();
+            if (syncId >= 0) {
+                syncCurrentChildToServer(syncId);
+            }
+            Log.d(TAG, "已设置当前孩子: id=" + trimmed + ", name=" + childName);
         } catch (Exception e) {
             Log.e(TAG, "setCurrentChild error", e);
             showToast("切换孩子失败");
@@ -1459,6 +1500,7 @@ public class WebAppInterface {
         try {
             org.json.JSONObject obj = new org.json.JSONObject();
             obj.put("childId", preferenceStore.getCurrentChildId());
+            obj.put("childIdStr", getCurrentChildIdStr());
             obj.put("childName", preferenceStore.getCurrentChildName());
             return obj.toString();
         } catch (Exception e) {
@@ -1640,7 +1682,7 @@ public class WebAppInterface {
                     Intent intent = new Intent(context, MainActivity.class);
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                     context.startActivity(intent);
-                    
+                    // startActivity 之后 finish，防止点返回时 splash 动画闪回
                     finishHost();
                 }
 
@@ -1679,11 +1721,12 @@ public class WebAppInterface {
             // 清除之前的任务栈，确保用户按返回键不会回到登录页
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             context.startActivity(intent);
+            finishHost(); // startActivity 之后 finish，防止点返回时 splash 动画闪回
         } else {
             // 没有孩子信息，进入信息完善页
             openWebPage("child_info.html");
+            // openWebPage 内部已调用 finishHost
         }
-        finishHost();
     }
 
     private Activity getActivity() {
@@ -1751,6 +1794,18 @@ public class WebAppInterface {
                 safeMedia
         );
         dispatchJs(script);
+    }
+
+    /**
+     * 从 VideoCallActivity 返回时由 Activity 调用：WebView 在后台时定时器不跑，需原生侧主动清横幅并拉取含「通话结束」的记录。
+     */
+    public void notifyVideoCallClosed() {
+        mainHandler.post(() -> dispatchJs(
+                "(function(){try{if(typeof dismissCallNotification==='function')dismissCallNotification();"
+                        + "callState=null;if(typeof refreshChatHistoryFromNative==='function')"
+                        + "refreshChatHistoryFromNative();else if(typeof loadHistoryMessages==='function')"
+                        + "loadHistoryMessages();}catch(e){}})()"
+        ));
     }
 
 
@@ -1895,7 +1950,7 @@ public class WebAppInterface {
     @JavascriptInterface
     public void startNIMCall(String targetAccountId, String callType) {
         if (openIMService != null && openIMService.isLoggedIn()) {
-            String sessionId = openIMService.startCall(targetAccountId, callType);
+            String sessionId = openIMService.startCall(targetAccountId, callType, 0L);
             showToast("正在呼叫...");
             dispatchJs("window.onNIMCallStarted && window.onNIMCallStarted('" + escapeJs(sessionId) + "')");
         } else {

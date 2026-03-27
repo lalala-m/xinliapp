@@ -2,93 +2,165 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    <title>视频通话 - 童养园咨询师端</title>
+    <title>视频咨询室 - 童养园</title>
     <link rel="stylesheet" href="css/common.css">
     <link rel="stylesheet" href="css/video-call.css">
 </head>
 <body>
-    <div class="video-call-container">
+    <div class="vc-root">
 
-        <!-- 远端视频（全屏显示） -->
-        <div class="remote-video-area" id="remoteVideoArea">
+        <!-- 远端视频全屏 -->
+        <div class="vc-remote" id="vcRemote">
             <video id="remoteVideo" autoplay playsinline></video>
-        </div>
-
-        <!-- 头像等待区 -->
-        <div class="call-center" id="avatarCenter">
-            <div class="avatar-zone" id="avatarZone">
-                <div class="ring-1" id="ring1"></div>
-                <div class="ring-2" id="ring2"></div>
-                <div class="avatar-circle" id="callAvatar">张</div>
+            <!-- 远端未连上时显示头像等待区 -->
+            <div class="vc-waiting" id="vcWaiting">
+                <div class="vc-avatar-wrap" id="vcAvatarWrap">
+                    <div class="vc-ring vc-ring-1"></div>
+                    <div class="vc-ring vc-ring-2"></div>
+                    <div class="vc-avatar" id="callAvatar">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="vc-cname" id="callClientName">家长</div>
+                <div class="vc-state" id="callStateText">等待接入…</div>
+                <div class="vc-timer" id="callDuration">00:00</div>
             </div>
-            <div class="consultant-label" id="callClientName">家长</div>
-            <div class="call-state-text" id="callStateText">等待接入...</div>
-            <div class="call-timer" id="callDuration">00:00</div>
         </div>
 
-        <!-- 连接中状态遮罩 -->
-        <div class="conn-status" id="connectionStatus">
-            <div class="conn-spinner"></div>
-            <div class="conn-text">正在建立连接...</div>
+        <!-- 本地小窗预览（右上角） -->
+        <div class="vc-local-wrap" id="vcLocalWrap">
+            <video id="localVideo" autoplay playsinline muted></video>
+            <div class="vc-local-ph" id="localVideoPlaceholder">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                </svg>
+            </div>
         </div>
 
-        <!-- 顶部栏 -->
-        <div class="call-top-bar">
-            <a class="back-btn" href="javascript:void(0)" onclick="VideoCall.goBack()">✕</a>
-            <div class="call-badge" id="callTypeBadge">视频通话</div>
+        <!-- 顶部状态栏 -->
+        <div class="vc-topbar">
+            <button class="vc-close" id="vcClose" onclick="VideoCall.endCall()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+            <div class="vc-badge" id="callTypeBadge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                    <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+                </svg>
+                视频通话
+            </div>
+            <div class="vc-net" id="vcNetIndicator">
+                <div class="vc-net-dot"></div>
+                <span>连接中</span>
+            </div>
+        </div>
+
+        <!-- 连接中旋转遮罩 -->
+        <div class="vc-loading" id="connectionStatus">
+            <div class="vc-spinner"></div>
+            <div class="vc-spinner-ring"></div>
+            <span id="connStatusText">正在建立连接…</span>
+        </div>
+
+        <!-- 来电等待界面（被叫场景：显示振铃，等待对方接听） -->
+        <div class="vc-incoming-overlay" id="incomingCallOverlay" style="display:none">
+            <div class="vc-incoming-card">
+                <div class="vc-incoming-rings">
+                    <div class="vc-incoming-ring vc-ring-a"></div>
+                    <div class="vc-incoming-ring vc-ring-b"></div>
+                </div>
+                <div class="vc-incoming-avatar" id="incomingAvatar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                </div>
+                <div class="vc-incoming-name" id="incomingName">家长</div>
+                <div class="vc-incoming-sub" id="incomingSub">来电呼叫中…</div>
+                <div class="vc-incoming-actions">
+                    <button class="vc-incoming-btn reject" id="btnRejectIncoming" onclick="VideoCall.rejectIncomingCall()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                        拒绝
+                    </button>
+                    <button class="vc-incoming-btn accept" id="btnAcceptIncoming" onclick="VideoCall.acceptIncomingCall()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 9a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 0h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 7.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                        </svg>
+                        接听
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 等待对方接听界面（主叫场景） -->
+        <div class="vc-waiting-peer-overlay" id="waitingPeerOverlay" style="display:none">
+            <div class="vc-waiting-peer-card">
+                <div class="vc-waiting-rings">
+                    <div class="vc-ring vc-ring-1"></div>
+                    <div class="vc-ring vc-ring-2"></div>
+                </div>
+                <div class="vc-waiting-peer-avatar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                </div>
+                <div class="vc-waiting-peer-name" id="waitingPeerName">家长</div>
+                <div class="vc-waiting-peer-state" id="waitingPeerState">等待对方接听…</div>
+            </div>
         </div>
 
         <!-- 底部控制栏 -->
-        <div class="call-bottom">
-            <div class="ctrl-btn" id="muteCtrlBtn">
-                <div class="ctrl-circle" id="btnMute" onclick="VideoCall.toggleMute()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="iconMicOn">
+        <div class="vc-bottom">
+            <!-- 麦克风 -->
+            <div class="vc-ctrl">
+                <button class="vc-btn vc-btn-n" id="btnMute" onclick="VideoCall.toggleMute()">
+                    <svg class="ic-mic-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                        <line x1="12" y1="19" x2="12" y2="23"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/>
                     </svg>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="iconMicOff" style="display:none">
+                    <svg class="ic-mic-off" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" style="display:none">
                         <line x1="1" y1="1" x2="23" y2="23"/>
                         <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/>
                         <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"/>
                         <line x1="12" y1="19" x2="12" y2="23"/>
                     </svg>
-                </div>
-                <span class="ctrl-label" id="lblMute">静音</span>
+                </button>
+                <span class="vc-lbl" id="lblMute">静音</span>
             </div>
 
-            <div class="ctrl-btn">
-                <div class="ctrl-circle hangup-circle" onclick="VideoCall.endCall()">
+            <!-- 挂断 -->
+            <div class="vc-ctrl">
+                <button class="vc-btn vc-btn-hangup" onclick="VideoCall.endCall()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 9a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 0h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 7.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
                     </svg>
-                </div>
-                <span class="ctrl-label">挂断</span>
+                </button>
+                <span class="vc-lbl">挂断</span>
             </div>
 
-            <div class="ctrl-btn" id="videoCtrlBtn">
-                <div class="ctrl-circle" id="btnVideo" onclick="VideoCall.toggleVideo()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="iconVideoOn">
-                        <polygon points="23 7 16 12 23 17 23 7"/>
-                        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+            <!-- 摄像头 -->
+            <div class="vc-ctrl" id="videoCtrlBtn">
+                <button class="vc-btn vc-btn-n" id="btnVideo" onclick="VideoCall.toggleVideo()">
+                    <svg class="ic-cam-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
                     </svg>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="iconVideoOff" style="display:none">
+                    <svg class="ic-cam-off" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
                         <line x1="1" y1="1" x2="23" y2="23"/>
-                        <path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3m3-3h6l2 3h4a2 2 0 0 1 2 2v9.34m-7.72-2.06A4 4 0 1 1 7.93 9"/>
+                        <path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3m3-3h6l2 3h4a2 2 0 0 1 2 2v9.34"/>
                     </svg>
-                </div>
-                <span class="ctrl-label" id="lblVideo">关摄像头</span>
+                </button>
+                <span class="vc-lbl" id="lblVideo">关摄像头</span>
             </div>
-        </div>
-
-        <!-- 本地视频（小窗） -->
-        <div style="position:absolute;top:56px;right:16px;width:96px;height:130px;border-radius:12px;overflow:hidden;background:#1a1a2a;z-index:30;box-shadow:0 4px 16px rgba(0,0,0,0.5);">
-            <video id="localVideo" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;display:none;"></video>
-            <div id="localVideoPlaceholder" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.3);font-size:24px;">👤</div>
         </div>
     </div>
 
@@ -96,7 +168,9 @@
     <script src="js/storage.js"></script>
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
-    <script src="js/video-call.js?v=1.0.4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client@2.5.0/dist/livekit-client.umd.min.js"></script>
+    <script src="js/video-call.js?v=2.1.0"></script>
 </body>
 </html>

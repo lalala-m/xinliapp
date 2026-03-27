@@ -63,6 +63,12 @@ public class WebViewFragment extends Fragment {
                 .ready()
                 .go(null);
 
+        // 允许 file:// 页面发起跨域请求（SockJS 需要）
+        android.webkit.WebSettings webSettings = mAgentWeb.getWebCreator().getWebView().getSettings();
+        webSettings.setAllowFileAccessFromFileURLs(true);
+        webSettings.setAllowUniversalAccessFromFileURLs(true);
+        webSettings.setDomStorageEnabled(true);
+
         // 注入 JS 接口
         mAgentWeb.getJsInterfaceHolder().addJavaObject("Android", new WebAppInterface(requireContext(), mAgentWeb.getWebCreator().getWebView()));
 

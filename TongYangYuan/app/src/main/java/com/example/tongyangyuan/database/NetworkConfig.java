@@ -8,6 +8,8 @@ public class NetworkConfig {
 
     // 模拟器访问本机后端：须先在电脑执行 adb reverse tcp:8080 tcp:8080（模拟器已连接时）
     // 10.0.2.2 在部分 Windows/Hyper-V 环境下会连不上，127.0.0.1 + adb reverse 更稳
+    // LiveKit：后端返回 ws://127.0.0.1:7880 时在模拟器上保持不改，须执行 adb reverse tcp:7880 tcp:7880；
+    // 并确保本机已启动 livekit（如 docker）。勿依赖 10.0.2.2:7880，与 adb reverse 冲突。
     private static final String EMULATOR_BASE_URL = "http://127.0.0.1:8080/api";
 
     // 真机连接电脑本地后端（手机和电脑需在同一 WiFi）
@@ -70,5 +72,29 @@ public class NetworkConfig {
         } catch (Exception e) {
             return "";
         }
+    }
+
+    /**
+     * 获取当前环境的主机地址（不含协议）。
+     * 模拟器：127.0.0.1（需配合 adb reverse）| 真机/局域网：LOCAL_LAN_BASE_URL 的主机部分 | 生产：PRODUCTION_BASE_URL 的主机部分
+     */
+    public static String getHost() {
+        String baseUrl = getBaseUrl();
+        // 去掉协议前缀，取 host:port 部分
+        String withoutScheme = baseUrl.replaceFirst("https?://", "");
+        return withoutScheme.replaceFirst("/.*", "");
+    }
+
+    /**
+     * 将任意 URL 中的 localhost / 127.0.0.1 替换为当前环境的正确主机地址。
+     * 用于 OpenIM / LiveKit 等后端返回含 localhost 的 wsUrl/apiUrl，
+     * 在模拟器上需映射到 127.0.0.1，真机/局域网保持不变。
+     */
+    public static String resolveHost(String url) {
+        if (url == null || url.isEmpty()) return url;
+        String host = getHost();
+        // 替换 localhost 或 127.0.0.1
+        return url.replaceFirst("://localhost", "://" + host)
+                  .replaceFirst("://127\\.0\\.0\\.1", "://" + host);
     }
 }

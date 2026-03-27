@@ -35,6 +35,8 @@ public class SecurityConfig {
                         "/auth/**",
                         "/openim/**",
                         "/ws/**",
+                        "/stomp",
+                        "/stomp/**",
                         "/error",
                         "/consultants/**",
                         "/appointments/**",

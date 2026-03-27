@@ -6,6 +6,7 @@ import android.os.Looper;
 import android.util.Log;
 
 import com.example.tongyangyuan.database.NetworkConfig;
+import com.example.tongyangyuan.data.PreferenceStore;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -16,8 +17,16 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.WebSocket;
+import okhttp3.WebSocketListener;
 
 /**
  * OpenIM 服务类 - 替代网易云信 NIM
@@ -36,6 +45,15 @@ public class OpenIMService {
     private String wsUrl;
     private String apiUrl;
 
+    // WebSocket 信令连接（用于实时接收 CALL / ACCEPT / REJECT / END 信令）
+    private WebSocket wsClient;
+    private boolean wsConnected = false;
+    private OkHttpClient wsOkHttpClient;
+    private String wsAuthToken;
+    private final Object wsLock = new Object();
+    /** 累积分片消息，直到 TEXT 帧完整 */
+    private StringBuilder wsFragment = new StringBuilder();
+
     // 配置
     private final OpenIMConfig config;
     private final Context context;
@@ -46,6 +64,8 @@ public class OpenIMService {
     private MessageCallback messageCallback;
     private CallCallback callCallback;
     private ConnectionCallback connectionCallback;
+    /** 登录完成前的通话请求暂存，等登录成功后再执行 */
+    private final List<Runnable> pendingCalls = new CopyOnWriteArrayList<>();
 
     // ==================== 回调接口（与原 NIMService 接口兼容） ====================
 
@@ -121,8 +141,10 @@ public class OpenIMService {
                     JSONObject json = new JSONObject(sb.toString());
                     if (json.optInt("code") == 200) {
                         JSONObject data = json.getJSONObject("data");
-                        apiUrl = data.optString("apiUrl", "");
-                        wsUrl = data.optString("wsUrl", "");
+                        // resolveHost：将后端返回的 localhost/127.0.0.1 替换为当前环境的正确主机
+                        // 模拟器上需要 127.0.0.1 + adb reverse，真机/局域网直接用局域网IP
+                        apiUrl = NetworkConfig.resolveHost(data.optString("apiUrl", ""));
+                        wsUrl  = NetworkConfig.resolveHost(data.optString("wsUrl", ""));
                         boolean available = data.optBoolean("available", false);
 
                         config.setApiUrl(apiUrl);
@@ -141,6 +163,188 @@ public class OpenIMService {
 
         isInitialized = true;
         Log.i(TAG, "OpenIM SDK initialized");
+    }
+
+    // ==================== WebSocket 信令连接 ====================
+
+    /**
+     * 建立 WebSocket 连接，监听 /user/queue/webrtc 信令。
+     * 须在获取到 OpenIM Token 后调用（等 wsUrl 和 currentToken 都就绪）。
+     */
+    private void connectWebSocket() {
+        synchronized (wsLock) {
+            if (wsConnected && wsClient != null) {
+                Log.d(TAG, "WebSocket already connected");
+                return;
+            }
+        }
+
+        String url = wsUrl;
+        String token = currentToken;
+        if (url == null || url.isEmpty() || token == null || token.isEmpty()) {
+            Log.w(TAG, "WebSocket: missing wsUrl or token, skipping WS connect");
+            return;
+        }
+
+        // 将 HTTP URL 转为 WS/WSS URL
+        String wsTarget;
+        if (url.startsWith("http://")) {
+            wsTarget = url.replaceFirst("http://", "ws://");
+        } else if (url.startsWith("https://")) {
+            wsTarget = url.replaceFirst("https://", "wss://");
+        } else {
+            wsTarget = url.startsWith("ws") ? url : "ws://" + url;
+        }
+        // 只去掉 /api 前缀，保留 /stomp 等实际端点路径
+        wsTarget = wsTarget.replaceFirst("/api(/|$)", "$1");
+        // 去掉末尾可能的斜杠
+        wsTarget = wsTarget.replaceAll("/+$", "");
+
+        Log.d(TAG, "Connecting WebSocket to: " + wsTarget);
+
+        if (wsOkHttpClient == null) {
+            wsOkHttpClient = new OkHttpClient.Builder()
+                    .readTimeout(0, java.util.concurrent.TimeUnit.MILLISECONDS)
+                    .build();
+        }
+        wsAuthToken = token;
+
+        Request request = new Request.Builder()
+                .url(wsTarget)
+                .build();
+
+        wsClient = wsOkHttpClient.newWebSocket(request, new WebSocketListener() {
+            @Override
+            public void onOpen(WebSocket webSocket, Response response) {
+                Log.i(TAG, "WebSocket connected!");
+                synchronized (wsLock) {
+                    wsConnected = true;
+                }
+                // 发送 STOMP CONNECT 帧
+                webSocket.send("CONNECT\naccept-version:1.2\nAuthorization:Bearer " + wsAuthToken + "\n\n");
+            }
+
+            @Override
+            public void onMessage(WebSocket webSocket, String text) {
+                Log.d(TAG, "WS recv: " + text.substring(0, Math.min(100, text.length())));
+                handleWsMessage(text);
+            }
+
+            @Override
+            public void onClosing(WebSocket webSocket, int code, String reason) {
+                Log.i(TAG, "WebSocket closing: " + code + " " + reason);
+                webSocket.close(1000, null);
+            }
+
+            @Override
+            public void onClosed(WebSocket webSocket, int code, String reason) {
+                Log.i(TAG, "WebSocket closed: " + code + " " + reason);
+                synchronized (wsLock) {
+                    wsConnected = false;
+                    wsClient = null;
+                }
+                // 3 秒后重连
+                mainHandler.postDelayed(() -> reconnectWebSocket(), 3000);
+            }
+
+            @Override
+            public void onFailure(WebSocket webSocket, Throwable error, Response response) {
+                Log.e(TAG, "WebSocket failure", error);
+                synchronized (wsLock) {
+                    wsConnected = false;
+                    wsClient = null;
+                }
+                // 3 秒后重连
+                mainHandler.postDelayed(() -> reconnectWebSocket(), 3000);
+            }
+        });
+    }
+
+    private void handleWsMessage(String msg) {
+        if (msg.startsWith("CONNECTED")) {
+            // 订阅 /user/queue/webrtc
+            wsClient.send("SUBSCRIBE\nid:sub-webrtc\ndestination:/user/queue/webrtc\n\n");
+            Log.i(TAG, "STOMP subscribed to /user/queue/webrtc");
+            return;
+        }
+
+        // 跳过 CONNECTED、HEARTBEAT、空消息
+        if (msg.startsWith("CONNECTED") || msg.startsWith("HEARTBEAT") || msg.trim().isEmpty()) {
+            return;
+        }
+
+        // 解析 STOMP MESSAGE 帧，找到空行后的 body
+        int bodyStart = msg.indexOf("\n\n");
+        if (bodyStart < 0) return;
+        String body = msg.substring(bodyStart + 2).trim();
+        if (body.isEmpty()) return;
+
+        Log.d(TAG, "WS STOMP body: " + body);
+
+        try {
+            JSONObject json = new JSONObject(body);
+            String type = json.optString("type", "");
+            long fromUserId = json.optLong("fromUserId", 0);
+            String fromUserIdStr = fromUserId > 0 ? String.valueOf(fromUserId) : null;
+            JSONObject data = json.optJSONObject("data");
+            String callType = data != null ? data.optString("callType", "video") : "video";
+            String sessionId = data != null ? data.optString("sessionId", "") : "";
+
+            switch (type) {
+                case "call":
+                    mainHandler.post(() -> {
+                        if (callCallback != null) {
+                            callCallback.onCallReceived(fromUserIdStr, callType, sessionId);
+                        }
+                    });
+                    break;
+                case "accept":
+                    mainHandler.post(() -> {
+                        if (callCallback != null) {
+                            callCallback.onCallAnswered(sessionId, true);
+                        }
+                    });
+                    break;
+                case "reject":
+                    mainHandler.post(() -> {
+                        if (callCallback != null) {
+                            callCallback.onCallAnswered(sessionId, false);
+                        }
+                    });
+                    break;
+                case "end":
+                    mainHandler.post(() -> {
+                        if (callCallback != null) {
+                            callCallback.onCallEnded(sessionId);
+                        }
+                    });
+                    break;
+            }
+        } catch (JSONException e) {
+            Log.e(TAG, "Failed to parse WS message", e);
+        }
+    }
+
+    private void reconnectWebSocket() {
+        Log.d(TAG, "Reconnecting WebSocket...");
+        connectWebSocket();
+    }
+
+    /**
+     * 断开 WebSocket 连接
+     */
+    private void disconnectWebSocket() {
+        synchronized (wsLock) {
+            if (wsClient != null) {
+                try {
+                    wsClient.close(1000, "normal");
+                } catch (Exception e) {
+                    Log.e(TAG, "Error closing WS", e);
+                }
+                wsClient = null;
+                wsConnected = false;
+            }
+        }
     }
 
     /**
@@ -181,15 +385,17 @@ public class OpenIMService {
                         while ((line = br.readLine()) != null) sb.append(line);
                         br.close();
 
-                        JSONObject json = new JSONObject(sb.toString());
-                        if (json.optInt("code") == 200) {
-                            JSONObject data = json.getJSONObject("data");
-                            effectiveToken = data.optString("token", "");
-                            effectiveWsUrl = data.optString("wsUrl", wsUrl);
-                            config.saveFromResponse(userId, effectiveToken,
-                                    effectiveWsUrl, apiUrl);
+                            JSONObject json = new JSONObject(sb.toString());
+                            if (json.optInt("code") == 200) {
+                                JSONObject data = json.getJSONObject("data");
+                                effectiveToken = data.optString("token", "");
+                                // resolveHost：将后端返回的 localhost 替换为当前环境的正确主机
+                                effectiveWsUrl = NetworkConfig.resolveHost(data.optString("wsUrl", wsUrl));
+                                String resolvedApiUrl = NetworkConfig.resolveHost(data.optString("apiUrl", apiUrl));
+                                config.saveFromResponse(userId, effectiveToken,
+                                        effectiveWsUrl, resolvedApiUrl);
+                            }
                         }
-                    }
                     conn.disconnect();
                 }
 
@@ -198,6 +404,7 @@ public class OpenIMService {
                     Log.w(TAG, "OpenIM server not available, using mock login");
                     currentUserId = userId;
                     isLoggedIn = true;
+                    mainHandler.post(this::flushPendingCalls);
                     mainHandler.post(() -> {
                         if (callback != null) callback.onSuccess();
                     });
@@ -211,10 +418,14 @@ public class OpenIMService {
                 isLoggedIn = true;
 
                 Log.i(TAG, "OpenIM login success: userId=" + userId);
+                mainHandler.post(this::flushPendingCalls);
                 mainHandler.post(() -> {
                     if (connectionCallback != null) connectionCallback.onConnected();
                     if (callback != null) callback.onSuccess();
                 });
+
+                // 登录成功后建立 WebSocket 连接
+                connectWebSocket();
 
             } catch (Exception e) {
                 Log.e(TAG, "OpenIM login failed", e);
@@ -233,6 +444,7 @@ public class OpenIMService {
         isLoggedIn = false;
         currentUserId = null;
         currentToken = null;
+        disconnectWebSocket();
         config.clear();
         Log.i(TAG, "OpenIM logged out");
     }
@@ -293,81 +505,200 @@ public class OpenIMService {
     }
 
     /**
-     * 发起音视频通话（通过 OpenIM 信令 + LiveKit 媒体）
-     * @param targetAccountId 被叫方账号
-     * @param callType "video" 或 "audio"
+     * 发起音视频通话（HTTP 保存系统消息 + 服务端转发 WebRTC 队列，咨询师端 chat 页才能弹窗）
+     *
+     * @param targetAccountId 被叫方用户 ID（咨询师 userId）
+     * @param callType        "video" 或 "audio"
+     * @param appointmentId   预约 ID，须与 chat_messages.appointment_id 一致且 &gt; 0
      * @return sessionId
      */
-    public String startCall(String targetAccountId, String callType) {
-        if (!isLoggedIn || currentUserId == null) {
-            Log.w(TAG, "OpenIM not logged in, cannot start call");
-            return null;
-        }
-
+    public String startCall(String targetAccountId, String callType, long appointmentId) {
         String sessionId = System.currentTimeMillis() + "_" + targetAccountId;
-        Log.i(TAG, "Starting " + callType + " call to: " + targetAccountId + ", sessionId=" + sessionId);
-
-        // 通过 OpenIM 信令通知对方发起通话
-        sendCallSignaling(targetAccountId, callType, sessionId, "call");
-
+        long sender = resolveSenderUserIdForHttp();
+        if (sender <= 0) {
+            Log.w(TAG, "startCall: 无本地用户 ID，排队等待 OpenIM 登录后再发信令: " + sessionId);
+            pendingCalls.add(() -> {
+                long s = resolveSenderUserIdForHttp();
+                if (s <= 0) {
+                    Log.w(TAG, "startCall: 仍无用户 ID，放弃本条排队信令");
+                    return;
+                }
+                doStartCall(targetAccountId, callType, appointmentId, sessionId, s);
+            });
+            return sessionId;
+        }
+        doStartCall(targetAccountId, callType, appointmentId, sessionId, sender);
         return sessionId;
     }
 
     /**
-     * 发送通话信令（call/accept/reject/end）
+     * 通话 HTTP 信令（POST /messages）使用 App 登录用户 ID，不得依赖 OpenIM 是否已连上。
      */
-    private void sendCallSignaling(String targetAccountId, String callType, String sessionId, String action) {
+    private long resolveSenderUserIdForHttp() {
+        try {
+            if (currentUserId != null && !currentUserId.isEmpty()) {
+                return Long.parseLong(currentUserId);
+            }
+        } catch (NumberFormatException ignored) {
+        }
+        long id = new PreferenceStore(context).getUserId();
+        return id > 0 ? id : 0L;
+    }
+
+    private void doStartCall(String targetAccountId, String callType, long appointmentId, String sessionId, long senderUserId) {
+        Log.i(TAG, "Starting " + callType + " call to: " + targetAccountId + ", sessionId=" + sessionId);
+
+        if (appointmentId <= 0) {
+            Log.w(TAG, "startCall: invalid appointmentId, skip signaling (咨询师端将收不到来电提示)");
+            return;
+        }
+
+        sendCallSignaling(
+                appointmentId,
+                senderUserId,
+                Long.parseLong(targetAccountId),
+                callType != null ? callType : "video",
+                sessionId,
+                "call",
+                false
+        );
+    }
+
+    private void flushPendingCalls() {
+        for (Runnable r : pendingCalls) {
+            r.run();
+        }
+        pendingCalls.clear();
+    }
+
+    /**
+     * 发送通话信令（call/accept/reject/end），与 TongYangYuan-Web chat.js /queue/webrtc 一致
+     */
+    private void sendCallSignaling(
+            long appointmentId,
+            long senderUserId,
+            long receiverUserId,
+            String callType,
+            String sessionId,
+            String action,
+            boolean isFromConsultant
+    ) {
         executor.execute(() -> {
+            HttpURLConnection conn = null;
             try {
                 String url = NetworkConfig.getBaseUrl() + "/messages";
-                HttpURLConnection conn = (HttpURLConnection) URI.create(url).toURL().openConnection();
+                conn = (HttpURLConnection) URI.create(url).toURL().openConnection();
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("Content-Type", "application/json");
-                conn.setRequestProperty("Authorization", "Bearer " + currentToken);
+                String jwt = NetworkConfig.getAuthToken(context);
+                if (jwt != null && !jwt.isEmpty()) {
+                    conn.setRequestProperty("Authorization", "Bearer " + jwt);
+                }
+                conn.setConnectTimeout(8000);
+                conn.setReadTimeout(8000);
                 conn.setDoOutput(true);
 
+                String ct = callType != null ? callType : "";
                 JSONObject body = new JSONObject();
-                body.put("senderUserId", Long.parseLong(currentUserId));
-                body.put("receiverUserId", Long.parseLong(targetAccountId));
+                body.put("appointmentId", appointmentId);
+                body.put("senderUserId", senderUserId);
+                body.put("receiverUserId", receiverUserId);
                 body.put("messageType", "SYSTEM");
-                body.put("content", String.format("CALL:%s:%s:%s", action, callType, sessionId));
+                body.put("content", String.format("CALL:%s:%s:%s", action, ct, sessionId));
+                body.put("isFromConsultant", isFromConsultant);
 
                 conn.getOutputStream().write(body.toString().getBytes("UTF-8"));
-                conn.disconnect();
-                Log.d(TAG, "Call signaling sent: " + action);
+                int code = conn.getResponseCode();
+                Log.d(TAG, "Call signaling HTTP " + code + " action=" + action);
             } catch (Exception e) {
                 Log.e(TAG, "Send call signaling error", e);
+            } finally {
+                if (conn != null) {
+                    conn.disconnect();
+                }
             }
         });
     }
 
     /**
-     * 接听来电
+     * 接听来电（通知对方）；须带主叫 userId 与预约 ID，否则无法写入消息表
      */
-    public void acceptCall(String sessionId, String callType) {
+    public void acceptCall(String sessionId, String callType, String callerUserId, long appointmentId) {
         Log.i(TAG, "Accepting call: " + sessionId);
-        sendCallSignaling(null, callType, sessionId, "accept");
+        long sender = resolveSenderUserIdForHttp();
+        if (sender > 0 && callerUserId != null && appointmentId > 0) {
+            sendCallSignaling(
+                    appointmentId,
+                    sender,
+                    Long.parseLong(callerUserId),
+                    callType != null ? callType : "video",
+                    sessionId,
+                    "accept",
+                    false
+            );
+        }
         if (callCallback != null) {
             callCallback.onCallAnswered(sessionId, true);
         }
     }
 
     /**
-     * 拒绝来电
+     * 兼容旧 JS 接口：无对方/预约信息时不发 HTTP，仅回调本地。
      */
-    public void rejectCall(String sessionId) {
-        Log.i(TAG, "Rejecting call: " + sessionId);
-        sendCallSignaling(null, null, sessionId, "reject");
+    public void acceptCall(String sessionId, String callType) {
+        acceptCall(sessionId, callType, null, 0L);
     }
 
     /**
-     * 结束通话
+     * 拒绝来电
+     */
+    public void rejectCall(String sessionId, String callerUserId, long appointmentId, String callType) {
+        Log.i(TAG, "Rejecting call: " + sessionId);
+        long sender = resolveSenderUserIdForHttp();
+        if (sender > 0 && callerUserId != null && appointmentId > 0) {
+            sendCallSignaling(
+                    appointmentId,
+                    sender,
+                    Long.parseLong(callerUserId),
+                    callType != null ? callType : "",
+                    sessionId,
+                    "reject",
+                    false
+            );
+        }
+    }
+
+    public void rejectCall(String sessionId) {
+        rejectCall(sessionId, null, 0L, null);
+    }
+
+    /**
+     * 结束通话（仅本地回调）
      */
     public void endCall() {
         Log.i(TAG, "Call ended");
         if (callCallback != null) {
             callCallback.onCallEnded(null);
         }
+    }
+
+    /**
+     * 通知对方已挂断（写入 SYSTEM 消息并由服务端转发到 /queue/webrtc）
+     */
+    public void notifyPeerCallEnded(String peerUserId, long appointmentId, String sessionId, String callType) {
+        long sender = resolveSenderUserIdForHttp();
+        if (sender <= 0 || peerUserId == null || appointmentId <= 0 || sessionId == null) {
+            return;
+        }
+        sendCallSignaling(
+                appointmentId,
+                sender,
+                Long.parseLong(peerUserId),
+                callType != null ? callType : "video",
+                sessionId,
+                "end",
+                false
+        );
     }
 
     /**

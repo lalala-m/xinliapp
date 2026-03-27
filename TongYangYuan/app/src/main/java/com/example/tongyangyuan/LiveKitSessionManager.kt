@@ -1,6 +1,7 @@
 package com.example.tongyangyuan
 
 import android.content.Context
+import android.util.Log
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.lifecycle.LifecycleOwner
@@ -11,6 +12,8 @@ import io.livekit.android.events.RoomEvent
 import io.livekit.android.events.collect
 import io.livekit.android.renderer.TextureViewRenderer
 import io.livekit.android.room.Room
+import io.livekit.android.room.participant.LocalParticipant
+import io.livekit.android.room.participant.RemoteParticipant
 import io.livekit.android.room.track.VideoTrack
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -24,6 +27,7 @@ class LiveKitSessionManager(
     private val lifecycleOwner: LifecycleOwner,
     private val context: Context,
 ) {
+    private val TAG = "LiveKitSession"
 
     interface Callbacks {
         fun onConnected()
@@ -43,6 +47,21 @@ class LiveKitSessionManager(
     private var audioOnly: Boolean = false
 
     private var callbacks: Callbacks? = null
+    private var connectedFired = false
+
+    private fun onConnectedFired() {
+        if (connectedFired) return
+        connectedFired = true
+        Log.d(TAG, "onConnectedFired() - triggering connection success")
+        // 连接成功后立即开启麦克风和摄像头（发布本地媒体流）
+        val r = room ?: return
+        lifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
+            r.localParticipant.setMicrophoneEnabled(true)
+            if (!audioOnly) {
+                r.localParticipant.setCameraEnabled(true)
+            }
+        }
+    }
 
     private fun addVideoSink(track: VideoTrack, renderer: TextureViewRenderer) {
         track.addRenderer(renderer)
@@ -70,31 +89,84 @@ class LiveKitSessionManager(
         room = newRoom
 
         collectJob = lifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
-            newRoom.events.collect { event ->
-                when (event) {
-                    is RoomEvent.Connected -> callbacks?.onConnected()
-                    is RoomEvent.Disconnected -> callbacks?.onRoomDisconnected()
-                    is RoomEvent.FailedToConnect -> callbacks?.onError(event.error.message)
-                    is RoomEvent.ParticipantDisconnected -> callbacks?.onRemoteParticipantLeft()
-                    is RoomEvent.TrackSubscribed -> {
-                        if (!audioOnly && event.track is VideoTrack) {
-                            removeVideoSink(attachedRemote, remoteRenderer)
-                            attachedRemote = event.track as VideoTrack
-                            remoteRenderer?.let { addVideoSink(attachedRemote!!, it) }
-                            callbacks?.onRemoteVideoReady()
+            try {
+                newRoom.events.collect { event ->
+                    Log.d(TAG, "RoomEvent: ${event::class.simpleName}")
+                    when (event) {
+                        is RoomEvent.Connected -> {
+                            Log.d(TAG, "RoomEvent.Connected!")
+                            onConnectedFired()
+                            callbacks?.onConnected()
                         }
-                    }
-
-                    is RoomEvent.TrackUnsubscribed -> {
-                        val unsubscribedTrack = event.track
-                        if (unsubscribedTrack is VideoTrack && unsubscribedTrack == attachedRemote) {
-                            removeVideoSink(attachedRemote, remoteRenderer)
-                            attachedRemote = null
+                        is RoomEvent.Disconnected -> {
+                            Log.d(TAG, "RoomEvent.Disconnected")
+                            callbacks?.onRoomDisconnected()
                         }
-                    }
+                        is RoomEvent.FailedToConnect -> {
+                            Log.e(TAG, "RoomEvent.FailedToConnect: ${event.error}")
+                            callbacks?.onError(event.error?.message)
+                        }
+                        is RoomEvent.ParticipantDisconnected -> {
+                            Log.d(TAG, "RoomEvent.ParticipantDisconnected")
+                            callbacks?.onRemoteParticipantLeft()
+                        }
+                        is RoomEvent.TrackPublished -> {
+                            Log.d(TAG, "RoomEvent.TrackPublished: ${event.publication.track?.javaClass?.simpleName}")
+                            if (!connectedFired) {
+                                Log.d(TAG, "TrackPublished before Connected event - triggering connected fallback")
+                                onConnectedFired()
+                                callbacks?.onConnected()
+                            }
+                            // 本地摄像头发布后绑定到小窗预览（此前未绑定会导致本地黑屏）
+                            if (!audioOnly && event.participant is LocalParticipant) {
+                                val track = event.publication.track
+                                if (track is VideoTrack) {
+                                    removeVideoSink(attachedLocal, localRenderer)
+                                    attachedLocal = track
+                                    localRenderer?.let { addVideoSink(track, it) }
+                                }
+                            }
+                        }
+                        is RoomEvent.TrackSubscribed -> {
+                            Log.d(TAG, "RoomEvent.TrackSubscribed: ${event.track.javaClass.simpleName}")
+                            if (!audioOnly && event.track is VideoTrack) {
+                                removeVideoSink(attachedRemote, remoteRenderer)
+                                attachedRemote = event.track as VideoTrack
+                                remoteRenderer?.let { addVideoSink(attachedRemote!!, it) }
+                                callbacks?.onRemoteVideoReady()
+                            }
+                        }
 
-                    else -> Unit
+                        is RoomEvent.ParticipantConnected -> {
+                            Log.d(TAG, "RoomEvent.ParticipantConnected: ${event.participant.identity}")
+                            // 对方加入后立即订阅其已有轨道（处理晚加入场景）
+                            if (!audioOnly) {
+                                event.participant.trackPublications.forEach { (_, pub) ->
+                                    val track = pub.track
+                                    if (track is VideoTrack && attachedRemote == null) {
+                                        removeVideoSink(attachedRemote, remoteRenderer)
+                                        attachedRemote = track
+                                        remoteRenderer?.let { addVideoSink(track, it) }
+                                        callbacks?.onRemoteVideoReady()
+                                    }
+                                }
+                            }
+                        }
+
+                        is RoomEvent.TrackUnsubscribed -> {
+                            Log.d(TAG, "RoomEvent.TrackUnsubscribed")
+                            val unsubscribedTrack = event.track
+                            if (unsubscribedTrack is VideoTrack && unsubscribedTrack == attachedRemote) {
+                                removeVideoSink(attachedRemote, remoteRenderer)
+                                attachedRemote = null
+                            }
+                        }
+
+                        else -> Log.d(TAG, "RoomEvent other: ${event::class.simpleName}")
+                    }
                 }
+            } catch (e: Exception) {
+                Log.e(TAG, "collect coroutine error", e)
             }
         }
 
@@ -118,8 +190,10 @@ class LiveKitSessionManager(
         }
 
         // 连接
+        Log.d(TAG, "Attempting connect to: $serverUrl")
         lifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
             try {
+                Log.d(TAG, "Calling newRoom.connect()...")
                 newRoom.connect(
                     serverUrl,
                     token,
@@ -128,7 +202,24 @@ class LiveKitSessionManager(
                         video = !audioOnlyParam,
                     ),
                 )
+                Log.d(TAG, "newRoom.connect() call completed (connect is async)")
+
+                // 自己加入后，立即订阅已在 room 中的远端参与者（处理自己晚加入场景）
+                if (!audioOnlyParam) {
+                    newRoom.remoteParticipants.forEach { (identity, participant) ->
+                        Log.d(TAG, "Remote participant already in room: $identity")
+                        participant.trackPublications.forEach { (_, pub) ->
+                            val track = pub.track
+                            if (track is VideoTrack && attachedRemote == null) {
+                                removeVideoSink(attachedRemote, remoteRenderer)
+                                attachedRemote = track
+                                remoteRenderer?.let { addVideoSink(track, it) }
+                            }
+                        }
+                    }
+                }
             } catch (e: Exception) {
+                Log.e(TAG, "connect() threw exception", e)
                 callbacks.onError(e.message)
             }
         }
@@ -141,6 +232,7 @@ class LiveKitSessionManager(
     }
 
     fun disconnect(clearViews: Boolean = true) {
+        connectedFired = false
         collectJob?.cancel()
         collectJob = null
         removeVideoSink(attachedRemote, remoteRenderer)

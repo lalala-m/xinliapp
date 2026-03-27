@@ -9,6 +9,9 @@
     <link rel="stylesheet" href="css/anti-flicker.css">
 </head>
 <body>
+    <!-- 通话状态通知容器（像微信那样浮动显示） -->
+    <div class="call-notification-container" id="callNotificationContainer"></div>
+
     <div class="chat-container">
         <!-- 聊天头部 -->
         <header class="chat-header">
@@ -21,6 +24,10 @@
                     <div class="chat-client-name" id="clientName">王女士</div>
                     <div class="chat-client-child" id="clientChild">孩子：小明（8岁）</div>
                 </div>
+                <span class="ws-status conn" id="wsStatusBar">
+                    <span class="ws-status-dot"></span>
+                    连接中…
+                </span>
             </div>
             <div class="chat-header-actions">
                 <button class="btn btn-primary" onclick="Chat.startAudioCall()">

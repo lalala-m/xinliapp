@@ -21,6 +21,29 @@
     z-index: 100;
 }
 
+/* WebSocket 连接状态指示器 */
+.ws-status {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.ws-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #ccc;
+}
+.ws-status.ok   { color: #27ae60; }
+.ws-status.ok   .ws-status-dot { background: #27ae60; }
+.ws-status.err  { color: #e74c3c; }
+.ws-status.err  .ws-status-dot { background: #e74c3c; }
+.ws-status.conn { color: #f39c12; }
+.ws-status.conn .ws-status-dot { background: #f39c12; animation: wsBlink 1s infinite; }
+@keyframes wsBlink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
 .chat-header-left {
     display: flex;
     align-items: center;
@@ -159,6 +182,280 @@
     color: var(--text-secondary);
     font-size: 14px;
     text-align: center;
+}
+
+/* 通话结束消息 */
+.message-call-ended {
+    margin: 4px 0;
+}
+
+.message-call-ended .call-ended-bubble {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, #E8F5E9, #F1F8E9);
+    color: #2E7D32;
+    border: 1px solid #C8E6C9;
+    border-radius: 16px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.call-ended-icon {
+    display: flex;
+    align-items: center;
+    opacity: 0.8;
+}
+
+.call-ended-text {
+    white-space: nowrap;
+}
+
+/* ============================================
+   通话状态通知样式（像微信那样）
+   ============================================ */
+
+/* 通话通知容器 */
+.call-notification-container {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+}
+
+/* 通话通知卡片 */
+.call-notification {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    animation: callNotificationSlide 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    pointer-events: auto;
+    min-width: 280px;
+    max-width: 360px;
+}
+
+@keyframes callNotificationSlide {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.call-notification.fade-out {
+    animation: callNotificationFadeOut 0.3s ease forwards;
+}
+
+@keyframes callNotificationFadeOut {
+    to {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.95);
+    }
+}
+
+/* 通话图标 */
+.call-notification-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.call-notification-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* 呼入/呼出中 */
+.call-notification-icon.calling {
+    background: linear-gradient(135deg, #4CAF50, #66BB6A);
+    animation: callIconPulse 1.5s ease-in-out infinite;
+}
+
+.call-notification-icon.calling svg {
+    stroke: white;
+}
+
+@keyframes callIconPulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4); }
+    50% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(76, 175, 80, 0); }
+}
+
+/* 已接通 */
+.call-notification-icon.connected {
+    background: linear-gradient(135deg, #2196F3, #42A5F5);
+}
+
+.call-notification-icon.connected svg {
+    stroke: white;
+}
+
+/* 已拒绝/已挂断 */
+.call-notification-icon.ended {
+    background: linear-gradient(135deg, #9E9E9E, #BDBDBD);
+}
+
+.call-notification-icon.ended svg {
+    stroke: white;
+}
+
+/* 错误 */
+.call-notification-icon.error {
+    background: linear-gradient(135deg, #F44336, #EF5350);
+}
+
+.call-notification-icon.error svg {
+    stroke: white;
+}
+
+/* 通话内容 */
+.call-notification-content {
+    flex: 1;
+}
+
+.call-notification-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 2px;
+}
+
+.call-notification-subtitle {
+    font-size: 13px;
+    color: #666;
+}
+
+/* 振铃动画指示器 */
+.call-ringing-dots {
+    display: inline-flex;
+    gap: 3px;
+    margin-left: 6px;
+}
+
+.call-ringing-dots span {
+    width: 4px;
+    height: 4px;
+    background: #4CAF50;
+    border-radius: 50%;
+    animation: ringingDot 1.2s ease-in-out infinite;
+}
+
+.call-ringing-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.call-ringing-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes ringingDot {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+    30% { transform: translateY(-4px); opacity: 1; }
+}
+
+/* 接听/拒绝按钮 */
+.call-notification-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.call-action-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.call-action-btn:active {
+    transform: scale(0.95);
+}
+
+.call-action-btn.accept {
+    background: linear-gradient(135deg, #4CAF50, #66BB6A);
+    color: white;
+}
+
+.call-action-btn.accept:hover {
+    background: linear-gradient(135deg, #43A047, #5CBF65);
+}
+
+.call-action-btn.reject {
+    background: #F44336;
+    color: white;
+}
+
+.call-action-btn.reject:hover {
+    background: #E53935;
+}
+
+/* 系统消息样式的通话状态 */
+.message-call-status {
+    margin: 4px 0;
+}
+
+.message-call-status .call-status-bubble {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #E3F2FD, #BBDEFB);
+    color: #1565C0;
+    border: 1px solid #90CAF9;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.message-call-status .call-status-bubble.calling {
+    background: linear-gradient(135deg, #FFF3E0, #FFE0B2);
+    color: #E65100;
+    border-color: #FFCC80;
+}
+
+.message-call-status .call-status-bubble.connected {
+    background: linear-gradient(135deg, #E8F5E9, #C8E6C9);
+    color: #2E7D32;
+    border-color: #A5D6A7;
+}
+
+.message-call-status .call-status-bubble.ended,
+.message-call-status .call-status-bubble.rejected {
+    background: linear-gradient(135deg, #FAFAFA, #EEEEEE);
+    color: #757575;
+    border-color: #E0E0E0;
+}
+
+.message-call-status .call-status-icon {
+    display: flex;
+    align-items: center;
+}
+
+.message-call-status .call-status-icon svg {
+    width: 16px;
+    height: 16px;
 }
 
 /* 输入区域 */

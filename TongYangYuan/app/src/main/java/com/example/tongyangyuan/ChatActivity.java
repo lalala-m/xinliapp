@@ -1,9 +1,12 @@
 package com.example.tongyangyuan;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -31,6 +34,7 @@ import androidx.core.content.FileProvider;
 
 import com.example.tongyangyuan.consult.Consultant;
 import com.example.tongyangyuan.webview.WebAppInterface;
+import com.example.tongyangyuan.VideoCallActivity;
 import com.just.agentweb.AgentWeb;
 
 import java.io.ByteArrayOutputStream;
@@ -76,6 +80,16 @@ public class ChatActivity extends AppCompatActivity implements WebAppInterface.M
     private File recordingFile;
     private MediaPlayer mediaPlayer;
 
+    private boolean videoCallReceiverRegistered;
+    private final BroadcastReceiver videoCallFinishedReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (webInterface != null) {
+                webInterface.notifyVideoCallClosed();
+            }
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -95,6 +109,29 @@ public class ChatActivity extends AppCompatActivity implements WebAppInterface.M
         loadChatPage();
 
         initStomp();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (!videoCallReceiverRegistered) {
+            IntentFilter f = new IntentFilter(VideoCallActivity.ACTION_VIDEO_CALL_FINISHED);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(videoCallFinishedReceiver, f, Context.RECEIVER_NOT_EXPORTED);
+            } else {
+                registerReceiver(videoCallFinishedReceiver, f);
+            }
+            videoCallReceiverRegistered = true;
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        if (videoCallReceiverRegistered) {
+            unregisterReceiver(videoCallFinishedReceiver);
+            videoCallReceiverRegistered = false;
+        }
+        super.onStop();
     }
 
     private void extractIntentData() {
@@ -118,6 +155,12 @@ public class ChatActivity extends AppCompatActivity implements WebAppInterface.M
                 .createAgentWeb()
                 .ready()
                 .go(null);
+
+        // 允许 file:// 页面发起跨域请求（SockJS 需要）
+        android.webkit.WebSettings webSettings = mAgentWeb.getWebCreator().getWebView().getSettings();
+        webSettings.setAllowFileAccessFromFileURLs(true);
+        webSettings.setAllowUniversalAccessFromFileURLs(true);
+        webSettings.setDomStorageEnabled(true);
 
         webInterface = new WebAppInterface(this, mAgentWeb.getWebCreator().getWebView());
         webInterface.setMediaDelegate(this);

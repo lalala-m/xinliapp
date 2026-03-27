@@ -70,4 +70,7 @@ dependencies {
 
     // XXPermissions for permission handling
     implementation("com.github.getActivity:XXPermissions:18.6")
+
+    // OkHttp for WebSocket (STOMP信令)
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }

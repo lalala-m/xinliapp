@@ -1,0 +1,102 @@
+version: '3.8'
+
+services:
+  # etcd - 服务发现
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.9
+    container_name: tongyuan-etcd
+    restart: always
+    ports:
+      - "12379:2379"
+    command: etcd --advertise-client-urls=http://127.0.0.1:2379 --listen-client-urls=http://0.0.0.0:2379 --data-dir=/etcd-data
+    volumes:
+      - ./etcd/data:/etcd-data
+    networks:
+      - openim-net
+
+  # MongoDB - 消息存储
+  mongodb:
+    image: mongo:6.0
+    container_name: tongyuan-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: openIM
+      MONGO_INITDB_ROOT_PASSWORD: openIM123
+      MONGO_INITDB_DATABASE: openim_v3
+    volumes:
+      - ./mongodb/data:/data/db
+    networks:
+      - openim-net
+
+  # Kafka - 消息队列
+  kafka:
+    image: apache/kafka:3.7.0
+    container_name: tongyuan-kafka
+    restart: always
+    ports:
+      - "19092:9092"
+      - "19094:9094"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9094,EXTERNAL://0.0.0.0:19092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:19092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9094
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    volumes:
+      - ./kafka/data:/tmp/kafka-logs
+    networks:
+      - openim-net
+
+  # MinIO - 对象存储（文件/图片）
+  minio:
+    image: minio/minio:latest
+    container_name: tongyuan-minio
+    restart: always
+    ports:
+      - "10005:9000"
+      - "10006:9001"
+    environment:
+      MINIO_ROOT_USER: openIM
+      MINIO_ROOT_PASSWORD: openIM123
+    command: server /data --console-address ":9001"
+    volumes:
+      - ./minio/data:/data
+    networks:
+      - openim-net
+
+  # OpenIM Server - 即时通讯核心
+  openim:
+    image: ghcr.io/openimsdk/openim-server:latest
+    container_name: tongyangyuan-openim
+    restart: always
+    ports:
+      - "10001:10001"    # WebSocket
+      - "10002:10002"    # HTTP API
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./openim/config:/etc/openim-server/config
+    depends_on:
+      etcd:
+        condition: service_started
+      mongodb:
+        condition: service_started
+      kafka:
+        condition: service_started
+      minio:
+        condition: service_started
+    networks:
+      - openim-net
+
+networks:
+  openim-net:
+    name: tongyuan-openim-net
+    driver: bridge

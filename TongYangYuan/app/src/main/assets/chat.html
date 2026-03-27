@@ -78,7 +78,34 @@
             padding: 16px;
             background: #F5F5F5;
             padding-bottom: 200px;
+            -webkit-overflow-scrolling: touch;
         }
+
+        /* 下拉刷新 */
+        .pull-to-refresh {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 0;
+            overflow: hidden;
+            transition: height 0.2s;
+            background: #f0f0f0;
+            font-size: 12px;
+            color: #999;
+        }
+        .pull-to-refresh.pulling, .pull-to-refresh.refreshing {
+            height: 48px;
+        }
+        .pull-to-refresh .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ccc;
+            border-top-color: #6FA6F8;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 6px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
         .message {
             display: flex;
@@ -123,6 +150,39 @@
             color: #999999;
             margin-top: 4px;
             text-align: center;
+        }
+
+        .message.system-message {
+            justify-content: center;
+            margin: 8px 0;
+        }
+
+        .message.system-message .system-bubble {
+            background: rgba(0, 0, 0, 0.05);
+            color: #999999;
+            font-size: 13px;
+            padding: 6px 14px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .message.system-message .call-ended-bubble {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, #E8F5E9, #F1F8E9);
+            color: #2E7D32;
+            border: 1px solid #C8E6C9;
+            border-radius: 16px;
+            padding: 6px 14px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .call-ended-icon {
+            display: inline-flex;
+            align-items: center;
+            opacity: 0.8;
         }
 
         .input-container {
@@ -332,6 +392,182 @@
             color: #627089;
             font-weight: 500;
         }
+
+        /* ============================================
+           通话状态通知样式（像微信那样）
+           ============================================ */
+
+        .call-notification-container {
+            position: fixed;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 500;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+            width: calc(100% - 32px);
+            max-width: 400px;
+        }
+
+        .call-notification {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            animation: callNotifSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            pointer-events: auto;
+            backdrop-filter: blur(10px);
+        }
+
+        @keyframes callNotifSlideIn {
+            from { opacity: 0; transform: translateY(-30px) scale(0.85); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .call-notification.fade-out {
+            animation: callNotifFadeOut 0.3s ease forwards;
+        }
+
+        @keyframes callNotifFadeOut {
+            to { opacity: 0; transform: translateY(-15px) scale(0.9); }
+        }
+
+        .call-notif-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .call-notif-icon svg {
+            width: 26px;
+            height: 26px;
+        }
+
+        .call-notif-icon.calling {
+            background: linear-gradient(135deg, #4CAF50, #66BB6A);
+            animation: callNotifPulse 1.5s ease-in-out infinite;
+        }
+
+        .call-notif-icon.connected {
+            background: linear-gradient(135deg, #2196F3, #42A5F5);
+        }
+
+        .call-notif-icon.ended, .call-notif-icon.rejected {
+            background: linear-gradient(135deg, #9E9E9E, #BDBDBD);
+        }
+
+        .call-notif-icon.error {
+            background: linear-gradient(135deg, #F44336, #EF5350);
+        }
+
+        @keyframes callNotifPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+
+        .call-notif-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .call-notif-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+        }
+
+        .call-notif-subtitle {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .call-ringing-dots {
+            display: inline-flex;
+            gap: 3px;
+            margin-left: 8px;
+        }
+
+        .call-ringing-dots span {
+            width: 5px;
+            height: 5px;
+            background: #4CAF50;
+            border-radius: 50%;
+            animation: ringDot 1.2s ease-in-out infinite;
+        }
+
+        .call-ringing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .call-ringing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes ringDot {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-5px); opacity: 1; }
+        }
+
+        .call-notif-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .call-notif-btn {
+            flex: 1;
+            padding: 10px 14px;
+            border: none;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .call-notif-btn.accept {
+            background: linear-gradient(135deg, #4CAF50, #66BB6A);
+            color: white;
+        }
+
+        .call-notif-btn.reject {
+            background: #F44336;
+            color: white;
+        }
+
+        .call-notif-btn:active {
+            transform: scale(0.95);
+        }
+
+        .call-notif-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: rgba(0, 0, 0, 0.06);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .call-notif-close svg {
+            width: 16px;
+            height: 16px;
+            stroke: #999;
+        }
     </style>
 </head>
 <body class="chat-page">
@@ -370,6 +606,10 @@
             </button>
         </div>
 
+        <div class="pull-to-refresh" id="pullToRefresh">
+            <div class="spinner"></div>
+            <span id="pullToRefreshText">下拉加载更多</span>
+        </div>
         <div class="messages-container" id="messagesContainer">
             <!-- 消息将动态添加到这里 -->
         </div>
@@ -414,7 +654,9 @@
         </div>
     </div>
 
-    <script src="js/sockjs.min.js"></script>
+    <!-- 通话状态通知（像微信那样浮动显示） -->
+    <div class="call-notification-container" id="callNotificationContainer"></div>
+
     <script src="js/stomp.min.js"></script>
     <script src="js/app.js"></script>
     <script>
@@ -426,6 +668,12 @@
         let serverAppointmentId = -1;
         let currentUserId = -1;
         let consultantUserId = 2;
+        /** 自己的 userId（从 Android 接口获取后缓存，避免重复调用） */
+        let _cachedUserId = null;
+        // 通话状态
+        let callType = 'video';
+        let callState = null; // 'calling' | 'connected' | 'ended' | 'rejected'
+        let callStartTime = null;
 
         function loadChatData() {
             // 从URL参数或Android接口获取数据
@@ -485,44 +733,95 @@
             connectWebSocket();
         }
 
+        function getCurrentUserId() {
+            if (_cachedUserId !== null) return _cachedUserId;
+            try {
+                if (window.Android && Android.getUserId) {
+                    _cachedUserId = Android.getUserId();
+                    return _cachedUserId;
+                }
+            } catch (e) { /* ignore */ }
+            return -1;
+        }
+
+        function showConnectionStatus(status) {
+            const existing = document.getElementById('wsStatusBar');
+            if (existing) existing.remove();
+            if (status === 'ok') return; // 连接成功，隐藏状态条
+            const colors = { connecting: '#f39c12', error: '#e74c3c', disconnected: '#95a5a6' };
+            const labels = { connecting: '正在连接聊天服务器…', error: '聊天连接失败（消息仍可发送）', disconnected: '聊天已断开' };
+            const color = colors[status] || '#95a5a6';
+            const label = labels[status] || status;
+            const bar = document.createElement('div');
+            bar.id = 'wsStatusBar';
+            bar.style.cssText = 'position:fixed;top:0;left:0;right:0;background:' + color + ';color:white;text-align:center;font-size:12px;padding:4px 8px;z-index:9999;transition:opacity 0.3s;';
+            bar.textContent = label;
+            document.body.appendChild(bar);
+        }
+
         function connectWebSocket() {
             if (!window.Android || !Android.getAuthToken) {
                 console.warn("Android interface not available");
+                showConnectionStatus('error');
                 return;
             }
 
             const token = Android.getAuthToken();
-            currentUserId = Android.getUserId();
+            currentUserId = getCurrentUserId();
+            console.log('WS connecting with userId=' + currentUserId + ', token present=' + !!token);
 
             if (!token) {
                 console.warn("No auth token available");
+                showConnectionStatus('error');
                 return;
             }
 
-            // 动态获取服务器地址（不再 fallback 硬编码 127.0.0.1）
             if (!Android.getBaseUrl) {
                 console.warn("Android.getBaseUrl not available");
+                showConnectionStatus('error');
                 return;
             }
+
             let baseUrl = Android.getBaseUrl();
             if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
-            const wsUrl = baseUrl + '/ws';
+            // 使用原生 WebSocket /stomp（服务端单独注册），避免 SockJS 依赖 /info + JSESSIONID，在 file:// WebView 下无法建会话导致一直卡住
+            var wsNative = baseUrl;
+            if (wsNative.indexOf('https://') === 0) {
+                wsNative = 'wss://' + wsNative.substring(8);
+            } else if (wsNative.indexOf('http://') === 0) {
+                wsNative = 'ws://' + wsNative.substring(7);
+            }
+            const wsUrl = wsNative + '/stomp';
+            console.log('WS native target: ' + wsUrl);
 
-            const socket = new SockJS(wsUrl);
+            showConnectionStatus('connecting');
+
+            const socket = new WebSocket(wsUrl);
             stompClient = Stomp.over(socket);
-
-            // 禁用 STOMP debug 日志
             stompClient.debug = null;
 
-            // Token 放入 STOMP CONNECT 帧的 Authorization 头，供 WebSocketChannelInterceptor 验证
+            socket.addEventListener('open',   function() { console.log('[WS] open'); });
+            socket.addEventListener('close',  function(e) { console.log('[WS] close', e && e.code, e && e.reason); });
+            socket.addEventListener('error',  function(e) { console.error('[WS] error', e); });
+
+            // 超过 10 秒未连接成功，强制切换到 error 状态
+            const connectTimeout = setTimeout(function() {
+                console.error('WS connect timeout after 10s');
+                try { socket.close(); } catch(err) {}
+                showConnectionStatus('error');
+            }, 10000);
+
             stompClient.connect(
                 { 'Authorization': 'Bearer ' + token },
                 function (frame) {
-                    console.log('STOMP Connected: ' + frame);
+                    clearTimeout(connectTimeout);
+                    console.log('STOMP Connected: ' + frame + ' (userId=' + currentUserId + ')');
+                    showConnectionStatus('ok');
+                    setupWsHeartbeat();
 
-                    // 订阅个人消息队列
                     stompClient.subscribe('/user/queue/messages', function (messageOutput) {
                         const message = JSON.parse(messageOutput.body);
+                        console.log('WS received message:', message);
                         handleIncomingMessage(message);
                     });
 
@@ -531,18 +830,30 @@
                         handleWebRTCSignal(signal);
                     });
 
-                    // 上线通知
                     stompClient.send("/app/chat.online", {}, JSON.stringify(currentUserId));
-
                 }, function (error) {
-                    console.error('STOMP error: ' + error);
+                    clearTimeout(connectTimeout);
+                    console.error('STOMP error:', error);
+                    showConnectionStatus('error');
                     setTimeout(connectWebSocket, 5000);
                 }
             );
         }
+
+        // WebSocket 断连监听（STOMP.js 用 webSocket.onclose）
+        function setupWsHeartbeat() {
+            if (!stompClient || !stompClient.ws) return;
+            stompClient.ws.onclose = function() {
+                console.warn('STOMP disconnected');
+                showConnectionStatus('disconnected');
+                setTimeout(connectWebSocket, 5000);
+            };
+        }
         
         function handleIncomingMessage(messageDTO) {
-            if (messageDTO.senderUserId == currentUserId) {
+            const typeIncoming = (messageDTO.messageType || '').toLowerCase();
+            // 自己发的普通消息不再重复展示；SYSTEM（如通话结束）多端同步仍需写入并展示
+            if (messageDTO.senderUserId == currentUserId && typeIncoming !== 'system') {
                 return;
             }
 
@@ -561,19 +872,138 @@
                 return;
             }
             if (signal.type === 'call') {
-                startIncomingCall(signal, targetAppointmentId);
+                const incomingCallType = signal.data && signal.data.callType ? signal.data.callType : 'video';
+                startIncomingCallNotification(signal, targetAppointmentId, incomingCallType);
             }
         }
 
+        // 显示通话通知（像微信那样）
+        function startIncomingCallNotification(signal, fallbackAppointmentId, incomingCallType) {
+            callType = incomingCallType;
+            callState = 'calling';
+
+            const consultantName = document.getElementById('consultantName').textContent.replace(' 咨询师', '') || '咨询师';
+            const typeLabel = incomingCallType === 'audio' ? '语音' : '视频';
+            const appointmentId = signal.appointmentId ? String(signal.appointmentId) : String(fallbackAppointmentId || '');
+            const targetUserId = signal.fromUserId || 0;
+
+            // 显示通知
+            const container = document.getElementById('callNotificationContainer');
+            if (!container) return;
+
+            container.innerHTML = `
+                <div class="call-notification" id="callNotif">
+                    <div class="call-notif-icon calling">
+                        ${incomingCallType === 'audio'
+                            ? `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 9a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 0h3a2 2 0 0 1 2 1.72"/></svg>`
+                            : `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`
+                        }
+                    </div>
+                    <div class="call-notif-content">
+                        <div class="call-notif-title">
+                            收到${typeLabel}通话
+                            <span class="call-ringing-dots"><span></span><span></span><span></span></span>
+                        </div>
+                        <div class="call-notif-subtitle">来自 ${consultantName} 咨询师</div>
+                        <div class="call-notif-actions">
+                            <button class="call-notif-btn accept" onclick="acceptIncomingCall('${appointmentId}', '${consultantName}', ${targetUserId}, '${incomingCallType}')">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 9"/></svg>
+                                接听
+                            </button>
+                            <button class="call-notif-btn reject" onclick="rejectIncomingCall()">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                拒绝
+                            </button>
+                        </div>
+                    </div>
+                    <button class="call-notif-close" onclick="dismissCallNotification()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+            `;
+
+            // 自动拒绝超时（60秒）
+            setTimeout(() => {
+                if (callState === 'calling') {
+                    dismissCallNotification();
+                    showToast('通话请求已超时');
+                }
+            }, 60000);
+        }
+
+        function acceptIncomingCall(appointmentId, consultantName, targetUserId, incomingCallType) {
+            dismissCallNotification();
+            callState = 'connected';
+            callStartTime = Date.now();
+
+            if (typeof Android.startVideoCallWithType === 'function') {
+                Android.startVideoCallWithType(appointmentId, consultantName, targetUserId, incomingCallType);
+            } else if (typeof Android.startVideoCall === 'function') {
+                Android.startVideoCall(appointmentId, consultantName, targetUserId);
+            }
+        }
+
+        function rejectIncomingCall() {
+            dismissCallNotification();
+            callState = 'rejected';
+            // 发送拒绝信号
+            if (stompClient && stompClient.connected) {
+                const payload = {
+                    type: 'reject',
+                    fromUserId: currentUserId,
+                    toUserId: consultantUserId,
+                    appointmentId: serverAppointmentId > 0 ? serverAppointmentId : currentAppointmentId
+                };
+                stompClient.send('/app/webrtc.signal', {}, JSON.stringify(payload));
+            }
+            showToast('已拒绝通话');
+        }
+
+        function dismissCallNotification() {
+            const container = document.getElementById('callNotificationContainer');
+            const notif = document.getElementById('callNotif');
+            if (notif) {
+                notif.classList.add('fade-out');
+                setTimeout(() => {
+                    if (container) container.innerHTML = '';
+                }, 300);
+            }
+        }
+
+        // 显示通话状态通知（呼出、已接听等）
+        function showCallStatusNotification(type, title, subtitle) {
+            const container = document.getElementById('callNotificationContainer');
+            if (!container) return;
+
+            container.innerHTML = `
+                <div class="call-notification" id="callNotif">
+                    <div class="call-notif-icon ${type}">
+                        ${type === 'calling'
+                            ? `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`
+                            : type === 'connected'
+                            ? `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>`
+                            : `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`
+                        }
+                    </div>
+                    <div class="call-notif-content">
+                        <div class="call-notif-title">${title}</div>
+                        <div class="call-notif-subtitle">${subtitle}</div>
+                    </div>
+                </div>
+            `;
+
+            // 不在此用 setTimeout 关闭：通话页在前台时 WebView 定时器暂停，会导致挂断后仍卡在「正在呼叫」。
+            // 清除横幅由 Android 在 VideoCallActivity 结束时调用 notifyVideoCallClosed。
+        }
+
         function startIncomingCall(signal, fallbackAppointmentId) {
-            if (!window.Android) return;
             const consultantName = document.getElementById('consultantName').textContent.replace(' 咨询师', '') || '咨询师';
             const appointmentId = signal.appointmentId ? String(signal.appointmentId) : String(fallbackAppointmentId || '');
             const targetUserId = signal.fromUserId || 0;
-            const callType = signal.data && signal.data.callType ? signal.data.callType : 'video';
+            const incomingCallType = signal.data && signal.data.callType ? signal.data.callType : 'video';
 
             if (typeof Android.startVideoCallWithType === 'function') {
-                Android.startVideoCallWithType(appointmentId, consultantName, targetUserId, callType);
+                Android.startVideoCallWithType(appointmentId, consultantName, targetUserId, incomingCallType);
             } else if (typeof Android.startVideoCall === 'function') {
                 Android.startVideoCall(appointmentId, consultantName, targetUserId);
             }
@@ -599,6 +1029,17 @@
                 console.error('Load history failed', e);
                 shouldShowWelcome = false;
             }
+        }
+
+        /** 从原生重新拉取聊天记录（清空后重绘，避免重复追加） */
+        function refreshChatHistoryFromNative() {
+            const container = document.getElementById('messagesContainer');
+            if (container) {
+                container.innerHTML = '';
+            }
+            messages = [];
+            historyLoaded = false;
+            loadHistoryMessages();
         }
 
         function sendMessage() {
@@ -675,8 +1116,45 @@
             if (stompClient && stompClient.connected) {
                 stompClient.send("/app/chat.send", {}, JSON.stringify(messageDTO));
             } else {
-                console.warn("STOMP not connected, message send failed");
+                // WS 不可用，降级为 HTTP 重试
+                console.warn("STOMP not connected, retrying via HTTP…");
+                retrySendViaHttp(messageDTO, 1);
             }
+        }
+
+        /** WS 断连时通过 HTTP 重发消息（最多 2 次） */
+        function retrySendViaHttp(messageDTO, attempt) {
+            let baseUrl = 'http://127.0.0.1:8080/api';
+            if (window.Android && Android.getBaseUrl) {
+                baseUrl = Android.getBaseUrl();
+                if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+            }
+            const token = window.Android ? Android.getAuthToken() : '';
+            fetch(baseUrl + '/messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify(messageDTO)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.code === 200 || data.code === 201) {
+                    console.log('Message sent via HTTP retry');
+                } else if (attempt < 2) {
+                    setTimeout(() => retrySendViaHttp(messageDTO, attempt + 1), 1000);
+                } else {
+                    showToast('发送失败，请检查网络');
+                }
+            })
+            .catch(() => {
+                if (attempt < 2) {
+                    setTimeout(() => retrySendViaHttp(messageDTO, attempt + 1), 1500);
+                } else {
+                    showToast('发送失败，请检查网络');
+                }
+            });
         }
 
         function addMessage(fromConsultant, type, content, mediaUrl, skipPersist) {
@@ -714,6 +1192,32 @@
         function renderMessage(message) {
             const container = document.getElementById('messagesContainer');
             const messageDiv = document.createElement('div');
+
+            // 系统消息（通话结束等）
+            if (message.type === 'system') {
+                messageDiv.className = 'message system-message';
+
+                // 通话结束消息：CALL_ENDED:video/audio:时长秒数:格式化时长
+                if (message.content && message.content.startsWith('CALL_ENDED:')) {
+                    const parts = message.content.split(':');
+                    const callType = parts[1] === 'audio' ? '语音' : '视频';
+                    const durationStr = parts[3] || (parts[2] ? parts[2] + '秒' : '0秒');
+                    const icon = parts[1] === 'audio'
+                        ? `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 9a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 0h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 7.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`
+                        : `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`;
+                    messageDiv.innerHTML = `
+                        <div class="call-ended-bubble">
+                            <span class="call-ended-icon">${icon}</span>
+                            <span>${callType}通话已结束，时长 ${durationStr}</span>
+                        </div>
+                    `;
+                } else {
+                    messageDiv.innerHTML = `<div class="system-bubble">${escapeHtml(message.content)}</div>`;
+                }
+                container.appendChild(messageDiv);
+                return;
+            }
+
             messageDiv.className = `message ${message.fromConsultant ? 'consultant' : 'user'}`;
 
             let contentHtml = '';
@@ -752,6 +1256,9 @@
                         </button>
                     </div>
                 `;
+            } else {
+                // 其他类型当文本处理
+                contentHtml = `<div class="message-bubble">${escapeHtml(message.content)}</div>`;
             }
 
             messageDiv.innerHTML = contentHtml;
@@ -772,6 +1279,46 @@
         function scrollToBottom() {
             const container = document.getElementById('messagesContainer');
             container.scrollTop = container.scrollHeight;
+        }
+
+        /* ── 下拉刷新 ── */
+        let _ptrStartY = 0;
+        let _ptrPulling = false;
+
+        function initPullToRefresh() {
+            const container = document.getElementById('messagesContainer');
+            if (!container) return;
+            container.addEventListener('touchstart', function(e) {
+                if (container.scrollTop > 0) return; // 未在顶部，不触发
+                _ptrStartY = e.touches[0].clientY;
+                _ptrPulling = false;
+            }, { passive: true });
+
+            container.addEventListener('touchmove', function(e) {
+                if (container.scrollTop > 0) return;
+                const dy = e.touches[0].clientY - _ptrStartY;
+                if (dy > 40) {
+                    _ptrPulling = true;
+                    document.getElementById('pullToRefresh').classList.add('pulling');
+                    document.getElementById('pullToRefreshText').textContent = '释放加载更多…';
+                    e.preventDefault(); // 阻止页面下拉
+                }
+            }, { passive: false });
+
+            container.addEventListener('touchend', function() {
+                const ptr = document.getElementById('pullToRefresh');
+                if (!_ptrPulling) return;
+                _ptrPulling = false;
+                ptr.classList.remove('pulling');
+                ptr.classList.add('refreshing');
+                document.getElementById('pullToRefreshText').textContent = '加载中…';
+                refreshChatHistoryFromNative();
+                // 重置
+                setTimeout(() => {
+                    ptr.classList.remove('refreshing');
+                    document.getElementById('pullToRefreshText').textContent = '下拉加载更多';
+                }, 800);
+            }, { passive: true });
         }
 
         function attachImage() {
@@ -896,6 +1443,13 @@
             const appointmentId = String(serverAppointmentId > 0 ? serverAppointmentId : (currentAppointmentId || getUrlParam('appointmentId') || getUrlParam('appointment_id') || ''));
             const targetUserId = consultantUserId || 0;
 
+            callType = type || 'video';
+            callState = 'calling';
+
+            // 显示呼出通知
+            const typeLabel = callType === 'audio' ? '语音' : '视频';
+            showCallStatusNotification('calling', `正在呼叫 ${consultantName}...`, typeLabel + '通话');
+
             if (!window.Android) {
                 showToast('请在APP内发起通话');
                 return;
@@ -907,7 +1461,7 @@
             }
 
             if (typeof Android.startOutgoingCall === 'function') {
-                Android.startOutgoingCall(appointmentId, consultantName, targetUserId, type);
+                Android.startOutgoingCall(appointmentId, consultantName, targetUserId, callType);
                 return;
             }
 
@@ -973,6 +1527,7 @@
         // 页面加载时初始化
         document.addEventListener('DOMContentLoaded', function() {
             loadChatData();
+            initPullToRefresh();
             // 欢迎消息由服务器端在预约确认时发送，这里不再在本地生成
             setTimeout(checkConsultationStatus, 1000);
         });

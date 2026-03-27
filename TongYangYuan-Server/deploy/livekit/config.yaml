@@ -1,20 +1,19 @@
-# LiveKit Server 配置（方案A - 自建）
+# LiveKit Server Configuration
+# This config is for livekit-server version 1.x
 
 port: 7880
 rtc:
   port_range_start: 50000
   port_range_end: 60000
   tcp_port: 7881
-  udp_port: 7882
-  use_external_ip: true
+  use_external_ip: false
 
-# LiveKit 密钥配置（方案A自建）
 keys:
-  devkey: TongYuanLiveKit@2026SecretKey
+  devkey: TongYuanLiveKit@2026SecretKeyXXX
 
 room:
   auto_create: true
-  empty_timeout: 300  # 5分钟无参与者自动关闭房间
+  empty_timeout: 300
 
 logging:
   level: info

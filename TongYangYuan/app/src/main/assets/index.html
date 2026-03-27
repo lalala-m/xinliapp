@@ -422,8 +422,30 @@
 
     <script src="js/app.js"></script>
     <script>
-        let childProfiles = [], currentChildId = -1;
+        let childProfiles = [];
+        /** 当前孩子 id：与原生一致，可能是数字字符串或 UUID，勿用 parseInt */
+        let currentChildId = '';
         let homeConfig = { banners: [], adCard: {} };
+
+        function readAndroidCurrentChildIdStr() {
+            if (window.Android && typeof Android.getCurrentChildIdStr === 'function') {
+                try {
+                    const s = Android.getCurrentChildIdStr();
+                    if (s != null && String(s).length > 0) return String(s);
+                } catch (e) { /* ignore */ }
+            }
+            if (window.Android && typeof Android.getCurrentChildId === 'function') {
+                try {
+                    const n = Android.getCurrentChildId();
+                    if (n != null && n >= 0) return String(n);
+                } catch (e) { /* ignore */ }
+            }
+            return '';
+        }
+
+        function childIdsEqual(a, b) {
+            return String(a) === String(b);
+        }
 
         function getApiBase() {
             if (window.Android && typeof Android.getBaseUrl === 'function') {
@@ -594,16 +616,14 @@
             if (window.Android && Android.getChildProfiles) {
                 try { childProfiles = JSON.parse(Android.getChildProfiles() || '[]') || []; } catch (e) { childProfiles = []; }
             }
-            if (window.Android && Android.getCurrentChildId) {
-                try { currentChildId = parseInt(Android.getCurrentChildId()); } catch (e) { currentChildId = -1; }
-            }
+            currentChildId = readAndroidCurrentChildIdStr();
             updateTopChildSwitcherUI();
         }
         function updateTopChildSwitcherUI() {
             const avatar = document.getElementById('topChildAvatar');
             const name = document.getElementById('topChildName');
             const age = document.getElementById('topChildAge');
-            const cur = childProfiles.find(c => (typeof c.id === 'string' ? parseInt(c.id) : c.id) === currentChildId) || childProfiles[0];
+            const cur = childProfiles.find(c => childIdsEqual(c.id, currentChildId)) || childProfiles[0];
             if (cur) {
                 avatar.textContent = (cur.name || '子').charAt(0);
                 avatar.className = 'top-child-avatar' + (cur.gender === 'GIRL' ? ' girl' : '');
@@ -631,9 +651,9 @@
                 content.innerHTML = '<div style="text-align: center; padding: 32px; color: #999;"><a href="javascript:void(0)" onclick="openChildInfoPage(); hideChildPicker();" style="color: #6FA6F8;">去添加孩子信息</a></div>';
             } else {
                 content.innerHTML = childProfiles.map(c => {
-                    const cid = typeof c.id === 'string' ? parseInt(c.id) : c.id;
-                    const sel = cid === currentChildId;
-                    return '<div class="picker-child-item ' + (sel ? 'selected' : '') + '" onclick="switchToChild(\'' + c.id + '\', \'' + (c.name || '').replace(/'/g, "\\'") + '\')">' +
+                    const sel = childIdsEqual(c.id, currentChildId);
+                    const idEsc = String(c.id != null ? c.id : '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                    return '<div class="picker-child-item ' + (sel ? 'selected' : '') + '" onclick="switchToChild(\'' + idEsc + '\', \'' + (c.name || '').replace(/'/g, "\\'") + '\')">' +
                         '<div class="item-avatar ' + (c.gender === 'GIRL' ? 'girl' : '') + '">' + (c.name || '子').charAt(0) + '</div>' +
                         '<div class="item-info"><div style="font-weight:600;">' + (c.name || '未命名') + '</div><div style="font-size:12px;color:#999;">' + (c.gender === 'GIRL' ? '女孩' : '男孩') + (c.birthDate ? ' · ' + calculateChildAge(c.birthDate) + '岁' : '') + '</div></div>' +
                         '</div>';
@@ -647,7 +667,7 @@
             document.getElementById('childPickerModal').classList.remove('show');
         }
         function switchToChild(id, nm) {
-            currentChildId = typeof id === 'string' ? parseInt(id) : id;
+            currentChildId = String(id != null ? id : '');
             if (window.Android && Android.setCurrentChild) Android.setCurrentChild(String(id), nm || '');
             updateTopChildSwitcherUI();
             hideChildPicker();

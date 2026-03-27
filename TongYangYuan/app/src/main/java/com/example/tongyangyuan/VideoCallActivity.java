@@ -18,6 +18,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.example.tongyangyuan.data.ChatStore;
+import com.example.tongyangyuan.data.ChatMessageRecord;
 import com.example.tongyangyuan.data.PreferenceStore;
 import com.example.tongyangyuan.database.NetworkConfig;
 import com.example.tongyangyuan.openim.OpenIMService;
@@ -30,6 +32,7 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * 视频通话 Activity - LiveKit + OpenIM 信令
@@ -41,6 +44,9 @@ public class VideoCallActivity extends AppCompatActivity {
 
     private static final String TAG = "VideoCallActivity";
     private static final int REQ_MEDIA_PERMISSIONS = 1001;
+
+    /** 通话页关闭时发出，供聊天 WebView 清除「正在呼叫」横幅并刷新记录 */
+    public static final String ACTION_VIDEO_CALL_FINISHED = "com.example.tongyangyuan.VIDEO_CALL_FINISHED";
 
     // Intent Extra Keys
     public static final String KEY_CONSULTANT_NAME = "consultant_name";
@@ -61,17 +67,24 @@ public class VideoCallActivity extends AppCompatActivity {
     private boolean isAudioCall;
     private boolean isCaller;
     private String currentSessionId;
+    /** 被叫场景下，主叫方用户 ID（用于回发 accept 等信令） */
+    private String incomingCallerUserId;
 
     private String livekitServerUrl;
     private String livekitToken;
     /** 避免 fetch 回调与 onCallAnswered 重复发起 LiveKit 连接 */
     private boolean liveKitConnectStarted;
+    /** 权限已授予标志（防止首次启动时请求权限回调晚于 startOutgoingCall） */
+    private boolean permissionsGranted = false;
+    /** 通话开始时间（毫秒），用于计算通话时长 */
+    private long callStartTimeMs = 0;
 
     private LiveKitSessionManager liveKitSession;
 
     // OpenIM
     private OpenIMService openIMService;
     private PreferenceStore preferenceStore;
+    private ChatStore chatStore;
 
     // UI
     private FrameLayout remoteVideoContainer;
@@ -99,10 +112,12 @@ public class VideoCallActivity extends AppCompatActivity {
         @Override
         public void onCallReceived(String accountId, String callType, String sessionId) {
             mainHandler.post(() -> {
+                incomingCallerUserId = accountId;
                 currentSessionId = sessionId;
                 VideoCallActivity.this.callType = callType;
                 isAudioCall = !"video".equalsIgnoreCase(callType);
-                acceptCall();
+                // 被叫：显示来电弹窗，由用户选择接听/拒绝
+                showIncomingCallDialog(accountId, isAudioCall ? "语音来电" : "视频来电");
             });
         }
 
@@ -110,10 +125,15 @@ public class VideoCallActivity extends AppCompatActivity {
         public void onCallAnswered(String sessionId, boolean accepted) {
             mainHandler.post(() -> {
                 if (accepted) {
-                    // 主叫已在 startOutgoingCall 里拉 token；被叫在 acceptCall 里拉 token。
-                    // 若 token 已就绪但尚未连上，再补一次。
-                    if (livekitToken != null && livekitServerUrl != null) {
-                        startLiveKitRoom();
+                    // 对方接听 → 主叫端开始 LiveKit 连接
+                    if (isCaller) {
+                        if (livekitToken != null && livekitServerUrl != null && !liveKitConnectStarted) {
+                            startLiveKitRoom();
+                        } else {
+                            // Token 还未拉回，延迟重试（最多 5 秒，每 500ms 查一次）
+                            Log.d(TAG, "Token not ready yet, will retry LiveKit connection...");
+                            retryLiveKitConnection();
+                        }
                     }
                 } else {
                     Toast.makeText(VideoCallActivity.this, consultantName + " 拒绝了通话", Toast.LENGTH_SHORT).show();
@@ -136,6 +156,7 @@ public class VideoCallActivity extends AppCompatActivity {
         @Override
         public void onConnected() {
             mainHandler.post(() -> {
+                callStartTimeMs = System.currentTimeMillis();
                 if (avatarWaitingView != null) avatarWaitingView.setVisibility(View.GONE);
                 if (remoteVideoContainer != null) remoteVideoContainer.setBackgroundColor(0);
                 stopRingAnimation();
@@ -167,7 +188,12 @@ public class VideoCallActivity extends AppCompatActivity {
         public void onError(@Nullable String message) {
             mainHandler.post(() -> {
                 Log.e(TAG, "LiveKit: " + message);
-                statusText.setText("通话出错");
+                String detail = (message != null && !message.isEmpty()) ? message : "连接失败";
+                if (detail.length() > 48) {
+                    detail = detail.substring(0, 45) + "…";
+                }
+                statusText.setText("通话出错：" + detail);
+                Toast.makeText(VideoCallActivity.this, "LiveKit: " + (message != null ? message : ""), Toast.LENGTH_LONG).show();
             });
         }
     };
@@ -197,7 +223,9 @@ public class VideoCallActivity extends AppCompatActivity {
         if (!isAudioCall && ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             need.add(Manifest.permission.CAMERA);
         }
-        if (!need.isEmpty()) {
+        if (need.isEmpty()) {
+            permissionsGranted = true;
+        } else {
             ActivityCompat.requestPermissions(this, need.toArray(new String[0]), REQ_MEDIA_PERMISSIONS);
         }
     }
@@ -211,6 +239,10 @@ public class VideoCallActivity extends AppCompatActivity {
                 Toast.makeText(this, "需要摄像头与麦克风权限才能视频通话", Toast.LENGTH_LONG).show();
                 return;
             }
+        }
+        permissionsGranted = true;
+        if (isCaller) {
+            startOutgoingCall();
         }
     }
 
@@ -321,28 +353,66 @@ public class VideoCallActivity extends AppCompatActivity {
         openIMService = OpenIMService.getInstance(this);
         openIMService.setCallCallback(openIMCallCallback);
         openIMService.init();
+        // 登录 OpenIM 以建立 WebSocket 连接（接收信令）
+        String userId = String.valueOf(currentUserId);
+        String token = preferenceStore.getAuthToken();
+        openIMService.login(userId, token, new OpenIMService.LoginCallback() {
+            @Override
+            public void onSuccess() {
+                Log.d(TAG, "OpenIM login OK for signaling");
+            }
+
+            @Override
+            public void onFailed(int code) {
+                Log.w(TAG, "OpenIM login failed: " + code + " (will retry on next call)");
+            }
+
+            @Override
+            public void onException(Throwable exception) {
+                Log.e(TAG, "OpenIM login exception", exception);
+            }
+        });
     }
 
     /**
-     * 主叫：发起通话
+     * 主叫：发起通话 → 发送 call 信令 → 等待对方 accept
      */
     private void startOutgoingCall() {
-        statusText.setText("正在呼叫 " + consultantName + "...");
+        if (!permissionsGranted) {
+            mainHandler.post(() -> statusText.setText("等待权限授权..."));
+            return;
+        }
+        mainHandler.post(this::startRingAnimation);
+        statusText.setText("等待 " + consultantName + " 接听...");
         String targetAccountId = String.valueOf(targetUserId);
-        currentSessionId = openIMService.startCall(targetAccountId, callType);
+        long apt = (appointmentId != null && appointmentId > 0) ? appointmentId : -1L;
+        currentSessionId = openIMService.startCall(targetAccountId, callType, apt);
+        // 拉取 LiveKit Token（等对方 accept 后再连，这里先拉好）
         fetchLiveKitTokenAndConnect();
     }
 
     /**
-     * 被叫：接听（同样需要向后端拉取 LiveKit Token）
+     * 被叫：接听来电 → 发送 accept 信令 → 连接 LiveKit
      */
     private void acceptCall() {
-        openIMService.acceptCall(currentSessionId, callType);
+        mainHandler.post(this::startRingAnimation);
+        statusText.setText("正在接听...");
+        String peer = incomingCallerUserId != null ? incomingCallerUserId : String.valueOf(targetUserId);
+        long apt = (appointmentId != null && appointmentId > 0) ? appointmentId : -1L;
+        openIMService.acceptCall(currentSessionId, callType, peer, apt);
+        // 拉取 LiveKit Token，若已就绪则立即连接
         fetchLiveKitTokenAndConnect();
+        // 若 token 已预拉好，立即连接
+        if (livekitToken != null && livekitServerUrl != null) {
+            mainHandler.postDelayed(this::startLiveKitRoom, 500);
+        }
     }
 
     /**
-     * 从后端获取 LiveKit Token 并连接
+     * 从后端获取 LiveKit Token 并存储（不立即连接）
+     * 连接时机由信令控制：
+     *   - 主叫：收到 accept 信令后
+     *   - 被叫：用户在对话框点击"接听"后
      */
     private void fetchLiveKitTokenAndConnect() {
         new Thread(() -> {
@@ -369,14 +439,19 @@ public class VideoCallActivity extends AppCompatActivity {
                     String token = json.optString("token", null);
                     String serverUrl = json.optString("serverUrl", null);
 
+                    Log.d(TAG, "Token response - code: " + code + ", token: " + (token != null ? "present(" + token.length() + ")" : "null")
+                            + ", serverUrl: " + serverUrl);
+
                     if (token != null && !token.isEmpty() && serverUrl != null && !serverUrl.contains("your-livekit")) {
                         livekitToken = token;
-                        livekitServerUrl = serverUrl;
-                        mainHandler.post(this::startLiveKitRoom);
+                        // resolveHost：后端返回的 localhost/127.0.0.1 替换为当前环境的正确主机
+                        livekitServerUrl = NetworkConfig.resolveHost(serverUrl);
+                        Log.d(TAG, "LiveKit token fetched, stored (will connect on accept signal)");
+                        // 注意：不在这里调 startLiveKitRoom()，等信令触发
                     } else {
                         mainHandler.post(() -> {
                             Toast.makeText(this, "LiveKit 未配置，请先在服务器配置 LiveKit", Toast.LENGTH_SHORT).show();
-                            statusText.setText("音视频服务未配置，等待对方接听...");
+                            statusText.setText("音视频服务未配置");
                         });
                     }
                 } else {
@@ -409,8 +484,13 @@ public class VideoCallActivity extends AppCompatActivity {
         }
         liveKitConnectStarted = true;
 
+        Log.d(TAG, "startLiveKitRoom: token=" + (livekitToken.length() > 20 ? "OK" : "BAD")
+                + ", serverUrl=" + livekitServerUrl + ", isAudioCall=" + isAudioCall);
         mainHandler.post(() -> {
             statusText.setText("正在建立连接...");
+            if (!isAudioCall && localVideoContainer != null) {
+                localVideoContainer.setVisibility(View.VISIBLE);
+            }
             liveKitSession.connect(
                     livekitServerUrl,
                     livekitToken,
@@ -420,6 +500,20 @@ public class VideoCallActivity extends AppCompatActivity {
                     liveKitCallbacks
             );
         });
+    }
+
+    /**
+     * 重试 LiveKit 连接（主叫收到 accept 但 token 还未拉回时使用）
+     */
+    private void retryLiveKitConnection() {
+        mainHandler.postDelayed(() -> {
+            if (livekitToken != null && livekitServerUrl != null && !liveKitConnectStarted) {
+                Log.d(TAG, "Token ready now, connecting to LiveKit...");
+                startLiveKitRoom();
+            } else if (!liveKitConnectStarted) {
+                retryLiveKitConnection(); // 再试一次
+            }
+        }, 500);
     }
 
     private void toggleMute() {
@@ -439,14 +533,136 @@ public class VideoCallActivity extends AppCompatActivity {
     }
 
     /**
+     * 显示来电弹窗（被叫场景）
+     */
+    private void showIncomingCallDialog(String callerAccountId, String prompt) {
+        stopRingAnimation();
+        if (avatarWaitingView != null) avatarWaitingView.setVisibility(View.GONE);
+
+        String callerName = consultantName != null ? consultantName : "家长";
+
+        new android.app.AlertDialog.Builder(this)
+                .setTitle(callerName)
+                .setMessage(prompt)
+                .setCancelable(false)
+                .setPositiveButton("接听", (dialog, which) -> {
+                    acceptCall();
+                })
+                .setNegativeButton("拒绝", (dialog, which) -> {
+                    Toast.makeText(this, "已拒绝通话", Toast.LENGTH_SHORT).show();
+                    if (openIMService != null && currentSessionId != null) {
+                        openIMService.rejectCall(currentSessionId, callerAccountId, appointmentId != null ? appointmentId : -1L, callType);
+                    }
+                    finish();
+                })
+                .setOnCancelListener(dialog -> {
+                    // 按返回键 = 拒绝
+                    if (openIMService != null && currentSessionId != null) {
+                        openIMService.rejectCall(currentSessionId, callerAccountId, appointmentId != null ? appointmentId : -1L, callType);
+                    }
+                    finish();
+                })
+                .show();
+
+        // 振铃动画（对话框出现后播放）
+        mainHandler.postDelayed(this::startRingAnimation, 300);
+    }
+
+    /**
      * 结束通话
      */
     public void endCall() {
+        if (openIMService != null && currentSessionId != null && targetUserId != null
+                && appointmentId != null && appointmentId > 0) {
+            openIMService.notifyPeerCallEnded(String.valueOf(targetUserId), appointmentId, currentSessionId, callType);
+        }
         if (openIMService != null) {
             openIMService.endCall();
         }
         disconnectRoom();
+
+        // 通话结束后写入聊天消息（时长信息）
+        sendCallEndedMessage();
+
         finish();
+    }
+
+    /**
+     * 发送通话结束消息到聊天记录
+     */
+    private void sendCallEndedMessage() {
+        if (appointmentId == null || appointmentId <= 0 || currentUserId == null || targetUserId == null) {
+            return;
+        }
+        final long aptId = this.appointmentId;
+        final long callerId = this.currentUserId;
+        final long calleeId = this.targetUserId;
+        final long startTime = this.callStartTimeMs;
+        final long endTime = System.currentTimeMillis();
+        final String callTypeStr = this.callType != null ? this.callType : "video";
+
+        new Thread(() -> {
+            try {
+                // 计算通话时长
+                long durationSec = 0;
+                if (startTime > 0) {
+                    durationSec = (endTime - startTime) / 1000;
+                }
+                String durationStr = formatDuration(durationSec);
+
+                // 构建 SYSTEM 消息：通话结束通知
+                // 格式：CALL_ENDED:video/audio:时长秒数:格式化时长
+                String content = "CALL_ENDED:" + callTypeStr + ":" + durationSec + ":" + durationStr;
+
+                JSONObject jsonObject = new JSONObject();
+                jsonObject.put("appointmentId", aptId);
+                jsonObject.put("senderUserId", callerId);
+                jsonObject.put("receiverUserId", calleeId);
+                jsonObject.put("messageType", "SYSTEM");
+                jsonObject.put("content", content);
+                // 实体 is_from_consultant 非空，省略时服务端持久化会失败，导致聊天里看不到「通话已结束」
+                jsonObject.put("isFromConsultant", false);
+
+                String jsonBody = jsonObject.toString();
+                String urlStr = NetworkConfig.getBaseUrl() + "/messages";
+
+                HttpURLConnection conn = (HttpURLConnection) URI.create(urlStr).toURL().openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/json");
+                String token = preferenceStore.getAuthToken();
+                if (token != null && !token.isEmpty()) {
+                    conn.setRequestProperty("Authorization", "Bearer " + token);
+                }
+                conn.setDoOutput(true);
+                conn.setConnectTimeout(5000);
+                conn.setReadTimeout(5000);
+
+                java.io.OutputStream os = conn.getOutputStream();
+                os.write(jsonBody.getBytes("UTF-8"));
+                os.close();
+
+                int responseCode = conn.getResponseCode();
+                Log.d(TAG, "Call ended message sent, HTTP " + responseCode);
+                conn.disconnect();
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to send call ended message", e);
+            }
+        }).start();
+    }
+
+    /**
+     * 格式化时长为 MM:SS 或 HH:MM:SS
+     */
+    private String formatDuration(long seconds) {
+        if (seconds < 0) seconds = 0;
+        long hours = seconds / 3600;
+        long minutes = (seconds % 3600) / 60;
+        long secs = seconds % 60;
+        if (hours > 0) {
+            return String.format(Locale.getDefault(), "%d:%02d:%02d", hours, minutes, secs);
+        } else {
+            return String.format(Locale.getDefault(), "%02d:%02d", minutes, secs);
+        }
     }
 
     private void disconnectRoom() {
@@ -461,6 +677,11 @@ public class VideoCallActivity extends AppCompatActivity {
         disconnectRoom();
         if (openIMService != null) {
             openIMService.setCallCallback(null);
+        }
+        if (isFinishing()) {
+            Intent done = new Intent(ACTION_VIDEO_CALL_FINISHED);
+            done.setPackage(getPackageName());
+            sendBroadcast(done);
         }
         super.onDestroy();
     }

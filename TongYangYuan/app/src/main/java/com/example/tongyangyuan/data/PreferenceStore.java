@@ -22,6 +22,7 @@ public class PreferenceStore {
     private static final String KEY_BADGES = "badges";
     private static final String KEY_AVATAR_URL = "avatar_url";
     private static final String KEY_CURRENT_CHILD_ID = "current_child_id";
+    private static final String KEY_CURRENT_CHILD_ID_STRING = "current_child_id_string";
     private static final String KEY_CURRENT_CHILD_NAME = "current_child_name";
     // 咨询师相关
     private static final String KEY_CONSULTANT_TOKEN = "consultant_token";
@@ -103,7 +104,22 @@ public class PreferenceStore {
     }
 
     public void setCurrentChildId(long childId) {
-        sharedPreferences.edit().putLong(KEY_CURRENT_CHILD_ID, childId).apply();
+        SharedPreferences.Editor ed = sharedPreferences.edit().putLong(KEY_CURRENT_CHILD_ID, childId);
+        if (childId >= 0) {
+            ed.remove(KEY_CURRENT_CHILD_ID_STRING);
+        }
+        ed.apply();
+    }
+
+    /** 当当前孩子 id 非数字（如本地 UUID）时使用；与 {@link #getCurrentChildId()} &lt; 0 配对 */
+    public String getCurrentChildIdString() {
+        return sharedPreferences.getString(KEY_CURRENT_CHILD_ID_STRING, "");
+    }
+
+    public void setCurrentChildIdString(String id) {
+        sharedPreferences.edit()
+                .putString(KEY_CURRENT_CHILD_ID_STRING, id != null ? id : "")
+                .apply();
     }
 
     public String getCurrentChildName() {

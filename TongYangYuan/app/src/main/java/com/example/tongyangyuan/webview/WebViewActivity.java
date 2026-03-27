@@ -1,7 +1,12 @@
 package com.example.tongyangyuan.webview;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.ViewGroup;
@@ -21,6 +26,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.example.tongyangyuan.R;
+import com.example.tongyangyuan.VideoCallActivity;
 import com.example.tongyangyuan.WechatScanActivity;
 import com.just.agentweb.AgentWeb;
 
@@ -32,6 +38,15 @@ public class WebViewActivity extends AppCompatActivity {
     private static final int REQUEST_WECHAT_LOGIN = 1001;
     private AgentWeb mAgentWeb;
     private WebAppInterface mWebAppInterface;
+    private boolean videoCallReceiverRegistered;
+    private final BroadcastReceiver videoCallFinishedReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (mWebAppInterface != null) {
+                mWebAppInterface.notifyVideoCallClosed();
+            }
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,6 +67,12 @@ public class WebViewActivity extends AppCompatActivity {
                 .createAgentWeb()
                 .ready()
                 .go(null);
+
+        // 允许 file:// 页面发起跨域请求（SockJS 需要）
+        android.webkit.WebSettings webSettings = mAgentWeb.getWebCreator().getWebView().getSettings();
+        webSettings.setAllowFileAccessFromFileURLs(true);
+        webSettings.setAllowUniversalAccessFromFileURLs(true);
+        webSettings.setDomStorageEnabled(true);
 
         // 注入 JS 接口
         mWebAppInterface = new WebAppInterface(this, mAgentWeb.getWebCreator().getWebView());
@@ -108,6 +129,29 @@ public class WebViewActivity extends AppCompatActivity {
             return true;
         }
         return super.onKeyDown(keyCode, event);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (!videoCallReceiverRegistered) {
+            IntentFilter f = new IntentFilter(VideoCallActivity.ACTION_VIDEO_CALL_FINISHED);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(videoCallFinishedReceiver, f, Context.RECEIVER_NOT_EXPORTED);
+            } else {
+                registerReceiver(videoCallFinishedReceiver, f);
+            }
+            videoCallReceiverRegistered = true;
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        if (videoCallReceiverRegistered) {
+            unregisterReceiver(videoCallFinishedReceiver);
+            videoCallReceiverRegistered = false;
+        }
+        super.onStop();
     }
 
     @Override

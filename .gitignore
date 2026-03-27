@@ -56,6 +56,16 @@ xinliapp-github/
 **/dist/
 **/out/
 
+# Docker data directories (local persistence, don't commit)
+**/deploy/etcd/data/
+**/deploy/kafka/data/
+**/deploy/minio/data/
+**/deploy/mongodb/data/
+**/deploy/mysql/data/
+**/deploy/mysql/conf/
+**/deploy/openim/data/
+**/deploy/openim/config/
+
 # Large model files (uncomment if needed)
 # *.pt
 # *.pth
