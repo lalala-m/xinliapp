@@ -1,9 +1,10 @@
 # OpenIM Server 配置
-# 完整配置 - MySQL/Redis/MongoDB 指向 Windows 主机
+# 完整配置 - 所有依赖指向 Docker 内部网络容器名
 
 api:
   openImApiPort: [10002]
-  
+  openImApiUrl: http://0.0.0.0:10002
+
 ws:
   openImWsPort: [10001]
 
@@ -12,35 +13,24 @@ user:
   Nickname: "系统管理员"
   FaceUrl: "http://106.120.183.117/uploads/avatar.jpg"
 
-# 认证配置  
+# 认证配置
 auth:
   openImAdminUserID: [openIMAdmin]
-  openImAdminSecret: OpenIMAdmin@2026
+  openImAdminSecret: openIMAdmin@2026
 
-# MySQL 配置（使用 host.docker.internal 访问 Windows 主机）
+# 数据库配置 - OpenIM 使用 MongoDB 作为主存储
+# MySQL 暂不使用（业务数据走 Spring Boot + Windows MySQL）
 db:
   mongoDB:
-    Uri: mongodb://openIM:openIM123@host.docker.internal:27017/openim_v3?authSource=openim_v3
-  mysql:
-    openImMysql:
-      DB: openim_v2
-      Tables:
-        - conversation
-        - friend_request
-        - black
-        - user
-      Address:
-        - host.docker.internal:3306
-      Username: root
-      Password: 123456
+    Uri: mongodb://openIM:openIM123@tongyuan-mongodb:27017/openim_v3?authSource=admin
 
-# Redis 配置（Windows 主机 Redis 在 6379）
+# Redis 配置
 redis:
   openImRedis:
     Username: ""
     Password: Redis@2026
     Address:
-      - host.docker.internal:6379
+      - tongyuan-redis:6379
 
 # 日志配置
 log:

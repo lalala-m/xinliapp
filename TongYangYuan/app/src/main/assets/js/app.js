@@ -107,22 +107,34 @@
         return localStorage.getItem('token') || '';
     };
 
-    // API Base URL
-    window.API_BASE_URL = 'http://127.0.0.1:8080'; // Emulator: run adb reverse tcp:8080 tcp:8080
+    // API Base URL - 优先从 Android 接口获取（运行时返回正确的主机地址）
+    window.API_BASE_URL = (function() {
+        try {
+            if (window.Android && typeof Android.getBaseUrl === 'function') {
+                var url = Android.getBaseUrl();
+                // 去掉末尾的 /api（若有），保留 http://host:port 格式
+                if (url && typeof url === 'string') {
+                    return url.replace(/\/api\/?$/, '');
+                }
+            }
+        } catch (e) { /* ignore */ }
+        // 模拟器 fallback：adb reverse tcp:8080 tcp:8080
+        return 'http://127.0.0.1:8080';
+    })();
 
     // 带认证的Fetch
     window.fetchWithAuth = async function(url, options = {}) {
         const token = window.getToken();
         const headers = options.headers || {};
-        
+
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
         }
-        
-        // 如果是相对路径，拼接Base URL
+
+        // 如果是相对路径，拼接 Base URL（已去掉末尾的 /api）
         let fullUrl = url;
         if (url.startsWith('/')) {
-            fullUrl = window.API_BASE_URL + url;
+            fullUrl = window.API_BASE_URL + '/api' + url;
         }
 
         const newOptions = {

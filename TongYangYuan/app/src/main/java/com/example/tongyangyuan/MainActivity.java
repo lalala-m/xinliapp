@@ -306,6 +306,11 @@ public class MainActivity extends AppCompatActivity implements WebAppInterface.M
     }
 
     @Override
+    public void cancelVoiceRecord() {
+        // MainActivity 暂不实现录音，或留空
+    }
+
+    @Override
     public void playMedia(String type, String uri) {
         // 简单的播放实现，或者留空
         if (uri == null) return;

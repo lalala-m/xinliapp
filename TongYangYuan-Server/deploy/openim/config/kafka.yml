@@ -1,8 +1,7 @@
-username: ''
-password: ''
-producerAck: all
-compressType: none
-addr: [ tongyuan-kafka:9092 ]
+address:
+  - tongyuan-kafka:9092
+# 注意：Kafka advertised LISTENERS 用的是内部名 "kafka"，不是容器名 "tongyuan-kafka"
+# 如果 Kafka 报连接错误，检查 docker-compose 中 Kafka 的 advertised.listeners 配置
 toRedisTopic: toRedis
 toMongoTopic: toMongo
 toPushTopic: toPush

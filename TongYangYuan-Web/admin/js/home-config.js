@@ -205,10 +205,15 @@ function addBanner() {
 // 保存轮播图配置
 async function saveBanners() {
     try {
+        console.log('保存轮播图，数据:', banners);
+        console.log('JSON数据:', JSON.stringify(banners));
+        
         const response = await AdminCommon.request('/home/admin/banners', {
             method: 'PUT',
             body: JSON.stringify(banners)
         });
+        
+        console.log('保存响应:', response);
         
         if (response && response.code === 200) {
             AdminCommon.showSuccess('轮播图保存成功');
@@ -216,7 +221,8 @@ async function saveBanners() {
             AdminCommon.showError(response?.message || '保存失败');
         }
     } catch (error) {
-        AdminCommon.showError('保存失败');
+        console.error('保存轮播图出错:', error);
+        AdminCommon.showError('保存失败: ' + error.message);
     }
 }
 

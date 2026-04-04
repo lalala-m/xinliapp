@@ -108,34 +108,52 @@ public class AppointmentStore {
 
     private AppointmentRecord parseFromServerJson(JSONObject obj) {
         try {
-            long serverId = obj.getLong("id");
-            String appointmentNo = obj.getString("appointmentNo");
-            String date = obj.getString("appointmentDate");
-            String timeSlot = obj.getString("timeSlot");
+            long serverId = obj.optLong("id", -1);
+            if (serverId <= 0) return null;
+            String appointmentNo = obj.optString("appointmentNo", "");
+            String date = obj.optString("appointmentDate", "");
+            String timeSlot = obj.optString("timeSlot", "");
             String description = obj.optString("description", "");
-            long createTime = System.currentTimeMillis(); // 暂用当前时间，或者解析 createdAt
-            String childId = obj.optString("childId", ""); // 注意：Server可能返回的是childId数字
-            // 如果childId是数字，转字符串
-            if (childId.isEmpty() && obj.has("childId") && !obj.isNull("childId")) {
-                childId = String.valueOf(obj.optLong("childId"));
+            long createTime = System.currentTimeMillis();
+            String childId = "";
+            if (obj.has("childId") && !obj.isNull("childId")) {
+                childId = String.valueOf(obj.optLong("childId", 0));
             }
             String childName = obj.optString("childName", "");
             String status = obj.optString("status", "PENDING");
-            String domain = obj.optString("domain", ""); // 解析 domain
-            
-            // 构造Consultant (需要后端返回详细信息，或者再去查询)
-            // 假设后端返回了 consultant 对象
-            // 如果后端只返回了 consultantId，我们可能无法构建完整的 Consultant 对象
-            // 这里为了简单，如果后端没返回 consultant 详情，我们造一个临时的
+            String domain = obj.optString("domain", "");
+
             Consultant consultant;
-            if (obj.has("consultant")) {
-                // TODO: 解析后端返回的 consultant 对象
-                // 暂时用默认值，实际应完善后端 DTO
-                consultant = new Consultant("咨询师", "心理咨询师", "儿童心理", 5.0, "100+", "#6FA6F8", new ArrayList<>(), "简介", new ArrayList<>());
-                consultant.setUserId(obj.getLong("consultantId"));
+            if (obj.has("consultant") && !obj.isNull("consultant")) {
+                JSONObject cObj = obj.getJSONObject("consultant");
+                String cName = cObj.optString("name", "咨询师");
+                String cTitle = cObj.optString("title", "心理咨询师");
+                String cSpec = cObj.optString("specialty", "");
+                double cRating = cObj.optDouble("rating", 5.0);
+                String cServed = cObj.optString("servedCount", "0");
+                String cColor = cObj.optString("avatarColor", "#6FA6F8");
+                String cIntro = cObj.optString("intro", "");
+                JSONArray tagsArr = cObj.optJSONArray("identityTags");
+                List<String> tags = new ArrayList<>();
+                if (tagsArr != null) {
+                    for (int i = 0; i < tagsArr.length(); i++) tags.add(tagsArr.optString(i, ""));
+                }
+                JSONArray reviewsArr = cObj.optJSONArray("reviews");
+                List<String> reviews = new ArrayList<>();
+                if (reviewsArr != null) {
+                    for (int i = 0; i < reviewsArr.length(); i++) reviews.add(reviewsArr.optString(i, ""));
+                }
+                consultant = new Consultant(
+                        cObj.optLong("userId", 0),
+                        cName, cTitle, cSpec, cRating,
+                        cServed, cColor, tags, cIntro, reviews);
+                consultant.setServerId(cObj.optLong("id", 0));
             } else {
-                consultant = new Consultant("咨询师", "心理咨询师", "儿童心理", 5.0, "100+", "#6FA6F8", new ArrayList<>(), "简介", new ArrayList<>());
-                consultant.setUserId(obj.optLong("consultantId", 1));
+                // 后端只返回了扁平的 consultantName 字符串，没有嵌套 consultant 对象，
+                // 正确使用后端返回的 consultantName，不再使用硬编码的"咨询师"
+                String cName = obj.optString("consultantName", "咨询师");
+                consultant = new Consultant(cName, "心理咨询师", "儿童心理", 5.0, "0+", "#6FA6F8", new ArrayList<>(), "简介", new ArrayList<>());
+                consultant.setUserId(obj.optLong("consultantId", 0));
             }
 
             AppointmentRecord record = new AppointmentRecord(
@@ -609,38 +627,52 @@ public class AppointmentStore {
 
     private AppointmentRecord parseFromJson(JSONObject obj) {
         try {
-            String id = obj.getString("id");
-            String date = obj.getString("date");
-            String timeSlot = obj.getString("timeSlot");
-            String description = obj.getString("description");
-            long createTime = obj.getLong("createTime");
+            String id = obj.optString("id", "");
+            if (id.isEmpty()) return null;
+            String date = obj.optString("date", "");
+            String timeSlot = obj.optString("timeSlot", "");
+            String description = obj.optString("description", "");
+            long createTime = obj.optLong("createTime", System.currentTimeMillis());
             boolean hasChatted = obj.optBoolean("hasChatted", false);
             boolean pinned = obj.optBoolean("pinned", false);
-            
-            JSONObject consultantObj = obj.getJSONObject("consultant");
-            String name = consultantObj.getString("name");
-            String title = consultantObj.getString("title");
-            String specialty = consultantObj.getString("specialty");
-            double rating = consultantObj.getDouble("rating");
-            String servedCount = consultantObj.getString("servedCount");
-            String avatarColor = consultantObj.getString("avatarColor");
-            String intro = consultantObj.getString("intro");
-            JSONArray reviewsArray = consultantObj.getJSONArray("reviews");
-            List<String> reviews = new ArrayList<>();
-            for (int i = 0; i < reviewsArray.length(); i++) {
-                reviews.add(reviewsArray.getString(i));
-            }
-            
-            JSONArray tagArray = consultantObj.optJSONArray("identityTags");
-            List<String> identityTags = new ArrayList<>();
-            if (tagArray != null) {
-                for (int i = 0; i < tagArray.length(); i++) {
-                    identityTags.add(tagArray.getString(i));
+
+            Consultant consultant = null;
+            if (obj.has("consultant") && !obj.isNull("consultant")) {
+                JSONObject consultantObj = obj.getJSONObject("consultant");
+                String name = consultantObj.optString("name", "咨询师");
+                String title = consultantObj.optString("title", "心理咨询师");
+                String specialty = consultantObj.optString("specialty", "");
+                double rating = consultantObj.optDouble("rating", 5.0);
+                String servedCount = consultantObj.optString("servedCount", "0");
+                String avatarColor = consultantObj.optString("avatarColor", "#6FA6F8");
+                String intro = consultantObj.optString("intro", "");
+
+                List<String> reviews = new ArrayList<>();
+                JSONArray reviewsArray = consultantObj.optJSONArray("reviews");
+                if (reviewsArray != null) {
+                    for (int i = 0; i < reviewsArray.length(); i++) {
+                        reviews.add(reviewsArray.optString(i, ""));
+                    }
                 }
+
+                List<String> identityTags = new ArrayList<>();
+                JSONArray tagArray = consultantObj.optJSONArray("identityTags");
+                if (tagArray != null) {
+                    for (int i = 0; i < tagArray.length(); i++) {
+                        identityTags.add(tagArray.optString(i, ""));
+                    }
+                }
+                consultant = new Consultant(
+                        consultantObj.optLong("userId", 0),
+                        name, title, specialty, rating,
+                        servedCount, avatarColor, identityTags, intro, reviews);
+                consultant.setServerId(consultantObj.optLong("id", 0));
             }
-            Consultant consultant = new Consultant(name, title, specialty, rating,
-                    servedCount, avatarColor, identityTags, intro, reviews);
-            
+
+            if (consultant == null) {
+                consultant = new Consultant("咨询师", "心理咨询师", "儿童心理", 5.0, "0", "#6FA6F8", new ArrayList<>(), "简介", new ArrayList<>());
+            }
+
             String childId = obj.optString("childId", "");
             String childName = obj.optString("childName", "");
 

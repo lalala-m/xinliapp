@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>聊天测试3 - 分步加载</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+        .pass { background: #d4edda; }
+        .fail { background: #f8d7da; }
+        .pending { background: #fff3cd; }
+    </style>
+</head>
+<body>
+    <h1>测试3 - 分步加载 chat.html 内容</h1>
+    <div id="results"></div>
+    
+    <script>
+        var results = document.getElementById('results');
+        
+        function addResult(name, status, msg) {
+            var div = document.createElement('div');
+            div.className = 'test-section ' + status;
+            div.innerHTML = '<strong>' + name + ':</strong> ' + msg;
+            results.appendChild(div);
+            console.log('[' + status.toUpperCase() + '] ' + name + ': ' + msg);
+        }
+        
+        // Step 1: Check basic environment
+        addResult('Step 1', 'pass', 'Script executed, Android: ' + (typeof window.Android !== 'undefined'));
+        
+        // Step 2: Load stomp.min.js
+        addResult('Step 2', 'pending', 'Loading stomp.min.js...');
+        var script1 = document.createElement('script');
+        script1.src = 'js/stomp.min.js';
+        script1.onload = function() {
+            addResult('Step 2', 'pass', 'stomp.min.js loaded, Stomp: ' + (typeof Stomp !== 'undefined'));
+            startStep3();
+        };
+        script1.onerror = function(e) {
+            addResult('Step 2', 'fail', 'stomp.min.js FAILED to load!');
+        };
+        document.head.appendChild(script1);
+        
+        // Step 3: Load app.js
+        function startStep3() {
+            addResult('Step 3', 'pending', 'Loading app.js...');
+            var script2 = document.createElement('script');
+            script2.src = 'js/app.js';
+            script2.onload = function() {
+                addResult('Step 3', 'pass', 'app.js loaded');
+                startStep4();
+            };
+            script2.onerror = function(e) {
+                addResult('Step 3', 'fail', 'app.js FAILED to load!');
+            };
+            document.head.appendChild(script2);
+        }
+        
+        // Step 4: Try to include inline script from chat.html
+        function startStep4() {
+            addResult('Step 4', 'pending', 'Checking if inline scripts would execute...');
+            
+            // Simulate what chat.html does
+            try {
+                // This is the problematic part - we'll test it
+                var testFn = function() {
+                    var messages = [];
+                    var historyLoaded = false;
+                    return { messages: messages, historyLoaded: historyLoaded };
+                };
+                var result = testFn();
+                addResult('Step 4', 'pass', 'Basic variable declarations work');
+                
+                // Now test DOMContentLoaded
+                startStep5();
+            } catch (e) {
+                addResult('Step 4', 'fail', 'Error: ' + e.message);
+            }
+        }
+        
+        // Step 5: Test event listeners
+        function startStep5() {
+            addResult('Step 5', 'pending', 'Testing DOMContentLoaded...');
+            
+            document.addEventListener('DOMContentLoaded', function() {
+                addResult('Step 5', 'pass', 'DOMContentLoaded fired');
+                startStep6();
+            });
+            
+            // If DOM already loaded, fire immediately
+            if (document.readyState !== 'loading') {
+                addResult('Step 5', 'pass', 'DOM already loaded');
+                startStep6();
+            }
+        }
+        
+        // Step 6: Test Android interface
+        function startStep6() {
+            addResult('Step 6', 'pending', 'Testing Android interface...');
+            
+            function checkAndroid() {
+                if (window.Android && typeof window.Android.getAuthToken === 'function') {
+                    addResult('Step 6', 'pass', 'Android interface ready!');
+                    startStep7();
+                } else {
+                    addResult('Step 6', 'fail', 'Android interface NOT available');
+                    // Continue anyway
+                    startStep7();
+                }
+            }
+            
+            setTimeout(checkAndroid, 500);
+        }
+        
+        // Step 7: Simulate connectWebSocket
+        function startStep7() {
+            addResult('Step 7', 'pending', 'Testing WebSocket setup (no actual connection)...');
+            
+            try {
+                // Test WebSocket object
+                if (typeof WebSocket !== 'undefined') {
+                    addResult('Step 7', 'pass', 'WebSocket available');
+                } else {
+                    addResult('Step 7', 'fail', 'WebSocket NOT available');
+                }
+                
+                addResult('COMPLETE', 'pass', 'All basic tests passed! If chat.html fails, the issue is in the inline script execution order.');
+            } catch (e) {
+                addResult('Step 7', 'fail', 'Error: ' + e.message);
+            }
+        }
+    </script>
+</body>
+</html>

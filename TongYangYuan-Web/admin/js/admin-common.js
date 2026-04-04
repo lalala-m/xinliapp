@@ -77,8 +77,10 @@ const AdminCommon = {
                 requestUrl = requestUrl.substring(1);
             }
 
-            if (baseUrl.endsWith('/api') && requestUrl.startsWith('api/')) {
-                requestUrl = requestUrl.substring(4); // remove api/ from url
+            // 如果 baseUrl 不包含 /api 但 url 以 api/ 开头，需要添加
+            const needsApiPrefix = !baseUrl.endsWith('/api') && requestUrl.startsWith('api/');
+            if (needsApiPrefix) {
+                baseUrl = baseUrl + '/api';
             }
             
             const fullUrl = baseUrl + '/' + requestUrl;

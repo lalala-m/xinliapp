@@ -22,8 +22,8 @@ public class OpenIMProperties {
     @Value("${openim.external-ws-url:ws://你的服务器IP:10001}")
     private String externalWsUrl;
 
-    private String adminUserId = "openIMAdmin";
-    private String secret = "openIMAdmin";
+    private String adminUserId = "imAdmin";
+    private String secret = "openIM123";
 
     // 供客户端使用的 SDK URL（默认返回外网地址）
     private String sdkUrl;

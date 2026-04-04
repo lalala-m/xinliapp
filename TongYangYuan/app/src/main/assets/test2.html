@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>聊天测试2</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body { font-family: sans-serif; }
+    </style>
+</head>
+<body>
+    <h1>测试2 - 加载 CSS</h1>
+    <p>如果CSS正确加载，这个文字应该是圆角字体</p>
+    <div id="status">等待中...</div>
+    <div id="debug"></div>
+    
+    <script>
+        console.log('[TEST2] Script starting');
+        document.getElementById('status').textContent = '脚本已启动 - ' + new Date().toLocaleTimeString();
+        
+        // 尝试加载 app.js
+        var script = document.createElement('script');
+        script.src = 'js/app.js';
+        script.onload = function() {
+            console.log('[TEST2] app.js loaded');
+            document.getElementById('debug').textContent = 'app.js 加载成功!';
+        };
+        script.onerror = function(e) {
+            console.error('[TEST2] app.js failed to load', e);
+            document.getElementById('debug').textContent = 'app.js 加载失败!';
+        };
+        document.head.appendChild(script);
+        
+        // 尝试加载 stomp.min.js
+        var script2 = document.createElement('script');
+        script2.src = 'js/stomp.min.js';
+        script2.onload = function() {
+            console.log('[TEST2] stomp.min.js loaded, Stomp:', typeof Stomp);
+            document.getElementById('debug').textContent += '\nstomp.min.js 加载成功, Stomp类型: ' + typeof Stomp;
+        };
+        script2.onerror = function(e) {
+            console.error('[TEST2] stomp.min.js failed to load', e);
+            document.getElementById('debug').textContent += '\nstomp.min.js 加载失败!';
+        };
+        document.head.appendChild(script2);
+        
+        setTimeout(function() {
+            console.log('[TEST2] Final check - Stomp:', typeof Stomp);
+        }, 2000);
+    </script>
+</body>
+</html>

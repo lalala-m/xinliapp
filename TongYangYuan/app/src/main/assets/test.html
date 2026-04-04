@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>聊天测试</title>
+</head>
+<body>
+    <h1>页面加载成功！</h1>
+    <p id="status">JavaScript 正在执行...</p>
+    <div id="debug"></div>
+    <script>
+        console.log('[TEST] Script executed!');
+        document.getElementById('status').textContent = '脚本已执行 - ' + new Date().toLocaleTimeString();
+        document.getElementById('debug').textContent = 'Android available: ' + (typeof window.Android !== 'undefined');
+        setTimeout(function() {
+            console.log('[TEST] Timeout fired!');
+            document.getElementById('debug').textContent = 'Timeout fired - Android: ' + (typeof window.Android !== 'undefined');
+        }, 3000);
+    </script>
+</body>
+</html>

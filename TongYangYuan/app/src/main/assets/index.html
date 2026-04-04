@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>童康源 - 首页</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
@@ -477,11 +477,11 @@
 
             if (banners.length === 0) return;
 
-            // 渲染所有轮播图（图片用 JSON.stringify 包一层，避免 base64/特殊字符弄坏 CSS）
+            // 渲染所有轮播图（使用单引号包裹URL，避免HTML引号冲突）
             slidesEl.innerHTML = banners.map((b, i) => {
                 const img = (b.image && String(b.image).trim()) ? String(b.image).trim() : '';
                 const bg = img
-                    ? 'background-image:url(' + JSON.stringify(img) + ');background-size:cover;background-position:center;'
+                    ? "background-image:url('" + img + "');background-size:cover;background-position:center;"
                     : 'background:linear-gradient(135deg, rgba(189,235,200,0.9) 0%, rgba(169,201,255,0.9) 100%);';
                 return '<div class="banner-slide' + (i === 0 ? ' active' : '') + '" style="' + bg + '">' +
                     '<div class="banner-slide-content">' +
@@ -535,7 +535,7 @@
             var el = document.getElementById('adCard');
             var img = ad.image && String(ad.image).trim() ? String(ad.image).trim() : '';
             if (img) {
-                el.style.backgroundImage = 'url(' + JSON.stringify(img) + ')';
+                el.style.backgroundImage = 'url("' + img.replace(/"/g, '\\"') + '")';
                 el.classList.add('has-bg-image');
             } else {
                 el.style.backgroundImage = '';

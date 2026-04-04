@@ -4,7 +4,516 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>咨询聊天</title>
-    <link rel="stylesheet" href="css/style.css">
+    <style>
+/* Material Design 3 + BlaBlaCar风格样式 */
+:root {
+    --primary-color: #6FA6F8;
+    --primary-dark: #4A8AE8;
+    --secondary-color: #B7BCC3;
+    --background: #FFFFFF;
+    --surface: #F9FAFB;
+    --text-primary: #2C3345;
+    --text-secondary: #627089;
+    --text-hint: #9BA5BF;
+    --border-radius: 20px;
+    --spacing: 16px;
+    --shadow: 0 10px 30px rgba(69, 110, 255, 0.08);
+    --shadow-hover: 0 16px 36px rgba(69, 110, 255, 0.16);
+    --bottom-nav-height: 78px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    /* 移除所有元素的蓝色高亮 */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* 允许输入框和文本区域选择文本 */
+input, textarea, [contenteditable] {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+/* iPhone底部安全区域适配 - 确保不会被系统导航栏遮挡 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    body {
+        padding-bottom: calc(90px + env(safe-area-inset-bottom));
+    }
+}
+
+@supports not (padding-bottom: env(safe-area-inset-bottom)) {
+    body {
+        padding-bottom: 90px;
+    }
+}
+
+/* 默认值作为后备 */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: linear-gradient(180deg, #F4F7FF 0%, #FFFFFF 60%);
+    color: var(--text-primary);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    max-width: 520px;
+    margin: 0 auto;
+    overflow-x: hidden;
+}
+
+/* 毛玻璃效果 */
+.glass {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+/* 顶部导航栏 */
+.top-app-bar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    padding: 18px;
+    padding-top: calc(18px + env(safe-area-inset-top));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.top-app-bar .back-btn {
+    position: absolute;
+    left: 8px;
+    top: calc(env(safe-area-inset-top));
+    width: 56px;
+    height: 56px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background 0.2s, transform 0.2s;
+    padding: 0;
+    /* 增加点击区域灵敏度 */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.top-app-bar .back-btn:active {
+    transform: scale(0.94);
+}
+
+.top-app-bar .back-btn .nav-icon {
+    width: 28px;
+    height: 28px;
+    /* 确保图标不拦截点击事件 */
+    pointer-events: none;
+}
+
+.top-app-bar .title {
+    font-size: 18px;
+    font-weight: 600;
+    text-align: center;
+    pointer-events: none;
+}
+
+/* 卡片样式 */
+.card {
+    position: relative;
+    background: var(--background);
+    border-radius: var(--border-radius);
+    padding: var(--spacing);
+    margin: var(--spacing);
+    box-shadow: var(--shadow);
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    outline: none;
+    cursor: pointer;
+}
+
+.card.static-card {
+    cursor: default;
+}
+
+.card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(111, 166, 248, 0.15), transparent);
+    opacity: 0;
+    transform: scale(0);
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+}
+
+.card:not(.static-card):active {
+    transform: scale(0.97);
+    box-shadow: var(--shadow-hover);
+}
+
+.card:not(.static-card):active::before {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.card:focus-visible {
+    outline: none;
+    box-shadow: var(--shadow-hover);
+}
+
+/* 按钮样式 */
+.btn {
+    position: relative;
+    padding: 14px 24px;
+    border-radius: var(--border-radius);
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 56px;
+    -webkit-tap-highlight-color: transparent;
+    overflow: hidden;
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.2);
+    opacity: 0;
+    transform: scale(0);
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: inherit;
+}
+
+.btn:active::before {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.btn-primary {
+    background: var(--primary-color);
+    color: white;
+    box-shadow: 0 4px 12px rgba(111, 166, 248, 0.3);
+}
+
+.btn-primary:active {
+    transform: scale(0.96);
+    box-shadow: 0 2px 8px rgba(111, 166, 248, 0.4);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+}
+
+.btn-secondary::before {
+    background: rgba(111, 166, 248, 0.1);
+}
+
+.btn-secondary:active {
+    transform: scale(0.96);
+    background: rgba(111, 166, 248, 0.05);
+}
+
+/* 输入框样式 */
+.input-group {
+    margin-bottom: var(--spacing);
+}
+
+.input-label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.input-field {
+    width: 100%;
+    padding: 14px 16px;
+    border: 2px solid #E0E0E0;
+    border-radius: var(--border-radius);
+    font-size: 16px;
+    background: var(--background);
+    transition: all 0.2s;
+}
+
+.input-field:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(111, 166, 248, 0.1);
+}
+
+/* 底部导航栏 */
+.bottom-nav {
+    position: fixed;
+    bottom: env(safe-area-inset-bottom, 0px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 480px;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 0;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    z-index: 100;
+    min-height: var(--bottom-nav-height);
+}
+
+.nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+}
+
+.nav-item.active {
+    color: var(--primary-color);
+}
+
+.nav-item:active {
+    transform: scale(0.95);
+}
+
+.nav-icon {
+    width: 24px;
+    height: 24px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+}
+
+.nav-label {
+    font-size: 12px;
+}
+
+/* 内容区域 */
+.content {
+    padding: var(--spacing);
+    padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px)); /* 为底部导航留空间 */
+}
+
+/* 列表项 */
+.list-item {
+    background: var(--background);
+    border-radius: var(--border-radius);
+    padding: var(--spacing);
+    margin-bottom: 12px;
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.list-item:active {
+    transform: scale(0.98);
+    box-shadow: var(--shadow-hover);
+}
+
+/* 空状态 */
+.empty-state {
+    text-align: center;
+    padding: 48px var(--spacing);
+    color: var(--text-hint);
+}
+
+.empty-state-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 16px;
+    opacity: 0.3;
+}
+
+/* 工具类 */
+.text-center {
+    text-align: center;
+}
+
+.mt-16 {
+    margin-top: 16px;
+}
+
+.mb-16 {
+    margin-bottom: 16px;
+}
+
+.p-16 {
+    padding: 16px;
+}
+
+.flex {
+    display: flex;
+}
+
+.flex-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.gap-8 {
+    gap: 8px;
+}
+
+.gap-16 {
+    gap: 16px;
+}
+
+/* Profile enhancements */
+.profile-hero {
+    margin-top: 16px;
+    padding: 24px;
+    background: linear-gradient(135deg, #BDEBC8 0%, #A9C9FF 100%);
+    color: #1E2A3B;
+    box-shadow: none;
+}
+
+.profile-hero .hero-action {
+    margin-top: 20px;
+    width: 100%;
+    background: rgba(30, 42, 59, 0.85);
+    color: #FFFFFF;
+}
+
+.profile-hero .hero-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #FFFFFF;
+    font-size: 26px;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.profile-hero .hero-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.profile-hero .hero-subtitle {
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.2);
+    color: #1E2A3B;
+    font-size: 13px;
+    margin-top: 16px;
+}
+
+.section-title {
+    font-size: 15px;
+    color: var(--text-secondary);
+    margin: 8px 16px;
+    font-weight: 600;
+}
+
+.quick-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin: 12px 0;
+}
+
+.quick-stat-card {
+    background: var(--background);
+    border-radius: var(--border-radius);
+    padding: 16px;
+    box-shadow: var(--shadow);
+    min-height: 94px;
+}
+
+.quick-stat-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.quick-stat-value {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.quick-stat-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    opacity: 0.85;
+    margin-top: 6px;
+}
+
+.consultant-item {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+.consultant-item:active {
+    transform: scale(0.98);
+    opacity: 0.8;
+}
+
+
+</style>
+    <script>
+        // 800ms 强制隐藏 loading - 最后保险
+        window._forceHideTimeout = setTimeout(function() {
+            var el = document.getElementById('initialLoading');
+            if (el) el.style.display = 'none';
+        }, 800);
+        window.hideLoading = function() {
+            clearTimeout(window._forceHideTimeout);
+            var el = document.getElementById('initialLoading');
+            if (el) el.style.display = 'none';
+        };
+    </script>
+    <style>
+        #initialLoading { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 99999; font-family: -apple-system, sans-serif; }
+        #initialLoading .spinner { width: 40px; height: 40px; border: 3px solid #e0e0e0; border-top-color: #6FA6F8; border-radius: 50%; animation: spin 1s linear infinite; }
+        #initialLoading .text { margin-top: 16px; color: #666; font-size: 14px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
     <style>
         .chat-container {
             display: flex;
@@ -17,6 +526,7 @@
         .chat-header {
             padding: 16px;
             border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            display: none; /* 隐藏底部的重复信息，顶部已有标题栏显示 */
         }
 
         .consultant-info {
@@ -185,22 +695,27 @@
             opacity: 0.8;
         }
 
+        /* 底部输入栏 - 适配iPhone底部安全区域 */
         .input-container {
             position: fixed;
-            bottom: env(safe-area-inset-bottom, 0px);
+            bottom: 0;
             left: 50%;
             transform: translateX(-50%);
             width: 100%;
             max-width: 520px;
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.98);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
-            border-top: 1px solid rgba(0, 0, 0, 0.05);
-            padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
+            /* 关键：添加底部安全区域padding和额外间距 */
+            padding: 12px 16px;
+            padding-bottom: max(20px, env(safe-area-inset-bottom, 20px));
             display: flex;
             align-items: center;
             gap: 8px;
             z-index: 150;
+            /* 确保在系统导航栏之上 */
+            box-sizing: border-box;
         }
 
         .input-actions {
@@ -229,6 +744,54 @@
         .action-btn.recording {
             background: rgba(111, 166, 248, 0.15);
             color: #6FA6F8;
+        }
+
+        /* 语音主按钮 - 大按钮设计 */
+        .voice-main-btn {
+            flex: 1;
+            height: 56px;
+            border: none;
+            background: linear-gradient(135deg, #6FA6F8 0%, #4A8AE8 100%);
+            border-radius: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: white;
+            font-weight: 600;
+            font-size: 16px;
+            box-shadow: 0 4px 12px rgba(111, 166, 248, 0.35);
+        }
+
+        .voice-main-btn:active {
+            transform: scale(0.97);
+            box-shadow: 0 2px 8px rgba(111, 166, 248, 0.4);
+        }
+
+        .voice-main-btn.recording {
+            background: linear-gradient(135deg, #F44336 0%, #EF5350 100%);
+            box-shadow: 0 4px 12px rgba(244, 67, 54, 0.35);
+        }
+
+        .voice-main-btn.recording:active {
+            box-shadow: 0 2px 8px rgba(244, 67, 54, 0.4);
+        }
+
+        .voice-btn-text {
+            letter-spacing: 1px;
+        }
+
+        .text-toggle-btn {
+            flex-shrink: 0;
+        }
+
+        .text-input-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .message-input {
@@ -292,6 +855,107 @@
 
         .media-button svg {
             flex-shrink: 0;
+        }
+
+        /* 语音消息气泡样式 - 与文字气泡宽度一致，继承.message-bubble的max-width */
+        .message-bubble.audio-bubble {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            cursor: pointer;
+            min-width: 80px;
+            max-width: 70%;
+        }
+
+        .audio-bubble:active {
+            opacity: 0.85;
+        }
+
+        .audio-icon {
+            flex-shrink: 0;
+        }
+
+        .audio-duration {
+            font-size: 15px;
+            font-weight: 500;
+            min-width: 40px;
+        }
+
+        .message.user .audio-duration {
+            color: white;
+        }
+
+        .message.consultant .audio-duration {
+            color: #333333;
+        }
+
+        .audio-hint {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+
+        .message.user .audio-hint {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .message.consultant .audio-hint {
+            color: #999999;
+        }
+
+        .message.user .audio-icon {
+            stroke: white;
+        }
+
+        .message.consultant .audio-icon {
+            stroke: #666666;
+        }
+
+        /* 音频播放动画样式 */
+        .audio-bubble.playing .audio-icon {
+            animation: audio-wave 1s ease-in-out infinite;
+        }
+
+        @keyframes audio-wave {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.15); opacity: 0.8; }
+        }
+
+        .audio-bubble.playing .audio-icon path:first-child {
+            animation: audio-icon-pulse 0.5s ease-in-out infinite;
+        }
+
+        @keyframes audio-icon-pulse {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-2px); }
+        }
+
+        /* 正在播放状态的文字样式 */
+        .audio-hint-playing {
+            color: #4CAF50 !important;
+            font-weight: 600;
+            opacity: 1 !important;
+            animation: playing-text-pulse 1s ease-in-out infinite;
+        }
+
+        .message.user .audio-hint-playing {
+            color: rgba(255, 255, 255, 0.95) !important;
+        }
+
+        @keyframes playing-text-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* 播放图标的动画效果 */
+        .audio-playing-icon {
+            animation: playing-icon-bounce 0.6s ease-in-out infinite;
+        }
+
+        @keyframes playing-icon-bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
         }
 
         .media-sheet {
@@ -568,9 +1232,183 @@
             height: 16px;
             stroke: #999;
         }
+
+        /* ============================================
+           微信风格录音提示
+           ============================================ */
+
+        .voice-recording-hint {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .voice-recording-hint.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .voice-hint-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            color: white;
+        }
+
+        .voice-hint-icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: voiceHintPulse 1s ease-in-out infinite;
+        }
+
+        @keyframes voiceHintPulse {
+            0%, 100% { transform: scale(1); background: rgba(255, 255, 255, 0.15); }
+            50% { transform: scale(1.1); background: rgba(255, 255, 255, 0.25); }
+        }
+
+        .voice-hint-icon svg {
+            width: 40px;
+            height: 40px;
+        }
+
+        .voice-hint-text {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .voice-hint-sub {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        /* 录音波形动画 */
+        .voice-wave {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            height: 40px;
+        }
+
+        .voice-wave span {
+            width: 4px;
+            background: white;
+            border-radius: 2px;
+            animation: voiceWave 0.6s ease-in-out infinite;
+        }
+
+        .voice-wave span:nth-child(1) { animation-delay: 0s; height: 20px; }
+        .voice-wave span:nth-child(2) { animation-delay: 0.1s; height: 30px; }
+        .voice-wave span:nth-child(3) { animation-delay: 0.2s; height: 25px; }
+        .voice-wave span:nth-child(4) { animation-delay: 0.3s; height: 35px; }
+        .voice-wave span:nth-child(5) { animation-delay: 0.4s; height: 28px; }
+
+        @keyframes voiceWave {
+            0%, 100% { transform: scaleY(0.5); }
+            50% { transform: scaleY(1); }
+        }
+
+        /* 取消录音提示 */
+        .voice-hint-cancel {
+            position: absolute;
+            bottom: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .voice-cancel-icon {
+            width: 60px;
+            height: 60px;
+            background: rgba(244, 67, 54, 0.9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .voice-cancel-text {
+            font-size: 12px;
+            color: #F44336;
+            background: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+        }
+
+        /* 发送提示 */
+        .voice-hint-send {
+            position: absolute;
+            bottom: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .voice-send-icon {
+            width: 60px;
+            height: 60px;
+            background: rgba(76, 175, 80, 0.9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .voice-send-text {
+            font-size: 12px;
+            color: #4CAF50;
+            background: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+        }
+
+        /* 手指滑动取消区域 */
+        .voice-slide-area {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            transition: opacity 0.2s;
+        }
+
+        .voice-slide-area svg {
+            width: 30px;
+            height: 30px;
+            opacity: 0.7;
+        }
+
+        .voice-slide-area span {
+            font-size: 11px;
+            opacity: 0.7;
+        }
     </style>
 </head>
 <body class="chat-page">
+    <div id="initialLoading">
+        <div class="spinner"></div>
+        <div class="text">正在加载聊天...</div>
+    </div>
     <div class="chat-container">
     <div class="top-app-bar glass">
         <div class="title" id="toolbarTitle">咨询聊天</div>
@@ -600,7 +1438,7 @@
             </div>
         </div>
 
-        <div class="end-consultation-section" id="endConsultationSection" style="display: none;">
+        <div class="end-consultation-section" id="endConsultationSection">
             <button class="btn btn-secondary" onclick="endConsultation()" style="width: calc(100% - 32px); margin: 16px;">
                 结束咨询并评价
             </button>
@@ -615,25 +1453,38 @@
         </div>
 
         <div class="input-container">
-            <div class="input-actions">
-                <button class="action-btn" onclick="attachImage()" title="发送图片">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                        <circle cx="8.5" cy="8.5" r="1.5"/>
-                        <polyline points="21 15 16 10 5 21"/>
-                    </svg>
-                </button>
-                <button class="action-btn" id="voiceBtn" onclick="toggleVoiceRecord()" title="语音消息">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 1a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                        <path d="M19 10a7 7 0 0 1-14 0"/>
-                        <line x1="12" y1="19" x2="12" y2="23"/>
-                        <line x1="8" y1="23" x2="16" y2="23"/>
-                    </svg>
-                </button>
+            <!-- 小按钮：图片上传 -->
+            <button class="action-btn" onclick="attachImage()" title="发送图片">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21 15 16 10 5 21"/>
+                </svg>
+            </button>
+            
+            <!-- 主要的语音输入大按钮 - 按住说话 -->
+            <button class="voice-main-btn" id="voiceMainBtn" title="按住说话">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 1a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10a7 7 0 0 1-14 0"/>
+                    <line x1="12" y1="19" x2="12" y2="23"/>
+                    <line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+                <span class="voice-btn-text">按住 说话</span>
+            </button>
+            
+            <!-- 切换到文字输入的按钮 -->
+            <button class="action-btn text-toggle-btn" onclick="toggleInputMode()" title="切换到文字输入">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                </svg>
+            </button>
+            
+            <!-- 文字输入区域 - 默认隐藏 -->
+            <div class="text-input-area" id="textInputArea" style="display: none;">
+                <textarea class="message-input" id="messageInput" placeholder="和咨询师说点什么…" rows="1"></textarea>
+                <button class="send-btn" onclick="sendMessage()">发送</button>
             </div>
-            <textarea class="message-input" id="messageInput" placeholder="和咨询师说点什么…" rows="1"></textarea>
-            <button class="send-btn" onclick="sendMessage()">发送</button>
         </div>
     </div>
 
@@ -657,8 +1508,340 @@
     <!-- 通话状态通知（像微信那样浮动显示） -->
     <div class="call-notification-container" id="callNotificationContainer"></div>
 
-    <script src="js/stomp.min.js"></script>
-    <script src="js/app.js"></script>
+    <!-- 微信风格录音提示 -->
+    <div class="voice-recording-hint" id="voiceRecordingHint">
+        <div class="voice-hint-content">
+            <div class="voice-hint-icon" id="voiceHintIcon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                    <path d="M12 1a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10a7 7 0 0 1-14 0"/>
+                    <line x1="12" y1="19" x2="12" y2="23"/>
+                    <line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+            </div>
+            <div class="voice-hint-text" id="voiceHintText">正在录音...</div>
+            <div class="voice-wave" id="voiceWave">
+                <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <div class="voice-hint-sub" id="voiceHintSub">上滑取消发送</div>
+        </div>
+        
+        <!-- 取消区域（左侧） -->
+        <div class="voice-slide-area" id="voiceSlideArea">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                <path d="M9 18l6-6-6-6"/>
+            </svg>
+            <span>取消</span>
+        </div>
+    </div>
+
+    <script>// Generated by CoffeeScript 1.7.1
+/*
+   Stomp Over WebSocket http://www.jmesnil.net/stomp-websocket/doc/ | Apache License V2.0
+
+   Copyright (C) 2010-2013 [Jeff Mesnil](http://jmesnil.net/)
+   Copyright (C) 2012 [FuseSource, Inc.](http://fusesource.com)
+ */
+(function(){var t,e,n,i,r={}.hasOwnProperty,o=[].slice;t={LF:"\n",NULL:"\x00"};n=function(){var e;function n(t,e,n){this.command=t;this.headers=e!=null?e:{};this.body=n!=null?n:""}n.prototype.toString=function(){var e,i,o,s,u;e=[this.command];o=this.headers["content-length"]===false?true:false;if(o){delete this.headers["content-length"]}u=this.headers;for(i in u){if(!r.call(u,i))continue;s=u[i];e.push(""+i+":"+s)}if(this.body&&!o){e.push("content-length:"+n.sizeOfUTF8(this.body))}e.push(t.LF+this.body);return e.join(t.LF)};n.sizeOfUTF8=function(t){if(t){return encodeURI(t).match(/%..|./g).length}else{return 0}};e=function(e){var i,r,o,s,u,a,c,f,h,l,p,d,g,b,m,v,y;s=e.search(RegExp(""+t.LF+t.LF));u=e.substring(0,s).split(t.LF);o=u.shift();a={};d=function(t){return t.replace(/^\s+|\s+$/g,"")};v=u.reverse();for(g=0,m=v.length;g<m;g++){l=v[g];f=l.indexOf(":");a[d(l.substring(0,f))]=d(l.substring(f+1))}i="";p=s+2;if(a["content-length"]){h=parseInt(a["content-length"]);i=(""+e).substring(p,p+h)}else{r=null;for(c=b=p,y=e.length;p<=y?b<y:b>y;c=p<=y?++b:--b){r=e.charAt(c);if(r===t.NULL){break}i+=r}}return new n(o,a,i)};n.unmarshall=function(n){var i;return function(){var r,o,s,u;s=n.split(RegExp(""+t.NULL+t.LF+"*"));u=[];for(r=0,o=s.length;r<o;r++){i=s[r];if((i!=null?i.length:void 0)>0){u.push(e(i))}}return u}()};n.marshall=function(e,i,r){var o;o=new n(e,i,r);return o.toString()+t.NULL};return n}();e=function(){var e;function r(t){this.ws=t;this.ws.binaryType="arraybuffer";this.counter=0;this.connected=false;this.heartbeat={outgoing:1e4,incoming:1e4};this.maxWebSocketFrameSize=16*1024;this.subscriptions={}}r.prototype.debug=function(t){var e;return typeof window!=="undefined"&&window!==null?(e=window.console)!=null?e.log(t):void 0:void 0};e=function(){if(Date.now){return Date.now()}else{return(new Date).valueOf}};r.prototype._transmit=function(t,e,i){var r;r=n.marshall(t,e,i);if(typeof this.debug==="function"){this.debug(">>> "+r)}while(true){if(r.length>this.maxWebSocketFrameSize){this.ws.send(r.substring(0,this.maxWebSocketFrameSize));r=r.substring(this.maxWebSocketFrameSize);if(typeof this.debug==="function"){this.debug("remaining = "+r.length)}}else{return this.ws.send(r)}}};r.prototype._setupHeartbeat=function(n){var r,o,s,u,a,c;if((a=n.version)!==i.VERSIONS.V1_1&&a!==i.VERSIONS.V1_2){return}c=function(){var t,e,i,r;i=n["heart-beat"].split(",");r=[];for(t=0,e=i.length;t<e;t++){u=i[t];r.push(parseInt(u))}return r}(),o=c[0],r=c[1];if(!( this.heartbeat.outgoing===0||r===0)){s=Math.max(this.heartbeat.outgoing,r);if(typeof this.debug==="function"){this.debug("send PING every "+s+"ms")}this.pinger=i.setInterval(s,function(e){return function(){e.ws.send(t.LF);return typeof this.debug==="function"?this.debug(">>> PING"):void 0}}(this))}if(!( this.heartbeat.incoming===0||o===0)){s=Math.max(this.heartbeat.incoming,o);if(typeof this.debug==="function"){this.debug("check PONG every "+s+"ms")}return this.ponger=i.setInterval(s,function(t){return function(){var n;n=e()-t.serverActivity;if(n>s*2){if(typeof t.debug==="function"){t.debug("did not receive server activity for the last "+n+"ms")}return t.ws.close()}}}(this))}};r.prototype._parseConnect=function(){var t,e,n,i;t=1<=arguments.length?o.call(arguments,0):[];i={};switch(t.length){case 2:i=t[0],e=t[1];break;case 3:if(t[1]instanceof Function){i=t[0],e=t[1],n=t[2]}else{i.login=t[0],i.passcode=t[1],e=t[2]}break;case 4:i.login=t[0],i.passcode=t[1],e=t[2],n=t[3];break;default:i.login=t[0],i.passcode=t[1],e=t[2],n=t[3],i.host=t[4]}return[i,e,n]};r.prototype.connect=function(){var r,s,u,a;r=1<=arguments.length?o.call(arguments,0):[];a=this._parseConnect.apply(this,r);u=a[0],this.connectCallback=a[1],s=a[2];if(typeof this.debug==="function"){this.debug("Opening Web Socket...")}this.ws.onmessage=function(i){return function(r){var o,u,a,c,f,h,l,p,d,g,b,m;c=typeof ArrayBuffer!=="undefined"&&r.data instanceof ArrayBuffer?(o=new Uint8Array(r.data),typeof i.debug==="function"?i.debug("--- got data length: "+o.length):void 0,function(){var t,e,n;n=[];for(t=0,e=o.length;t<e;t++){u=o[t];n.push(String.fromCharCode(u))}return n}().join("")):r.data;i.serverActivity=e();if(c===t.LF){if(typeof i.debug==="function"){i.debug("<<< PONG")}return}if(typeof i.debug==="function"){i.debug("<<< "+c)}b=n.unmarshall(c);m=[];for(d=0,g=b.length;d<g;d++){f=b[d];switch(f.command){case"CONNECTED":if(typeof i.debug==="function"){i.debug("connected to server "+f.headers.server)}i.connected=true;i._setupHeartbeat(f.headers);m.push(typeof i.connectCallback==="function"?i.connectCallback(f):void 0);break;case"MESSAGE":p=f.headers.subscription;l=i.subscriptions[p]||i.onreceive;if(l){a=i;h=f.headers["message-id"];f.ack=function(t){if(t==null){t={}}return a.ack(h,p,t)};f.nack=function(t){if(t==null){t={}}return a.nack(h,p,t)};m.push(l(f))}else{m.push(typeof i.debug==="function"?i.debug("Unhandled received MESSAGE: "+f):void 0)}break;case"RECEIPT":m.push(typeof i.onreceipt==="function"?i.onreceipt(f):void 0);break;case"ERROR":m.push(typeof s==="function"?s(f):void 0);break;default:m.push(typeof i.debug==="function"?i.debug("Unhandled frame: "+f):void 0)}}return m}}(this);this.ws.onclose=function(t){return function(){var e;e="Whoops! Lost connection to "+t.ws.url;if(typeof t.debug==="function"){t.debug(e)}t._cleanUp();return typeof s==="function"?s(e):void 0}}(this);return this.ws.onopen=function(t){return function(){if(typeof t.debug==="function"){t.debug("Web Socket Opened...")}u["accept-version"]=i.VERSIONS.supportedVersions();u["heart-beat"]=[t.heartbeat.outgoing,t.heartbeat.incoming].join(",");return t._transmit("CONNECT",u)}}(this)};r.prototype.disconnect=function(t,e){if(e==null){e={}}this._transmit("DISCONNECT",e);this.ws.onclose=null;this.ws.close();this._cleanUp();return typeof t==="function"?t():void 0};r.prototype._cleanUp=function(){this.connected=false;if(this.pinger){i.clearInterval(this.pinger)}if(this.ponger){return i.clearInterval(this.ponger)}};r.prototype.send=function(t,e,n){if(e==null){e={}}if(n==null){n=""}e.destination=t;return this._transmit("SEND",e,n)};r.prototype.subscribe=function(t,e,n){var i;if(n==null){n={}}if(!n.id){n.id="sub-"+this.counter++}n.destination=t;this.subscriptions[n.id]=e;this._transmit("SUBSCRIBE",n);i=this;return{id:n.id,unsubscribe:function(){return i.unsubscribe(n.id)}}};r.prototype.unsubscribe=function(t){delete this.subscriptions[t];return this._transmit("UNSUBSCRIBE",{id:t})};r.prototype.begin=function(t){var e,n;n=t||"tx-"+this.counter++;this._transmit("BEGIN",{transaction:n});e=this;return{id:n,commit:function(){return e.commit(n)},abort:function(){return e.abort(n)}}};r.prototype.commit=function(t){return this._transmit("COMMIT",{transaction:t})};r.prototype.abort=function(t){return this._transmit("ABORT",{transaction:t})};r.prototype.ack=function(t,e,n){if(n==null){n={}}n["message-id"]=t;n.subscription=e;return this._transmit("ACK",n)};r.prototype.nack=function(t,e,n){if(n==null){n={}}n["message-id"]=t;n.subscription=e;return this._transmit("NACK",n)};return r}();i={VERSIONS:{V1_0:"1.0",V1_1:"1.1",V1_2:"1.2",supportedVersions:function(){return"1.1,1.0"}},client:function(t,n){var r,o;if(n==null){n=["v10.stomp","v11.stomp"]}r=i.WebSocketClass||WebSocket;o=new r(t,n);return new e(o)},over:function(t){return new e(t)},Frame:n};if(typeof exports!=="undefined"&&exports!==null){exports.Stomp=i}if(typeof window!=="undefined"&&window!==null){i.setInterval=function(t,e){return window.setInterval(e,t)};i.clearInterval=function(t){return window.clearInterval(t)};window.Stomp=i}else if(!exports){self.Stomp=i}}).call(this);</script>
+    <script>// 全局应用JavaScript
+(function() {
+    'use strict';
+
+    const TAG_PRIORITY_PATTERNS = [
+        /内部人员/,
+        /蓝V认证/,
+        /黄V认证/
+    ];
+
+    function pickTopIdentityTagFromList(tags = []) {
+        if (!Array.isArray(tags) || tags.length === 0) {
+            return '';
+        }
+        for (const pattern of TAG_PRIORITY_PATTERNS) {
+            const matched = tags.find(tag => typeof tag === 'string' && pattern.test(tag));
+            if (matched) {
+                return matched;
+            }
+        }
+        return tags.find(tag => typeof tag === 'string' && tag.trim().length) || '';
+    }
+
+    window.resolveIdentityTag = function(target) {
+        if (!target) {
+            return '';
+        }
+        if (typeof target === 'object' && target.displayIdentityTag) {
+            return target.displayIdentityTag;
+        }
+        if (Array.isArray(target)) {
+            return pickTopIdentityTagFromList(target);
+        }
+        if (Array.isArray(target.identityTags)) {
+            return pickTopIdentityTagFromList(target.identityTags);
+        }
+        return '';
+    };
+
+    window.isPaidUser = function() {
+        if (window.Android && Android.isPaidUser) {
+            try {
+                return !!Android.isPaidUser();
+            } catch (e) {
+                console.warn('读取付费状态失败', e);
+            }
+        }
+        return false;
+    };
+
+    window.openRechargePage = function() {
+        if (window.Android && Android.navigateToRecharge) {
+            Android.navigateToRecharge();
+        } else {
+            window.location.href = 'upgrade_service.html';
+        }
+    };
+
+    window.getUserProfile = function() {
+        if (window.Android && Android.getUserProfile) {
+            try {
+                const payload = Android.getUserProfile();
+                const parsed = typeof payload === 'string' ? JSON.parse(payload) : payload;
+                return parsed || {};
+            } catch (e) {
+                console.warn('读取用户信息失败', e);
+            }
+        }
+        return {
+            phone: '',
+            isPaid: false,
+            hasChildProfile: false,
+            isLoggedIn: false
+        };
+    };
+
+    const PAGE_TAB_MAP = {
+        'index.html': 'home',
+        'consult.html': 'home',
+        'consultant_list.html': 'home',
+        'consultant_detail.html': 'home',
+        'appointment.html': 'home',
+        'message.html': 'message',
+        'chat.html': 'message',
+        'rating.html': 'message',
+        'consultant_training.html': 'profile',
+        'consultant_exam.html': 'profile',
+        'upgrade_service.html': 'profile',
+        'profile.html': 'profile',
+        'child_info.html': 'profile',
+        'auth.html': 'profile',
+        'recharge.html': 'profile',
+        'account_manage.html': 'profile'
+    };
+    const PRIMARY_PAGES = ['index.html', 'message.html', 'profile.html'];
+
+    function getCurrentPageName() {
+        const page = window.location.pathname.split('/').pop();
+        return page && page.length ? page : 'index.html';
+    }
+
+    // 获取Token
+    window.getToken = function() {
+        if (window.Android && Android.getToken) {
+            return Android.getToken();
+        }
+        return localStorage.getItem('token') || '';
+    };
+
+    // API Base URL - 优先从 Android 接口获取（运行时返回正确的主机地址）
+    window.API_BASE_URL = (function() {
+        try {
+            if (window.Android && typeof Android.getBaseUrl === 'function') {
+                var url = Android.getBaseUrl();
+                // 去掉末尾的 /api（若有），保留 http://host:port 格式
+                if (url && typeof url === 'string') {
+                    return url.replace(/\/api\/?$/, '');
+                }
+            }
+        } catch (e) { /* ignore */ }
+        // 模拟器 fallback：adb reverse tcp:8080 tcp:8080
+        return 'http://127.0.0.1:8080';
+    })();
+
+    // 带认证的Fetch
+    window.fetchWithAuth = async function(url, options = {}) {
+        const token = window.getToken();
+        const headers = options.headers || {};
+
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        // 如果是相对路径，拼接 Base URL（已去掉末尾的 /api）
+        let fullUrl = url;
+        if (url.startsWith('/')) {
+            fullUrl = window.API_BASE_URL + '/api' + url;
+        }
+
+        const newOptions = {
+            ...options,
+            headers: headers
+        };
+
+        return fetch(fullUrl, newOptions);
+    };
+
+    function resolveActiveTab() {
+        const currentPage = getCurrentPageName();
+        if (PAGE_TAB_MAP[currentPage]) {
+            return PAGE_TAB_MAP[currentPage];
+        }
+        return PAGE_TAB_MAP['index.html'];
+    }
+
+    // 页面导航
+    window.navigateTo = function(page) {
+        if (window.Android) {
+            switch(page) {
+                case 'consult':
+                    // 直接跳转到咨询师列表，跳过问题选择页面
+                    Android.navigateToConsultantList();
+                    break;
+                case 'chat':
+                    // 需要传递appointmentId
+                    break;
+                default:
+                    console.log('Navigate to:', page);
+            }
+        }
+    };
+
+    window.navigateToConsultantDetail = function(name) {
+        if (window.Android && Android.navigateToConsultantDetail) {
+            Android.navigateToConsultantDetail(name);
+        } else {
+            window.location.href = 'consultant_detail.html?name=' + encodeURIComponent(name);
+        }
+    };
+
+    // 显示Toast
+    window.showToast = function(message) {
+        if (window.Android) {
+            Android.showToast(message);
+        } else {
+            console.log('Toast:', message);
+        }
+    };
+
+    // 获取预约列表
+    window.getAppointments = function() {
+        if (window.Android) {
+            try {
+                const json = Android.getAppointments();
+                return JSON.parse(json);
+            } catch (e) {
+                console.error('Error getting appointments:', e);
+                return [];
+            }
+        }
+        return [];
+    };
+
+    // 点击反馈动画
+    document.addEventListener('DOMContentLoaded', function() {
+        // 为所有可点击元素添加点击反馈
+        const clickableElements = document.querySelectorAll('.card:not(.static-card), .btn, .list-item, .nav-item, .consultant-item');
+        clickableElements.forEach(el => {
+            el.addEventListener('touchstart', function() {
+                this.style.transition = 'transform 0.1s';
+                this.style.transform = 'scale(0.98)';
+            });
+            el.addEventListener('touchend', function() {
+                this.style.transform = 'scale(1)';
+            });
+        });
+    });
+    window.addEventListener('pageshow', setupBackButton);
+
+    // 返回按钮
+    window.goBack = function() {
+        let handled = false;
+        try {
+            if (window.Android && typeof Android.goBack === 'function') {
+                Android.goBack();
+                handled = true;
+            }
+        } catch (err) {
+            console.warn('Android goBack failed', err);
+            handled = false;
+        }
+        if (!handled) {
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = 'index.html';
+            }
+        }
+    };
+
+    function isPrimaryPage() {
+        const page = getCurrentPageName();
+        return PRIMARY_PAGES.includes(page);
+    }
+
+    function setupBackButton() {
+        const toolbar = document.querySelector('.top-app-bar');
+        if (!toolbar) {
+            return;
+        }
+        const existingStatic = toolbar.querySelectorAll('.back-btn');
+        existingStatic.forEach(btn => {
+            if (!btn.classList.contains('dynamic-back-btn')) {
+                btn.remove();
+            }
+        });
+        const existingDynamic = toolbar.querySelector('.dynamic-back-btn');
+        if (existingDynamic) {
+            existingDynamic.remove();
+        }
+        if (isPrimaryPage()) {
+            return;
+        }
+        const button = document.createElement('button');
+        button.className = 'back-btn dynamic-back-btn';
+        button.innerHTML = `
+            <svg class="nav-icon" viewBox="0 0 24 24">
+                <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+            </svg>
+        `;
+        button.addEventListener('click', goBack);
+        toolbar.insertBefore(button, toolbar.firstChild);
+    }
+
+    const NAV_TABS = [
+        {
+            id: 'home',
+            label: '首页',
+            href: 'index.html',
+            icon: '<path d="M3 10.5L12 3l9 7.5V21a1 1 0 0 1-1 1h-6v-6H10v6H4a1 1 0 0 1-1-1z"/>'
+        },
+        {
+            id: 'message',
+            label: '消息',
+            href: 'message.html',
+            icon: '<path d="M21 6H3a1 1 0 0 0-1 1v12l4-4h15a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1z"/>'
+        },
+        {
+            id: 'profile',
+            label: '我的',
+            href: 'profile.html',
+            icon: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/>'
+        }
+    ];
+
+    window.renderBottomNav = function(activeTab) {
+        // 原底部导航栏代码已移除，使用 Android 原生底部导航栏
+    };
+})();</script>
     <script>
         let messages = [];
         let historyLoaded = false;
@@ -676,24 +1859,79 @@
         let callStartTime = null;
 
         function loadChatData() {
-            // 从URL参数或Android接口获取数据
-            const consultantName = getUrlParam('consultant_name') || getUrlParam('consultant') || '咨询师';
+            // Guard: if appointmentId is already set, initialization already happened (e.g. DOMContentLoaded)
+            if (currentAppointmentId !== '') {
+                return;
+            }
+            hideLoading(); // 确保 spinner 消失
+
+            // 优先从 Android 接口获取会话数据（由 ChatActivity.setChatSessionForWebView 设置）
+            if (window.Android) {
+                const androidLocalId = Android.getChatLocalAppointmentId();
+                const androidServerId = Android.getChatServerAppointmentIdNative();
+                const androidConsultantName = Android.getChatConsultantDisplayName();
+                const androidConsultantUserId = Android.getChatConsultantUserIdNative();
+                
+                // 如果 Android 接口有数据，优先使用
+                if (androidLocalId && androidLocalId.length > 0) {
+                    currentAppointmentId = androidLocalId;
+                    window.appointmentId = androidLocalId;
+                }
+                if (androidServerId > 0) {
+                    serverAppointmentId = androidServerId;
+                }
+                if (androidConsultantName && androidConsultantName.length > 0) {
+                    document.getElementById('consultantName').textContent = androidConsultantName;
+                    const toolbarTitle = document.getElementById('toolbarTitle');
+                    if (toolbarTitle) {
+                        toolbarTitle.textContent = androidConsultantName;
+                    }
+                }
+                if (androidConsultantUserId > 0) {
+                    consultantUserId = androidConsultantUserId;
+                }
+            }
+
+            // 如果 Android 接口没有数据，从 URL 参数获取（作为备用）
+            const urlConsultantName = getUrlParam('consultant_name') || getUrlParam('consultant') || '';
             const date = getUrlParam('date') || '';
             const slot = getUrlParam('slot') || '';
-            const appointmentId = getUrlParam('appointment_id') || getUrlParam('appointmentId') || '';
+            const urlAppointmentId = getUrlParam('appointment_id') || getUrlParam('appointmentId') || '';
             const childId = getUrlParam('childId') || '';
             const childName = getUrlParam('childName') || '';
             
-            serverAppointmentId = parseInt(getUrlParam('serverAppointmentId') || '-1');
-            const cId = getUrlParam('consultantUserId');
-            if (cId) {
-                consultantUserId = parseInt(cId);
+            // 如果还没有 appointmentId，从 URL 获取
+            if (!currentAppointmentId && urlAppointmentId) {
+                currentAppointmentId = urlAppointmentId;
+                window.appointmentId = urlAppointmentId;
             }
-
-            document.getElementById('consultantName').textContent = consultantName + ' 咨询师';
-            const toolbarTitle = document.getElementById('toolbarTitle');
-            if (toolbarTitle) {
-                toolbarTitle.textContent = consultantName + ' 咨询师';
+            
+            // 如果还没有 serverAppointmentId，从 URL 获取
+            if (serverAppointmentId <= 0) {
+                const urlServerId = parseInt(getUrlParam('serverAppointmentId') || '-1');
+                if (urlServerId > 0) {
+                    serverAppointmentId = urlServerId;
+                }
+            }
+            
+            // 如果还没有 consultantUserId，从 URL 获取
+            if (!consultantUserId) {
+                const cId = getUrlParam('consultantUserId');
+                if (cId) {
+                    consultantUserId = parseInt(cId);
+                }
+            }
+            
+            // 如果还没有咨询师名称，从 URL 获取
+            const currentConsultantName = document.getElementById('consultantName').textContent;
+            if (!currentConsultantName || currentConsultantName === '咨询师') {
+                if (urlConsultantName) {
+                    document.getElementById('consultantName').textContent = urlConsultantName;
+                    const toolbarTitle = document.getElementById('toolbarTitle');
+                    if (toolbarTitle) {
+                        toolbarTitle.textContent = urlConsultantName;
+                    }
+                }
             }
 
             // 显示孩子信息
@@ -1010,24 +2248,48 @@
         }
 
         function loadHistoryMessages() {
-            if (!window.Android || !window.appointmentId || typeof Android.getChatHistory !== 'function') {
+            if (!window.Android || !window.appointmentId) {
                 return;
             }
-            try {
-                const historyJson = Android.getChatHistory(window.appointmentId) || '[]';
-                const history = JSON.parse(historyJson);
-                history.forEach(record => {
-                    addMessage(record.fromConsultant, record.type.toLowerCase(), record.content, record.mediaUri, true);
-                });
-                // 是否显示欢迎语改由服务器控制，这里不再本地生成
-                shouldShowWelcome = false;
-                if (typeof Android.markAppointmentChatted === 'function') {
-                    Android.markAppointmentChatted(window.appointmentId);
+            
+            // 优先从服务器获取历史记录
+            if (typeof Android.getChatHistoryFromServer === 'function' && serverAppointmentId > 0) {
+                try {
+                    const historyJson = Android.getChatHistoryFromServer(String(serverAppointmentId)) || '[]';
+                    const history = JSON.parse(historyJson);
+                    if (history && history.length > 0) {
+                        history.forEach(record => {
+                            addMessage(record.fromConsultant, record.type ? record.type.toLowerCase() : 'text', record.content || '', record.mediaUri || '', true);
+                        });
+                    }
+                    shouldShowWelcome = history.length === 0;
+                    if (typeof Android.markAppointmentChatted === 'function') {
+                        Android.markAppointmentChatted(window.appointmentId);
+                    }
+                    historyLoaded = true;
+                    return;
+                } catch (e) {
+                    console.error('Load history from server failed, fallback to local', e);
                 }
-                historyLoaded = true;
-            } catch (e) {
-                console.error('Load history failed', e);
-                shouldShowWelcome = false;
+            }
+            
+            // 服务器获取失败，从本地存储获取
+            if (typeof Android.getChatHistory === 'function') {
+                try {
+                    const historyJson = Android.getChatHistory(window.appointmentId) || '[]';
+                    const history = JSON.parse(historyJson);
+                    history.forEach(record => {
+                        addMessage(record.fromConsultant, record.type ? record.type.toLowerCase() : 'text', record.content || '', record.mediaUri || '', true);
+                    });
+                    shouldShowWelcome = false;
+                    if (typeof Android.markAppointmentChatted === 'function') {
+                        Android.markAppointmentChatted(window.appointmentId);
+                    }
+                    historyLoaded = true;
+                } catch (e) {
+                    console.error('Load local history failed', e);
+                    shouldShowWelcome = false;
+                }
             }
         }
 
@@ -1222,7 +2484,7 @@
 
             let contentHtml = '';
             if (message.type === 'text') {
-                contentHtml = `<div class="message-bubble">${escapeHtml(message.content)}</div>`;
+                contentHtml = `<div class="message-bubble">${escapeHtml(message.content)}</div><div class="message-time">${message.time || ''}</div>`;
             } else if (message.type === 'image') {
                 contentHtml = `
                     <div class="message-bubble">
@@ -1231,6 +2493,7 @@
                             <img src="${message.mediaUrl || ''}" alt="图片">
                         </div>
                     </div>
+                    <div class="message-time">${message.time || ''}</div>
                 `;
             } else if (message.type === 'video') {
                 contentHtml = `
@@ -1243,22 +2506,38 @@
                             点击播放视频
                         </button>
                     </div>
+                    <div class="message-time">${message.time || ''}</div>
                 `;
             } else if (message.type === 'audio') {
+                // 语音消息：提取时长，格式为"点击播放语音 00:15"或纯时长
+                const content = message.content || '';
+                const mediaUrl = message.mediaUrl || '';
+                // 尝试从content中提取时长（格式：数字或 mm:ss）
+                const durationMatch = content.match(/(\d{1,2}:\d{2}|\d+)/);
+                const duration = durationMatch ? durationMatch[1] : '';
+                const durationHtml = duration ? `<span class="audio-duration">${duration}</span>` : '';
                 contentHtml = `
-                    <div class="message-bubble">
-                        <div>${escapeHtml(message.content)}</div>
-                        <button class="media-button" onclick="playMedia('audio','${escapeAttr(message.mediaUrl || '')}')">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M5 3v18l15-9-15-9z"/>
-                            </svg>
-                            点击播放语音
-                        </button>
+                    <div class="message-bubble audio-bubble" onclick="playMedia('audio','${escapeAttr(mediaUrl)}')">
+                        <svg class="audio-icon audio-mic-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 1a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                            <path d="M19 10a7 7 0 0 1-14 0"/>
+                            <line x1="12" y1="19" x2="12" y2="23"/>
+                            <line x1="8" y1="23" x2="16" y2="23"/>
+                        </svg>
+                        <svg class="audio-icon audio-playing-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                        </svg>
+                        ${durationHtml}
+                        <span class="audio-hint audio-hint-idle">点击播放</span>
+                        <span class="audio-hint audio-hint-playing" style="display: none;">正在播放</span>
                     </div>
+                    <div class="message-time">${message.time || ''}</div>
                 `;
             } else {
                 // 其他类型当文本处理
-                contentHtml = `<div class="message-bubble">${escapeHtml(message.content)}</div>`;
+                contentHtml = `<div class="message-bubble">${escapeHtml(message.content)}</div><div class="message-time">${message.time || ''}</div>`;
             }
 
             messageDiv.innerHTML = contentHtml;
@@ -1390,40 +2669,412 @@
         }
 
         let isRecordingVoice = false;
+        let isMobileDevice = false;
+        let recordingStartY = 0;
+        let isSlidingToCancel = false;
 
-        function toggleVoiceRecord() {
+        // 检测是否为移动设备
+        function checkMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+                   || ('ontouchstart' in window);
+        }
+
+        // 切换文字输入模式
+        function toggleInputMode() {
+            const textArea = document.getElementById('textInputArea');
+            const voiceBtn = document.getElementById('voiceMainBtn');
+            const messageInput = document.getElementById('messageInput');
+            
+            if (textArea.style.display === 'none') {
+                // 切换到文字输入模式
+                textArea.style.display = 'flex';
+                voiceBtn.style.display = 'none';
+                if (messageInput) {
+                    messageInput.focus();
+                }
+            } else {
+                // 切换到语音输入模式
+                textArea.style.display = 'none';
+                voiceBtn.style.display = 'flex';
+            }
+        }
+
+        // 初始化录音功能
+        function initVoiceRecording() {
+            isMobileDevice = checkMobileDevice();
+            const voiceBtn = document.getElementById('voiceMainBtn');
+            if (!voiceBtn) {
+                // 备用：尝试旧的voiceBtn
+                const oldVoiceBtn = document.getElementById('voiceBtn');
+                if (oldVoiceBtn) {
+                    bindVoiceButtonEvents(oldVoiceBtn);
+                }
+                return;
+            }
+
+            bindVoiceButtonEvents(voiceBtn);
+        }
+
+        function bindVoiceButtonEvents(voiceBtn) {
+            if (isMobileDevice) {
+                // 手机端：长按开始录音，松开发送
+                voiceBtn.addEventListener('touchstart', onVoiceTouchStart, { passive: false });
+                voiceBtn.addEventListener('touchmove', onVoiceTouchMove, { passive: false });
+                voiceBtn.addEventListener('touchend', onVoiceTouchEnd, { passive: false });
+                voiceBtn.addEventListener('touchcancel', onVoiceTouchEnd, { passive: false });
+                
+                // 阻止默认行为防止触发点击
+                voiceBtn.addEventListener('mousedown', (e) => e.preventDefault());
+            } else {
+                // 电脑端：点击开始录音，再次点击发送
+                voiceBtn.onclick = function() {
+                    if (isRecordingVoice) {
+                        stopRecordingAndSend();
+                    } else {
+                        startRecording();
+                    }
+                };
+            }
+        }
+
+        function onVoiceTouchStart(e) {
             if (!window.Android) {
                 showToast('仅支持在APP内录音');
                 return;
             }
-            if (!isRecordingVoice) {
-                if (typeof Android.startVoiceRecord === 'function') {
-                    Android.startVoiceRecord();
+            e.preventDefault();
+            
+            recordingStartY = e.touches[0].clientY;
+            isSlidingToCancel = false;
+            isRecordingVoice = true;
+            
+            // 开始录音
+            if (typeof Android.startVoiceRecord === 'function') {
+                Android.startVoiceRecord();
+            }
+            
+            // 显示录音提示
+            showVoiceRecordingHint();
+            updateVoiceButton();
+        }
+
+        function onVoiceTouchMove(e) {
+            if (!isRecordingVoice) return;
+            e.preventDefault();
+            
+            const currentY = e.touches[0].clientY;
+            const deltaY = recordingStartY - currentY;
+            
+            // 向上滑动超过阈值，取消录音
+            if (deltaY > 80 && !isSlidingToCancel) {
+                isSlidingToCancel = true;
+                updateVoiceHintState('cancel');
+            } else if (deltaY <= 80 && isSlidingToCancel) {
+                isSlidingToCancel = false;
+                updateVoiceHintState('recording');
+            }
+        }
+
+        function onVoiceTouchEnd(e) {
+            if (!isRecordingVoice) return;
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // 检查是否上滑取消
+            if (isSlidingToCancel) {
+                // 用户上滑取消录音 - 调用 cancelVoiceRecord 不发送消息
+                console.log('[Voice] Cancel recording, sliding up');
+                hideVoiceRecordingHint();
+                isRecordingVoice = false;
+                isSlidingToCancel = false;
+                updateVoiceButton();
+                // 调用 Android.cancelVoiceRecord() 停止录音但不发送
+                if (typeof Android.cancelVoiceRecord === 'function') {
+                    Android.cancelVoiceRecord();
                 }
-            } else if (typeof Android.stopVoiceRecord === 'function') {
+                showToast('已取消录音');
+            } else {
+                // 用户正常松开发送录音
+                console.log('[Voice] Send recording, released');
+                if (typeof Android.stopVoiceRecord === 'function') {
+                    Android.stopVoiceRecord();
+                }
+                hideVoiceRecordingHint();
+                isRecordingVoice = false;
+                updateVoiceButton();
+            }
+        }
+
+        function toggleVoiceRecord() {
+            // 电脑端点击录音按钮的备用逻辑
+            if (!isMobileDevice) {
+                if (isRecordingVoice) {
+                    stopRecordingAndSend();
+                } else {
+                    startRecording();
+                }
+            }
+        }
+
+        function startRecording() {
+            if (!window.Android) {
+                showToast('仅支持在APP内录音');
+                return;
+            }
+            isRecordingVoice = true;
+            if (typeof Android.startVoiceRecord === 'function') {
+                Android.startVoiceRecord();
+            }
+            showVoiceRecordingHint();
+            updateVoiceButton();
+        }
+
+        function stopRecordingAndSend() {
+            if (typeof Android.stopVoiceRecord === 'function') {
                 Android.stopVoiceRecord();
+            }
+            hideVoiceRecordingHint();
+            isRecordingVoice = false;
+            updateVoiceButton();
+        }
+
+        function showVoiceRecordingHint() {
+            const hint = document.getElementById('voiceRecordingHint');
+            if (hint) {
+                hint.classList.add('visible');
+                updateVoiceHintState('recording');
+            }
+        }
+
+        function hideVoiceRecordingHint() {
+            const hint = document.getElementById('voiceRecordingHint');
+            if (hint) {
+                hint.classList.remove('visible');
+            }
+        }
+
+        function updateVoiceHintState(state) {
+            const hintText = document.getElementById('voiceHintText');
+            const hintSub = document.getElementById('voiceHintSub');
+            const slideArea = document.getElementById('voiceSlideArea');
+            
+            if (!hintText || !hintSub) return;
+            
+            if (state === 'cancel') {
+                hintText.textContent = '松开手指，取消发送';
+                hintText.style.color = '#F44336';
+                hintSub.textContent = '手指向下滑动';
+                if (slideArea) {
+                    slideArea.style.opacity = '1';
+                }
+            } else {
+                hintText.textContent = '正在录音...';
+                hintText.style.color = 'white';
+                hintSub.textContent = isMobileDevice ? '上滑取消发送' : '点击发送';
+                if (slideArea) {
+                    slideArea.style.opacity = '0.3';
+                }
             }
         }
 
         function updateVoiceButton() {
-            const btn = document.getElementById('voiceBtn');
-            if (!btn) return;
-            btn.classList.toggle('recording', isRecordingVoice);
+            // 更新主语音按钮
+            const voiceMainBtn = document.getElementById('voiceMainBtn');
+            if (voiceMainBtn) {
+                voiceMainBtn.classList.toggle('recording', isRecordingVoice);
+                if (isRecordingVoice) {
+                    voiceMainBtn.innerHTML = `
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="6" y="6" width="12" height="12" rx="2"/>
+                        </svg>
+                        <span class="voice-btn-text">松开 结束</span>
+                    `;
+                } else {
+                    voiceMainBtn.innerHTML = `
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 1a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                            <path d="M19 10a7 7 0 0 1-14 0"/>
+                            <line x1="12" y1="19" x2="12" y2="23"/>
+                            <line x1="8" y1="23" x2="16" y2="23"/>
+                        </svg>
+                        <span class="voice-btn-text">按住 说话</span>
+                    `;
+                }
+            }
+            
+            // 更新旧的小语音按钮（备用）
+            const voiceBtn = document.getElementById('voiceBtn');
+            if (voiceBtn && voiceBtn !== voiceMainBtn) {
+                voiceBtn.classList.toggle('recording', isRecordingVoice);
+                if (isRecordingVoice) {
+                    voiceBtn.innerHTML = `
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="6" y="6" width="12" height="12" rx="2"/>
+                        </svg>
+                    `;
+                } else {
+                    voiceBtn.innerHTML = `
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 1a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                            <path d="M19 10a7 7 0 0 1-14 0"/>
+                            <line x1="12" y1="19" x2="12" y2="23"/>
+                            <line x1="8" y1="23" x2="16" y2="23"/>
+                        </svg>
+                    `;
+                }
+            }
         }
 
         window.onVoiceRecordState = function (recording) {
             isRecordingVoice = !!recording;
             updateVoiceButton();
             if (!recording) {
-                // Check if page is unloading
                 if (document.visibilityState === 'visible') {
-                    showToast('录音结束，语音将发送');
+                    // 录音结束并已发送
                 }
             }
         };
 
+        // 录音被取消
+        window.onVoiceRecordCancelled = function() {
+            hideVoiceRecordingHint();
+            isRecordingVoice = false;
+            updateVoiceButton();
+            showToast('已取消录音');
+        };
+
         window.onMediaSelected = function (type, content, mediaUri) {
-            addMessage(false, (type || 'text').toLowerCase(), content, mediaUri);
+            try {
+                console.log('[onMediaSelected] type=' + type + ', content=' + content + ', mediaUri=' + mediaUri);
+                
+                // 先在UI上显示消息
+                addMessage(false, (type || 'text').toLowerCase(), content, mediaUri);
+                
+                // 尝试获取有效的 appointmentId
+                let finalAppointmentId = serverAppointmentId;
+                if (finalAppointmentId <= 0 && window.Android && Android.getServerAppointmentId) {
+                    try {
+                        const latestId = Android.getServerAppointmentId(currentAppointmentId);
+                        if (latestId > 0) {
+                            finalAppointmentId = latestId;
+                            serverAppointmentId = latestId;
+                        }
+                    } catch (e) {
+                        console.error('[onMediaSelected] getServerAppointmentId failed:', e);
+                    }
+                }
+                
+                // 如果还是没有有效的 appointmentId，尝试使用 currentAppointmentId（如果它看起来是数字）
+                if (finalAppointmentId <= 0 && currentAppointmentId) {
+                    const parsed = parseInt(currentAppointmentId);
+                    if (!isNaN(parsed) && parsed > 0) {
+                        finalAppointmentId = parsed;
+                    }
+                }
+                
+                // 如果仍然没有有效的 appointmentId，跳过发送但提示用户
+                if (!finalAppointmentId || finalAppointmentId <= 0) {
+                    console.error('[onMediaSelected] No valid appointmentId found. serverAppointmentId=' + serverAppointmentId + ', currentAppointmentId=' + currentAppointmentId);
+                    showToast('消息发送失败：预约ID无效');
+                    return;
+                }
+                
+                // 根据类型设置 messageType
+                let messageType = 'TEXT';
+                if (type === 'image') {
+                    messageType = 'IMAGE';
+                } else if (type === 'audio') {
+                    messageType = 'AUDIO';
+                } else if (type === 'video') {
+                    messageType = 'VIDEO';
+                }
+                
+                const messageDTO = {
+                    appointmentId: finalAppointmentId,
+                    senderUserId: currentUserId,
+                    receiverUserId: consultantUserId,
+                    messageType: messageType,
+                    content: content || '',
+                    mediaUrl: mediaUri || '',
+                    isFromConsultant: false
+                };
+                
+                console.log('[onMediaSelected] Sending message DTO:', JSON.stringify(messageDTO));
+                
+                // 获取服务器URL和token
+                let baseUrl = 'http://127.0.0.1:8080/api';
+                if (window.Android && Android.getBaseUrl) {
+                    baseUrl = Android.getBaseUrl();
+                    if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+                }
+                const token = window.Android && Android.getAuthToken ? Android.getAuthToken() : '';
+                
+                // 发送消息到服务器
+                fetch(baseUrl + '/messages', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify(messageDTO)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('发送消息失败, status=' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('[onMediaSelected] 媒体消息发送成功:', data);
+                })
+                .catch(error => {
+                    console.error('[onMediaSelected] 发送媒体消息失败:', error);
+                    showToast('消息发送失败，请重试');
+                });
+            } catch (e) {
+                console.error('[onMediaSelected] Unexpected error:', e);
+                showToast('发送消息时发生错误');
+            }
+        };
+
+        // 音频播放状态回调 - 当原生播放器开始/结束播放时调用
+        window.onAudioPlayingState = function(mediaUrl, isPlaying) {
+            const audioBubbles = document.querySelectorAll('.audio-bubble');
+            audioBubbles.forEach(function(bubble) {
+                const onclick = bubble.getAttribute('onclick') || '';
+                const mediaUrlAttr = bubble.getAttribute('data-media-url') || '';
+                // 匹配当前播放的音频
+                if (onclick.indexOf(mediaUrl) !== -1 || mediaUrlAttr.indexOf(mediaUrl) !== -1) {
+                    if (isPlaying) {
+                        // 显示播放状态
+                        bubble.classList.add('playing');
+                        const micIcon = bubble.querySelector('.audio-mic-icon');
+                        const playingIcon = bubble.querySelector('.audio-playing-icon');
+                        const idleHint = bubble.querySelector('.audio-hint-idle');
+                        const playingHint = bubble.querySelector('.audio-hint-playing');
+                        if (micIcon) micIcon.style.display = 'none';
+                        if (playingIcon) playingIcon.style.display = 'block';
+                        if (idleHint) idleHint.style.display = 'none';
+                        if (playingHint) playingHint.style.display = 'inline';
+                    } else {
+                        // 恢复空闲状态
+                        bubble.classList.remove('playing');
+                        const micIcon = bubble.querySelector('.audio-mic-icon');
+                        const playingIcon = bubble.querySelector('.audio-playing-icon');
+                        const idleHint = bubble.querySelector('.audio-hint-idle');
+                        const playingHint = bubble.querySelector('.audio-hint-playing');
+                        if (micIcon) micIcon.style.display = 'block';
+                        if (playingIcon) playingIcon.style.display = 'none';
+                        if (idleHint) idleHint.style.display = 'inline';
+                        if (playingHint) playingHint.style.display = 'none';
+                    }
+                }
+            });
+            if (!isPlaying) {
+                audioBubbles.forEach(function(bubble) {
+                    bubble.classList.remove('playing');
+                });
+            }
         };
 
         function playMedia(type, uri) {
@@ -1433,6 +3084,9 @@
             }
             if (window.Android && typeof Android.playMedia === 'function') {
                 Android.playMedia(type, uri);
+                if (type === 'audio' && typeof Android.notifyAudioPlaying === 'function') {
+                    Android.notifyAudioPlaying(uri, true);
+                }
             } else {
                 showToast('请在APP内播放');
             }
@@ -1490,18 +3144,10 @@
 
         // 检测咨询是否应该结束（可以通过Android接口或时间判断）
         function checkConsultationStatus() {
-            if (window.Android && typeof Android.isConsultationEnded === 'function') {
-                try {
-                    const isEnded = Android.isConsultationEnded(window.appointmentId || '');
-                    if (isEnded) {
-                        document.getElementById('endConsultationSection').style.display = 'block';
-                    }
-                } catch (e) {
-                    console.error('Check consultation status failed', e);
-                }
-            } else {
-                // 默认显示结束按钮（可以根据实际需求调整）
-                document.getElementById('endConsultationSection').style.display = 'block';
+            // 默认显示结束咨询按钮，让用户可以主动结束咨询
+            const endSection = document.getElementById('endConsultationSection');
+            if (endSection) {
+                endSection.style.display = 'block';
             }
         }
 
@@ -1524,12 +3170,20 @@
             }
         });
 
-        // 页面加载时初始化
-        document.addEventListener('DOMContentLoaded', function() {
+        // 页面加载时初始化（Java onPageFinished 后调用 onNativeReady）
+        window.onNativeReady = function() {
+            console.log('[init] onNativeReady fired');
+            hideLoading();
             loadChatData();
-            initPullToRefresh();
-            // 欢迎消息由服务器端在预约确认时发送，这里不再在本地生成
-            setTimeout(checkConsultationStatus, 1000);
+            initVoiceRecording();
+        };
+
+        // JavaScript 端 fallback：DOMContentLoaded 时也初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('[init] DOMContentLoaded fired, Android available:', typeof Android !== 'undefined');
+            hideLoading();
+            loadChatData();
+            initVoiceRecording();
         });
 
         document.addEventListener('keydown', function(event) {

@@ -176,7 +176,8 @@
     <div class="admin-container">
         <!-- 侧边栏 -->
         <aside class="sidebar">
-            <div class="logo">
+            <div class="logo" style="display: flex; align-items: center; gap: 12px;">
+                <img src="../images/tongkangyuan.png" alt="Logo" style="width: 60px; height: 60px; object-fit: cover; border-radius: 10px;">
                 <h2>童养园管理后台</h2>
             </div>
             <nav class="nav-menu">
@@ -237,6 +238,9 @@
                 </div>
                 <button class="btn-primary" onclick="addBanner()" id="addBannerBtn" style="margin-top: 16px;">
                     + 添加轮播图
+                </button>
+                <button class="btn-success" onclick="saveBanners()" style="margin-top: 16px; margin-left: 12px;">
+                    💾 保存轮播图
                 </button>
             </div>
 

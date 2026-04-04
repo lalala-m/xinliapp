@@ -54,6 +54,7 @@ public class WebAppInterface {
         void captureVideo();
         void startVoiceRecord();
         void stopVoiceRecord();
+        void cancelVoiceRecord();
         void playMedia(String type, String uri);
     }
     
@@ -87,8 +88,49 @@ public class WebAppInterface {
     private final PreferenceStore preferenceStore;
     private final ConsultantRepository consultantRepository;
     private final ChildProfileRepository childProfileRepository;
-    private final WeakReference<WebView> webViewRef;
+    private WeakReference<WebView> webViewRef;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+
+    /**
+     * ChatActivity 在 file:// 下注入：WebView 常把 {@code location.search} 置空，JS 读不到 URL 参数。
+     */
+    private volatile String chatLocalAppointmentId = "";
+    private volatile long chatServerAppointmentIdNative = -1L;
+    private volatile String chatConsultantDisplayName = "";
+    private volatile long chatConsultantUserIdNative = 0L;
+
+    /** 仅 ChatActivity 在 loadUrl 前调用 */
+    public void setChatSessionForWebView(String localAppointmentId, long serverAppointmentId,
+                                         String consultantName, long consultantUserId) {
+        this.chatLocalAppointmentId = localAppointmentId != null ? localAppointmentId : "";
+        this.chatServerAppointmentIdNative = serverAppointmentId;
+        this.chatConsultantDisplayName = consultantName != null ? consultantName : "";
+        this.chatConsultantUserIdNative = consultantUserId;
+    }
+
+    @JavascriptInterface
+    public String getChatLocalAppointmentId() {
+        return chatLocalAppointmentId != null ? chatLocalAppointmentId : "";
+    }
+
+    @JavascriptInterface
+    public long getChatServerAppointmentIdNative() {
+        return chatServerAppointmentIdNative;
+    }
+
+    @JavascriptInterface
+    public String getChatConsultantDisplayName() {
+        return chatConsultantDisplayName != null ? chatConsultantDisplayName : "";
+    }
+
+    @JavascriptInterface
+    public long getChatConsultantUserIdNative() {
+        return chatConsultantUserIdNative;
+    }
+
+    public void setWebView(WebView webView) {
+        this.webViewRef = new WeakReference<>(webView);
+    }
 
     public WebAppInterface(Context context, WebView webView) {
         this.context = context;
@@ -139,18 +181,19 @@ public class WebAppInterface {
     public void navigateTo(String page) {
         if (context == null) return;
         if ("home".equalsIgnoreCase(page)) {
-            // 未登录时强制跳转登录页，避免游客绕过登录
             if (!preferenceStore.isLoggedIn()) {
                 openWebPage("auth.html");
+                finishHost();
                 return;
             }
             Intent intent = new Intent(context, MainActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             context.startActivity(intent);
+            finishHost();
         } else {
             openWebPage(page);
+            finishHost();
         }
-        finishHost();
     }
 
     @JavascriptInterface
@@ -170,37 +213,46 @@ public class WebAppInterface {
 
     @JavascriptInterface
     public void navigateToChat(String appointmentId) {
-        AppointmentRecord record = appointmentStore.getAppointmentById(appointmentId);
+        if (appointmentId == null || appointmentId.trim().isEmpty()) {
+            showToast("预约记录无效");
+            return;
+        }
+        AppointmentRecord record = appointmentStore.getAppointmentById(appointmentId.trim());
         if (record == null) {
             try {
-                long serverId = Long.parseLong(appointmentId);
+                long serverId = Long.parseLong(appointmentId.trim());
                 record = appointmentStore.getAppointmentByServerId(serverId);
             } catch (NumberFormatException e) {
+                // ignore
             }
         }
-        if (record != null) {
-            String status = record.getStatus();
-            if ("CANCELLED".equalsIgnoreCase(status)) {
-                showToast("该咨询已取消，无法进入聊天");
-                return;
-            }
-            // 未确认的预约不允许直接进入聊天
-            if ("PENDING".equalsIgnoreCase(status)) {
-                showToast("请等待咨询师确认后再开始聊天");
-                return;
-            }
-            Intent intent = new Intent(context, ChatActivity.class);
-            intent.putExtra(ChatActivity.KEY_CONSULTANT, record.getConsultant());
-            intent.putExtra(ChatActivity.KEY_APPOINTMENT_DATE, record.getDate());
-            intent.putExtra(ChatActivity.KEY_APPOINTMENT_SLOT, record.getTimeSlot());
-            intent.putExtra(ChatActivity.KEY_APPOINTMENT_ID, record.getId());
-            intent.putExtra(ChatActivity.KEY_CHILD_ID, record.getChildId());
-            intent.putExtra(ChatActivity.KEY_CHILD_NAME, record.getChildName());
-            intent.putExtra("chat_server_id", record.getServerId());
-            context.startActivity(intent);
-        } else {
+        if (record == null) {
             showToast("未找到对应的预约记录，请稍后刷新后重试");
+            return;
         }
+        String status = record.getStatus();
+        if ("CANCELLED".equalsIgnoreCase(status)) {
+            showToast("该咨询已取消，无法进入聊天");
+            return;
+        }
+        if ("PENDING".equalsIgnoreCase(status)) {
+            showToast("请等待咨询师确认后再开始聊天");
+            return;
+        }
+        Consultant consultant = record.getConsultant();
+        if (consultant == null) {
+            showToast("预约记录缺少咨询师信息，请刷新后重试");
+            return;
+        }
+        Intent intent = new Intent(context, ChatActivity.class);
+        intent.putExtra(ChatActivity.KEY_CONSULTANT, consultant);
+        intent.putExtra(ChatActivity.KEY_APPOINTMENT_DATE, record.getDate());
+        intent.putExtra(ChatActivity.KEY_APPOINTMENT_SLOT, record.getTimeSlot());
+        intent.putExtra(ChatActivity.KEY_APPOINTMENT_ID, record.getId());
+        intent.putExtra(ChatActivity.KEY_CHILD_ID, record.getChildId() != null ? record.getChildId() : "");
+        intent.putExtra(ChatActivity.KEY_CHILD_NAME, record.getChildName() != null ? record.getChildName() : "");
+        intent.putExtra("chat_server_id", record.getServerId());
+        context.startActivity(intent);
     }
 
     @JavascriptInterface
@@ -285,10 +337,40 @@ public class WebAppInterface {
     }
 
     @JavascriptInterface
+    public void cancelVoiceRecord() {
+        if (context instanceof MediaDelegate) {
+            ((MediaDelegate) context).cancelVoiceRecord();
+        }
+    }
+
+    @JavascriptInterface
     public void playMedia(String type, String uri) {
         if (context instanceof MediaDelegate) {
             ((MediaDelegate) context).playMedia(type, uri);
         }
+    }
+
+    /**
+     * 通知WebView当前正在播放音频
+     * 用于显示播放动画
+     */
+    @JavascriptInterface
+    public void notifyAudioPlaying(String mediaUrl, boolean isPlaying) {
+        mainHandler.post(() -> {
+            WebView webView = webViewRef != null ? webViewRef.get() : null;
+            if (webView != null) {
+                String escapedUrl = mediaUrl != null ? mediaUrl.replace("'", "\\'") : "";
+                String script = String.format(
+                    "if (window.onAudioPlayingState) window.onAudioPlayingState('%s', %b);",
+                    escapedUrl, isPlaying
+                );
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                    webView.evaluateJavascript(script, null);
+                } else {
+                    webView.loadUrl("javascript:" + script);
+                }
+            }
+        });
     }
 
     @JavascriptInterface
@@ -874,17 +956,21 @@ public class WebAppInterface {
     public void openChat(String appointmentJson) {
         try {
             JSONObject obj = new JSONObject(appointmentJson);
-            String appointmentId = obj.getString("id");
+            // id = 预约服务器端ID（用于 KEY_APPOINTMENT_ID，因为来自 message.html 的 safeId 就是 appointment.serverId）
+            // 不能把预约ID当作咨询师ID传给 Consultant 构造函数
+            String appointmentId = obj.optString("id", "");
+            long consultantId = obj.optLong("consultantId", 0);
             String consultantName = obj.optString("consultantName", "咨询师");
             String childName = obj.optString("childName", "孩子");
             String date = obj.optString("date", "");
             String slot = obj.optString("timeSlot", "");
-            
-            // 构造 Consultant 对象 (部分信息)
+
+            // 构造 Consultant 对象（仅用于显示）
+            // 用正确的 consultantId 作为 userId
             Consultant consultant = new Consultant(
-                    obj.optLong("consultantId"),
+                    consultantId,
                     consultantName,
-                    "咨询师", // title unknown
+                    "咨询师",
                     "", 0, "", "", new ArrayList<>(), "", new ArrayList<>()
             );
 
@@ -895,6 +981,8 @@ public class WebAppInterface {
                 intent.putExtra(ChatActivity.KEY_APPOINTMENT_SLOT, slot);
                 intent.putExtra(ChatActivity.KEY_APPOINTMENT_ID, appointmentId);
                 intent.putExtra(ChatActivity.KEY_CHILD_NAME, childName);
+                // 传递 serverAppointmentId（由 message.html 的 safeId 传入，它就是 appointment.serverId）
+                intent.putExtra(ChatActivity.KEY_SERVER_ID, obj.optLong("id", -1));
                 context.startActivity(intent);
             });
         } catch (JSONException e) {
@@ -932,6 +1020,97 @@ public class WebAppInterface {
             }
         }
         return jsonArray.toString();
+    }
+
+    /**
+     * 从服务器获取聊天历史记录并同步到本地存储
+     * @param appointmentId 服务器端的 appointment ID（数字）
+     * @return 服务器返回的历史消息 JSON 数组字符串
+     */
+    @JavascriptInterface
+    public String getChatHistoryFromServer(String appointmentId) {
+        if (TextUtils.isEmpty(appointmentId)) {
+            return "[]";
+        }
+        
+        try {
+            long aptId = Long.parseLong(appointmentId.trim());
+            String baseUrl = com.example.tongyangyuan.database.NetworkConfig.getBaseUrl();
+            java.net.URL url = new java.net.URL(baseUrl + "/messages/appointment/" + aptId);
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(5000);
+            
+            String token = preferenceStore.getAuthToken();
+            if (!android.text.TextUtils.isEmpty(token)) {
+                conn.setRequestProperty("Authorization", "Bearer " + token);
+            }
+            
+            if (conn.getResponseCode() == 200) {
+                java.io.BufferedReader br = new java.io.BufferedReader(
+                    new java.io.InputStreamReader(conn.getInputStream(), "UTF-8"));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = br.readLine()) != null) {
+                    response.append(line);
+                }
+                br.close();
+                
+                // 解析服务器响应：{code: 200, data: [...]}
+                org.json.JSONObject jsonResponse = new org.json.JSONObject(response.toString());
+                if (jsonResponse.optInt("code") == 200 && jsonResponse.has("data")) {
+                    org.json.JSONArray serverMessages = jsonResponse.getJSONArray("data");
+                    JSONArray resultArray = new JSONArray();
+                    
+                    // 转换服务器消息格式并同步到本地
+                    for (int i = 0; i < serverMessages.length(); i++) {
+                        org.json.JSONObject msg = serverMessages.getJSONObject(i);
+                        JSONObject converted = new JSONObject();
+                        try {
+                            // 服务器字段映射到前端需要的格式
+                            converted.put("fromConsultant", msg.optBoolean("isFromConsultant", false));
+                            converted.put("type", msg.optString("messageType", "TEXT").toLowerCase());
+                            converted.put("content", msg.optString("content", ""));
+                            converted.put("mediaUri", msg.optString("mediaUrl", ""));
+                            
+                            // 处理时间戳
+                            long timestamp = msg.optLong("timestamp", 0);
+                            if (timestamp == 0 && msg.has("createdAt")) {
+                                // 尝试解析 createdAt 时间
+                                String createdAt = msg.getString("createdAt");
+                                try {
+                                    java.time.Instant instant = java.time.Instant.parse(createdAt);
+                                    timestamp = instant.toEpochMilli();
+                                } catch (Exception e) {}
+                            }
+                            converted.put("timestamp", timestamp);
+                            
+                            resultArray.put(converted);
+                            
+                            // 同步到本地存储
+                            ChatMessageRecord record = new ChatMessageRecord(
+                                msg.optBoolean("isFromConsultant", false),
+                                msg.optString("messageType", "TEXT").toLowerCase(),
+                                msg.optString("content", ""),
+                                null
+                            );
+                            chatStore.saveMessage(appointmentId, record);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    
+                    return resultArray.toString();
+                }
+            }
+            conn.disconnect();
+        } catch (Exception e) {
+            Log.e(TAG, "从服务器获取聊天历史失败", e);
+        }
+        
+        // 服务器获取失败，返回本地数据
+        return getChatHistory(appointmentId);
     }
 
     @JavascriptInterface
@@ -1003,7 +1182,7 @@ public class WebAppInterface {
 
     @JavascriptInterface
     public String getAppointments() {
-        // 先准备一个默认结果（当前本地缓存），如果服务器超时就用这个
+        // 立即返回本地缓存，避免 CountDownLatch 阻塞 WebView JS 线程导致整页卡死。
         List<AppointmentRecord> initialRecords = appointmentStore.getAllAppointments();
         JSONArray initialJsonArray = new JSONArray();
         try {
@@ -1014,9 +1193,6 @@ public class WebAppInterface {
         } catch (JSONException e) {
             e.printStackTrace();
         }
-
-        final String[] result = {initialJsonArray.toString()};
-        final java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
 
         new Thread(() -> {
             try {
@@ -1029,7 +1205,8 @@ public class WebAppInterface {
                 java.net.URL url = new java.net.URL(baseUrl + "/appointments/parent/" + userId);
                 java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
-                conn.setConnectTimeout(3000);
+                conn.setConnectTimeout(8000);
+                conn.setReadTimeout(8000);
 
                 String token = preferenceStore.getAuthToken();
                 if (!android.text.TextUtils.isEmpty(token)) {
@@ -1050,36 +1227,15 @@ public class WebAppInterface {
                         org.json.JSONArray dataArray = response.optJSONArray("data");
                         if (dataArray != null) {
                             appointmentStore.updateFromServerJsonArray(dataArray);
-
-                            List<AppointmentRecord> updatedRecords = appointmentStore.getAllAppointments();
-                            JSONArray updatedJson = new JSONArray();
-                            try {
-                                for (AppointmentRecord apt : updatedRecords) {
-                                    JSONObject obj = recordToJsonObject(apt);
-                                    updatedJson.put(obj);
-                                }
-                                result[0] = updatedJson.toString();
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                            }
                         }
                     }
                 }
             } catch (Exception e) {
-                Log.e("WebAppInterface", "Failed to fetch appointments from server, using local cache", e);
-            } finally {
-                latch.countDown();
+                Log.e("WebAppInterface", "Background sync appointments failed", e);
             }
-        }).start();
+        }, "sync-appointments").start();
 
-        try {
-            // 等待服务器响应，最多等待 2 秒。如果超时，latch 未倒数，继续执行，返回本地数据
-            latch.await(2000, java.util.concurrent.TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        
-        return result[0];
+        return initialJsonArray.toString();
     }
 
     private JSONObject recordToJsonObject(AppointmentRecord apt) throws JSONException {
@@ -1096,8 +1252,9 @@ public class WebAppInterface {
         obj.put("pinned", apt.isPinned());
         
         // 构造 consultantName 和 consultantId
-        obj.put("consultantId", apt.getConsultant().getUserId());
-        obj.put("consultantName", apt.getConsultant().getName());
+        Consultant c = apt.getConsultant();
+        obj.put("consultantId", c != null ? c.getUserId() : 0);
+        obj.put("consultantName", c != null ? c.getName() : "咨询师");
         obj.put("childName", apt.getChildName());
         
         return obj;
@@ -1155,7 +1312,10 @@ public class WebAppInterface {
                         preferenceStore.setLastLoginPhone(phone);
                         preferenceStore.setAuthToken(token);
                         preferenceStore.setUserId(userId);
-                        
+
+                        // 从服务器刷新真实会员状态
+                        preferenceStore.refreshPaidStatusFromServer(context);
+
                         mainHandler.post(() -> {
                             showToast("登录成功");
                             proceedAfterLogin();
@@ -1285,7 +1445,10 @@ public class WebAppInterface {
                         preferenceStore.setLastLoginPhone(phone);
                         preferenceStore.setAuthToken(token);
                         preferenceStore.setUserId(userId);
-                        
+
+                        // 从服务器刷新真实会员状态
+                        preferenceStore.refreshPaidStatusFromServer(context);
+
                         mainHandler.post(() -> {
                             showToast("登录成功");
                             proceedAfterLogin();
@@ -1385,6 +1548,9 @@ public class WebAppInterface {
                         preferenceStore.setAuthToken(token);
                         preferenceStore.setUserId(userId);
 
+                        // 从服务器刷新真实会员状态
+                        preferenceStore.refreshPaidStatusFromServer(context);
+
                         mainHandler.post(() -> {
                             showToast("微信登录成功");
                             proceedAfterLogin();
@@ -1411,6 +1577,8 @@ public class WebAppInterface {
     public void onLoginSuccess(String account) {
         preferenceStore.setLoggedIn(true);
         preferenceStore.setLastLoginPhone(account);
+        // 从服务器刷新真实会员状态
+        preferenceStore.refreshPaidStatusFromServer(context);
         mainHandler.post(() -> {
             proceedAfterLogin();
         });
@@ -1814,7 +1982,7 @@ public class WebAppInterface {
         if (!voiceRecordCallbackEnabled) return;
         mainHandler.post(() -> {
             if (webViewRef.get() != null) {
-                webViewRef.get().evaluateJavascript("if (window.onVoiceRecordStateChanged) window.onVoiceRecordStateChanged(" + recording + ")", null);
+                webViewRef.get().evaluateJavascript("if (window.onVoiceRecordState) window.onVoiceRecordState(" + recording + ")", null);
             }
         });
     }

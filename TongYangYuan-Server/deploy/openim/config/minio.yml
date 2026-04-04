@@ -1,5 +1,8 @@
+# MinIO 已启用（enable: true）
 enable: true
-endpoint: http://tongyuan-minio:9000
-accessKeyID: openIM
+bucket: openim
+accessKeyID: root
 secretAccessKey: openIM123
-signEndpoint: http://
+internalAddress: tongyuan-minio:9000
+externalAddress: http://127.0.0.1:10005
+publicRead: false

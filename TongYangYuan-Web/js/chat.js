@@ -101,9 +101,14 @@ const Chat = {
     async loadMessages() {
         try {
             const messages = await API.get(`/messages/appointment/${this.appointmentId}`);
-            if (messages) {
+            console.log('加载到的消息数量:', messages ? messages.length : 0);
+            if (messages && messages.length > 0) {
                 this.messages = messages.map(this.mapMessage);
+                console.log('映射后的消息:', this.messages);
                 this.displayMessages();
+            } else {
+                console.log('没有消息或消息为空');
+                this.displayMessages(); // 显示空状态
             }
         } catch (error) {
             console.error('加载消息失败', error);
@@ -127,7 +132,9 @@ const Chat = {
             content: msg.content,
             timestamp: msg.timestamp || (msg.createdAt ? new Date(msg.createdAt).getTime() : Date.now()),
             fromConsultant: msg.isFromConsultant,
-            senderUserId: msg.senderUserId
+            senderUserId: msg.senderUserId,
+            mediaUrl: msg.mediaUrl || msg.url || null,  // 保留媒体URL
+            duration: msg.duration || null  // 保留时长
         };
     },
 
@@ -167,11 +174,9 @@ const Chat = {
     },
 
     _setWsStatus(status) {
-        const el = document.getElementById('wsStatusBar');
-        if (!el) return;
-        el.className = 'ws-status ' + status;
-        const labels = { ok: '已连接', conn: '连接中…', err: '连接失败', disc: '已断开' };
-        el.innerHTML = `<span class="ws-status-dot"></span>${labels[status] || status}`;
+        // 连接状态条已移除，不再显示
+        // 如果需要调试，可以取消下面的注释
+        // console.log('WebSocket status:', status);
     },
 
     // 处理收到的消息
@@ -504,7 +509,7 @@ const Chat = {
     createMessageElement(msg) {
         const isSystem = msg.type === 'system';
         const fromConsultant = msg.fromConsultant;
-        const time = Utils.formatDate(msg.timestamp, 'HH:mm'); // 仅显示时间
+        const time = Utils.formatDate(msg.timestamp, 'HH:mm');
 
         // 通话结束消息
         if (msg.type === 'call_ended' || (msg.content && msg.content.startsWith('CALL_ENDED:'))) {
@@ -553,13 +558,53 @@ const Chat = {
 
         const messageClass = fromConsultant ? 'from-consultant' : 'from-client';
 
+        // 媒体消息处理
+        let mediaHtml = '';
+        if (msg.mediaUrl) {
+            if (msg.type === 'image') {
+                mediaHtml = `<div class="media-preview"><img src="${msg.mediaUrl}" alt="图片" onclick="Chat.previewMedia('${msg.mediaUrl}')"></div>`;
+            } else if (msg.type === 'video') {
+                mediaHtml = `<div class="media-preview"><video src="${msg.mediaUrl}" controls></video></div>`;
+            } else if (msg.type === 'audio') {
+                // 语音消息 - 默认显示静态麦克风+时长，点击后切换到播放状态
+                const duration = msg.duration || (msg.content && parseInt(msg.content)) || 0;
+                const escapedMediaUrl = this.escapeAttr(msg.mediaUrl || '');
+                mediaHtml = `
+                    <div class="message-audio" data-media-url="${escapedMediaUrl}" data-duration="${duration}" data-playing="false" onclick="Chat.toggleAudioMessage(this)">
+                        <div class="audio-content">
+                            <div class="audio-icon static">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                                    <line x1="12" y1="19" x2="12" y2="23"/>
+                                    <line x1="8" y1="23" x2="16" y2="23"/>
+                                </svg>
+                                <div class="audio-duration">${duration}"</div>
+                            </div>
+                            <div class="audio-playing" style="display:none">
+                                <div class="audio-wave">
+                                    <span class="audio-wave-bar"></span>
+                                    <span class="audio-wave-bar"></span>
+                                    <span class="audio-wave-bar"></span>
+                                    <span class="audio-wave-bar"></span>
+                                    <span class="audio-wave-bar"></span>
+                                </div>
+                                <div class="audio-duration">${duration}"</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
         return `
             <div class="message ${messageClass}" data-id="${msg.id}">
                 <div class="message-avatar" style="background: ${avatarColor}">
                     ${avatarText}
                 </div>
                 <div class="message-content">
-                    <div class="message-bubble">${this.escapeHtml(msg.content)}</div>
+                    ${mediaHtml}
+                    ${msg.type !== 'audio' ? `<div class="message-bubble">${this.escapeHtml(msg.content)}</div>` : ''}
                     <div class="message-time">${time}</div>
                 </div>
             </div>
@@ -624,6 +669,12 @@ const Chat = {
         return div.innerHTML;
     },
     
+    // 转义HTML属性
+    escapeAttr(text) {
+        if (!text) return '';
+        return String(text).replace(/"/g, '"').replace(/'/g, '&#39;');
+    },
+    
     // 设置只读模式
     setReadonlyMode() {
         const inputArea = document.querySelector('.chat-input-area');
@@ -632,11 +683,11 @@ const Chat = {
         }
     },
     
-    // 结束咨询
+    // 结束咨询 - 跳转到评价和测验页面
     async endConsultation() {
         if (this.isReadonly) return;
         
-        if (Utils.confirm('确定要结束本次咨询吗？')) {
+        if (Utils.confirm('确定要结束本次咨询并进入评价环节吗？')) {
             let recordError = null;
             try {
                 const payload = this.buildConsultationRecordPayload();
@@ -649,12 +700,13 @@ const Chat = {
                 await API.put(`/appointments/${this.appointmentId}`, {
                     status: 'COMPLETED'
                 });
-                if (recordError) {
-                    Utils.showToast('咨询已结束，但记录保存失败', 'warning');
-                } else {
-                    Utils.showToast('咨询已结束', 'success');
-                }
-                setTimeout(() => window.location.href = 'dashboard.html', 1500);
+                // 跳转到咨询评价页面
+                const params = new URLSearchParams({
+                    appointmentId: this.appointmentId,
+                    parentUserId: this.appointment.parentUserId,
+                    childId: this.appointment.childId
+                });
+                window.location.href = `consultation-review.html?${params.toString()}`;
             } catch (error) {
                 console.error('结束咨询失败', error);
                 Utils.showToast('操作失败', 'error');
@@ -719,6 +771,391 @@ const Chat = {
             window.location.href = `video-call.html?appointmentId=${this.appointmentId}&type=audio&role=caller`;
         } else {
             Utils.showToast('无法发起通话，预约ID不存在', 'error');
+        }
+    },
+
+    // 自动调整输入框高度
+    autoResize(textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+    },
+
+    // 处理键盘事件
+    handleKeyDown(event) {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            this.sendMessage();
+        }
+    },
+
+    // 附加文件
+    attachFile() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*,video/*';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                this.uploadMedia(file);
+            }
+        };
+        input.click();
+    },
+
+    // 上传媒体文件
+    async uploadMedia(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('appointmentId', this.appointmentId);
+        
+        // 根据文件类型选择正确的上传端点
+        let uploadEndpoint = '/upload/image';
+        if (file.type.startsWith('video/')) {
+            uploadEndpoint = '/upload/video';
+        } else if (file.type.startsWith('audio/')) {
+            uploadEndpoint = '/upload/audio';
+        }
+        
+        try {
+            const result = await API.upload(uploadEndpoint, formData);
+            Utils.showToast('文件上传成功', 'success');
+        } catch (error) {
+            console.error('上传失败', error);
+            Utils.showToast('文件上传失败', 'error');
+        }
+    },
+
+    // 预览媒体
+    previewMedia(url) {
+        const preview = document.getElementById('mediaPreview');
+        const img = document.getElementById('previewImage');
+        if (preview && img) {
+            img.src = url;
+            preview.classList.add('show');
+        }
+    },
+
+    // 关闭媒体预览
+    closeMediaPreview() {
+        const preview = document.getElementById('mediaPreview');
+        if (preview) {
+            preview.classList.remove('show');
+        }
+    },
+
+    // 显示用户信息
+    showUserInfo() {
+        if (this.appointment) {
+            const info = `家长：${this.appointment.clientName}\n孩子：${this.appointment.childName || '未填写'}\n年龄：${this.appointment.childAge || '?'}岁`;
+            Utils.showToast(info, 'info');
+        }
+    },
+
+    // 显示菜单
+    showMenu() {
+        Utils.showToast('更多功能开发中', 'info');
+    },
+
+    // ========== 语音消息功能 ==========
+    
+    // 当前输入模式：text 或 voice
+    _inputMode: 'text',
+    // 语音录制相关
+    _mediaRecorder: null,
+    _audioChunks: [],
+    _voiceStartY: 0,
+    _isRecording: false,
+    _recordingStartTime: null,
+    _voiceTimer: null,
+
+    // 切换输入模式（文字/语音）
+    toggleInputMode() {
+        const textWrapper = document.getElementById('textInputWrapper');
+        const voiceWrapper = document.getElementById('voiceInputWrapper');
+        const voiceBtn = document.getElementById('voiceBtn');
+        const sendBtn = document.getElementById('sendBtn');
+        const messageInput = document.getElementById('messageInput');
+        
+        if (this._inputMode === 'text') {
+            // 切换到语音模式
+            this._inputMode = 'voice';
+            textWrapper.style.display = 'none';
+            voiceWrapper.style.display = 'flex';
+            voiceBtn.classList.add('active');
+            sendBtn.style.display = 'none';
+        } else {
+            // 切换到文字模式
+            this._inputMode = 'text';
+            textWrapper.style.display = 'block';
+            voiceWrapper.style.display = 'none';
+            voiceBtn.classList.remove('active');
+            sendBtn.style.display = 'block';
+        }
+    },
+
+    // 开始录音
+    async startVoiceRecording(event) {
+        // 阻止默认行为，特别是移动端的上拉事件
+        if (event.type === 'touchstart') {
+            event.preventDefault();
+        }
+        
+        // 检查权限
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            
+            this._isRecording = true;
+            this._audioChunks = [];
+            this._recordingStartTime = Date.now();
+            
+            // 创建 MediaRecorder
+            this._mediaRecorder = new MediaRecorder(stream, {
+                mimeType: 'audio/webm;codecs=opus'
+            });
+            
+            this._mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) {
+                    this._audioChunks.push(e.data);
+                }
+            };
+            
+            this._mediaRecorder.onstop = () => {
+                this.processRecording();
+            };
+            
+            this._mediaRecorder.start();
+            
+            // 更新UI
+            const voiceBtn = document.getElementById('voiceHoldBtn');
+            const voiceBtnText = document.getElementById('voiceBtnText');
+            if (voiceBtn) {
+                voiceBtn.classList.add('recording');
+                voiceBtnText.textContent = '松开 发送';
+            }
+            
+            // 录音时长计时
+            this._voiceTimer = setInterval(() => {
+                this.updateRecordingDuration();
+            }, 1000);
+            
+            // 记录起始位置用于滑动取消
+            this._voiceStartY = event.type.includes('touch') ? event.touches[0].clientY : event.clientY;
+            
+        } catch (error) {
+            console.error('录音失败:', error);
+            Utils.showToast('无法访问麦克风，请检查权限设置', 'error');
+        }
+    },
+
+    // 结束录音
+    endVoiceRecording(event) {
+        if (!this._isRecording) return;
+        
+        if (event.type === 'touchend' || event.type === 'mouseup') {
+            // 检查是否上滑取消
+            const currentY = event.type.includes('touch') ? event.changedTouches[0].clientY : event.clientY;
+            const deltaY = this._voiceStartY - currentY;
+            
+            // 如果上滑超过100px，取消发送
+            if (deltaY > 100) {
+                this.cancelVoiceRecording();
+                return;
+            }
+        }
+        
+        this.stopRecording(true);
+    },
+
+    // 取消录音
+    cancelVoiceRecording(event) {
+        this.stopRecording(false);
+    },
+
+    // 停止录音
+    stopRecording(shouldSend) {
+        if (!this._isRecording) return;
+        
+        this._isRecording = false;
+        
+        // 停止计时器
+        if (this._voiceTimer) {
+            clearInterval(this._voiceTimer);
+            this._voiceTimer = null;
+        }
+        
+        // 更新UI
+        const voiceBtn = document.getElementById('voiceHoldBtn');
+        const voiceBtnText = document.getElementById('voiceBtnText');
+        if (voiceBtn) {
+            voiceBtn.classList.remove('recording');
+            voiceBtnText.textContent = '按住 说话';
+        }
+        
+        // 隐藏取消提示
+        const cancelHint = document.getElementById('voiceCancelHint');
+        if (cancelHint) {
+            cancelHint.classList.remove('show');
+        }
+        
+        // 停止 MediaRecorder
+        if (this._mediaRecorder && this._mediaRecorder.state !== 'inactive') {
+            this._mediaRecorder.stop();
+            // 停止所有轨道
+            this._mediaRecorder.stream.getTracks().forEach(track => track.stop());
+        }
+    },
+
+    // 处理录音结果
+    async processRecording() {
+        if (this._audioChunks.length === 0) return;
+        
+        const audioBlob = new Blob(this._audioChunks, { type: 'audio/webm' });
+        const duration = Math.round((Date.now() - this._recordingStartTime) / 1000);
+        
+        // 检查录音时长，太短不发送
+        if (duration < 0.5) {
+            Utils.showToast('录音时间太短', 'warning');
+            return;
+        }
+        
+        // 显示"正在发送"提示
+        Utils.showToast('正在发送...', 'info');
+        
+        try {
+            // 上传音频文件 - 使用正确的端点
+            const formData = new FormData();
+            formData.append('file', audioBlob, 'voice.m4a');
+            
+            const result = await API.upload('/upload/audio', formData);
+            
+            // 提取返回的URL（可能是 {url: "/uploads/audios/xxx.m4a"} 或直接是URL字符串）
+            let mediaUrl = '';
+            if (typeof result === 'string') {
+                mediaUrl = result;
+            } else if (result && result.url) {
+                mediaUrl = result.url;
+            } else if (result && result.data && result.data.url) {
+                mediaUrl = result.data.url;
+            }
+            
+            // 确保URL是完整的
+            if (mediaUrl && !mediaUrl.startsWith('http')) {
+                mediaUrl = CONFIG.API_BASE_URL + mediaUrl;
+            }
+            
+            // 发送消息到服务器
+            const message = {
+                appointmentId: this.appointmentId,
+                senderUserId: this.consultant.userId,
+                receiverUserId: this.appointment.parentUserId,
+                messageType: 'AUDIO',
+                content: `${duration}秒`,
+                mediaUrl: mediaUrl,
+                duration: duration,
+                isFromConsultant: true
+            };
+            
+            await API.post('/messages', message);
+            Utils.showToast('语音已发送', 'success');
+            
+        } catch (error) {
+            console.error('发送语音失败:', error);
+            Utils.showToast('发送失败，请重试', 'error');
+        }
+    },
+
+    // 更新录音时长显示
+    updateRecordingDuration() {
+        if (!this._recordingStartTime) return;
+        
+        const duration = Math.round((Date.now() - this._recordingStartTime) / 1000);
+        const voiceBtnText = document.getElementById('voiceBtnText');
+        if (voiceBtnText) {
+            voiceBtnText.textContent = `${duration}" 录音中...`;
+        }
+    },
+
+    /**
+     * 切换音频消息播放状态
+     * 默认显示静态麦克风，点击后开始播放并显示波形动画
+     */
+    toggleAudioMessage(el) {
+        const isPlaying = el.getAttribute('data-playing') === 'true';
+        const url = el.getAttribute('data-media-url');
+        
+        if (!url) {
+            Utils.showToast('音频地址不存在', 'error');
+            return;
+        }
+        
+        if (isPlaying) {
+            // 停止播放，切换回静态图标
+            this.stopAudioMessage(el);
+        } else {
+            // 开始播放，切换到播放状态
+            this.playAudioMessage(el);
+        }
+    },
+    
+    /**
+     * 播放音频 - 切换到播放状态
+     */
+    playAudioMessage(el) {
+        const url = el.getAttribute('data-media-url');
+        if (!url) {
+            Utils.showToast('音频地址不存在', 'error');
+            return;
+        }
+        
+        // 切换到播放状态
+        el.setAttribute('data-playing', 'true');
+        el.querySelector('.audio-icon').style.display = 'none';
+        const playingDiv = el.querySelector('.audio-playing');
+        playingDiv.style.display = 'flex';
+        
+        // 直接使用浏览器原生 audio 播放
+        const audio = new Audio(url);
+        
+        // 播放结束后的回调
+        audio.onended = () => {
+            this.stopAudioMessage(el);
+        };
+        
+        audio.onerror = () => {
+            // URL可能不是完整路径，尝试拼接
+            const fullUrl = window.location.origin + url;
+            const retryAudio = new Audio(fullUrl);
+            retryAudio.onerror = () => {
+                Utils.showToast('音频加载失败', 'error');
+                this.stopAudioMessage(el);
+            };
+            retryAudio.onended = () => {
+                this.stopAudioMessage(el);
+            };
+            retryAudio.oncanplay = () => retryAudio.play();
+        };
+        
+        audio.oncanplay = () => {
+            audio.play();
+        };
+        
+        // 保存audio对象到元素上以便停止时使用
+        el._audio = audio;
+    },
+    
+    /**
+     * 停止音频播放，切换回静态图标
+     */
+    stopAudioMessage(el) {
+        el.setAttribute('data-playing', 'false');
+        el.querySelector('.audio-icon').style.display = 'flex';
+        el.querySelector('.audio-playing').style.display = 'none';
+        
+        // 停止音频
+        if (el._audio) {
+            el._audio.pause();
+            el._audio.currentTime = 0;
+            el._audio = null;
         }
     }
 };

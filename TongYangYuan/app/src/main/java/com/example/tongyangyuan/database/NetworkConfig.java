@@ -6,14 +6,22 @@ import com.example.tongyangyuan.data.PreferenceStore;
 
 public class NetworkConfig {
 
+    // —— 真机联调必读 ——
+    // ENV_MODE=1 时 base 为 127.0.0.1：仅适用于「安卓模拟器 + adb reverse」。
+    // 物理真机上 127.0.0.1 是手机本机，永远连不到电脑，聊天会一直「正在连接聊天服务器…」。
+    // 真机请：① 改 ENV_MODE=2 并把 LOCAL_LAN_BASE_URL 改成你电脑在局域网的真实 IPv4（ipconfig 查看），
+    // 手机与电脑同一 WiFi；或 ② USB 调试时执行 adb reverse tcp:8080 tcp:8080（仍可用模式 1）；
+    // 或 ③ 在 Application 启动前通过 initFromPrefs 已写入的 SharedPreferences「base_url」覆盖（见 setServerUrl）。
+    // 仅开手机流量(4G/5G)无法访问你家里的 192.168.x.x，除非走公网/隧道。
+
     // 模拟器访问本机后端：须先在电脑执行 adb reverse tcp:8080 tcp:8080（模拟器已连接时）
     // 10.0.2.2 在部分 Windows/Hyper-V 环境下会连不上，127.0.0.1 + adb reverse 更稳
     // LiveKit：后端返回 ws://127.0.0.1:7880 时在模拟器上保持不改，须执行 adb reverse tcp:7880 tcp:7880；
     // 并确保本机已启动 livekit（如 docker）。勿依赖 10.0.2.2:7880，与 adb reverse 冲突。
     private static final String EMULATOR_BASE_URL = "http://127.0.0.1:8080/api";
 
-    // 真机连接电脑本地后端（手机和电脑需在同一 WiFi）
-    private static final String LOCAL_LAN_BASE_URL = "http://172.17.81.135:8080/api";
+    // 真机连接电脑本地后端（手机和电脑需在同一 WiFi）；请改为本机实际局域网 IP，不要用占位 IP
+    private static final String LOCAL_LAN_BASE_URL = "http://192.168.56.1:8080/api";
 
     // 生产环境 - 远程服务器地址
     private static final String PRODUCTION_BASE_URL = "http://106.120.183.117:8080/api";
@@ -22,6 +30,17 @@ public class NetworkConfig {
     private static final int ENV_MODE = 1;
 
     private static String cachedBaseUrl = null;
+
+    /**
+     * 在 Application.onCreate 最早调用：若用户曾通过 setServerUrl 保存过地址，则优先使用，避免每次改代码重编。
+     */
+    public static void initFromPrefs(Context context) {
+        if (context == null) return;
+        String saved = getSavedServerUrl(context);
+        if (saved != null && !saved.trim().isEmpty()) {
+            cachedBaseUrl = saved.trim();
+        }
+    }
 
     public static String getBaseUrl() {
         if (cachedBaseUrl != null) {

@@ -1,0 +1,13 @@
+feat: 一键启动脚本 + 即时通讯改为Spring Boot STOMP WebSocket
+
+- 新增 start-dev.bat 一键启动脚本（MySQL/Redis/LiveKit/Spring Boot/前端）
+- 新增 docker-compose-openim.yml（OpenIM 全套部署配置）
+- 即时通讯从 OpenIM 独立服务器改为 Spring Boot 内置 STOMP WebSocket（端口 8080）
+- Android OpenIMService 改为连接后端 ws://.../stomp
+- Android NetworkConfig.resolveHost() 支持 OpenIM/LiveKit URL 翻译
+- WebView 设置允许 file:// 跨域请求
+- 新增 /stomp 端点（原生 WebSocket）+ /ws（SockJS）
+- 新增 SecurityConfig/WebSocketConfig/WebSocketAuthInterceptor
+- 更新 chat.html 使用原生 STOMP WebSocket 连接
+- docker-compose.yml OpenIM 容器增加 extra_hosts
+- .gitignore 新增 Docker 数据目录忽略

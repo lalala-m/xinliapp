@@ -2,14 +2,14 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>咨询对话 - 童养园咨询师端</title>
     <link rel="stylesheet" href="css/common.css">
     <link rel="stylesheet" href="css/chat.css">
     <link rel="stylesheet" href="css/anti-flicker.css">
 </head>
 <body>
-    <!-- 通话状态通知容器（像微信那样浮动显示） -->
+    <!-- 通话状态通知容器 -->
     <div class="call-notification-container" id="callNotificationContainer"></div>
 
     <div class="chat-container">
@@ -17,26 +17,31 @@
         <header class="chat-header">
             <div class="chat-header-left">
                 <button class="back-btn" onclick="Chat.goBack()">
-                    ←
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M15 18l-6-6 6-6"/>
+                    </svg>
                 </button>
                 <div class="avatar" id="clientAvatar">王</div>
                 <div class="chat-client-info">
                     <div class="chat-client-name" id="clientName">王女士</div>
                     <div class="chat-client-child" id="clientChild">孩子：小明（8岁）</div>
                 </div>
-                <span class="ws-status conn" id="wsStatusBar">
-                    <span class="ws-status-dot"></span>
-                    连接中…
-                </span>
             </div>
             <div class="chat-header-actions">
-                <button class="btn btn-primary" onclick="Chat.startAudioCall()">
-                    🎧 语音通话
+                <button class="btn btn-outline" onclick="Chat.startAudioCall()">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72"/>
+                    </svg>
+                    语音
                 </button>
-                <button class="btn btn-primary" onclick="Chat.startVideoCall()">
-                    📹 视频通话
+                <button class="btn btn-outline" onclick="Chat.startVideoCall()">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="23 7 16 12 23 17 23 7"/>
+                        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                    </svg>
+                    视频
                 </button>
-                <button class="btn btn-danger" id="endConsultationBtn" onclick="Chat.endConsultation()">
+                <button class="btn btn-danger-outline" id="endConsultationBtn" onclick="Chat.endConsultation()">
                     结束咨询
                 </button>
             </div>
@@ -50,19 +55,70 @@
         <!-- 输入区域 -->
         <div class="input-area" id="inputArea">
             <div class="input-container">
-                <div class="input-field-wrapper">
+                <div class="input-actions">
+                    <button class="action-btn" id="voiceBtn" onclick="Chat.toggleInputMode()" title="语音">
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 1a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                            <line x1="12" y1="19" x2="12" y2="23"/>
+                            <line x1="8" y1="23" x2="16" y2="23"/>
+                        </svg>
+                    </button>
+                    <button class="action-btn" onclick="Chat.attachFile()" title="发送图片" id="attachBtn">
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="input-field-wrapper" id="textInputWrapper">
                     <textarea
                         class="message-input"
                         id="messageInput"
                         placeholder="输入消息..."
                         rows="1"
+                        oninput="Chat.autoResize(this)"
                     ></textarea>
                 </div>
-                <button class="btn btn-primary send-btn" onclick="Chat.sendMessage()">
+                <!-- 语音按钮区域 -->
+                <div class="voice-input-wrapper" id="voiceInputWrapper" style="display:none;">
+                    <button class="voice-hold-btn" 
+                            id="voiceHoldBtn"
+                            onmousedown="Chat.startVoiceRecording(event)"
+                            onmouseup="Chat.endVoiceRecording(event)"
+                            onmouseleave="Chat.cancelVoiceRecording(event)"
+                            ontouchstart="Chat.startVoiceRecording(event)"
+                            ontouchend="Chat.endVoiceRecording(event)"
+                            ontouchcancel="Chat.cancelVoiceRecording(event)">
+                        <span id="voiceBtnText">按住 说话</span>
+                    </button>
+                </div>
+                <button class="btn btn-primary send-btn" id="sendBtn" onclick="Chat.sendMessage()">
                     发送
                 </button>
             </div>
         </div>
+
+        <!-- 取消发送提示 -->
+        <div class="voice-cancel-hint" id="voiceCancelHint">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+            <span>松开手指，取消发送</span>
+        </div>
+    </div>
+
+    <!-- 媒体预览弹窗 -->
+    <div class="media-preview-modal" id="mediaPreview" onclick="Chat.closeMediaPreview()">
+        <button class="preview-close-btn" onclick="Chat.closeMediaPreview()">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+        </button>
+        <img id="previewImage" src="" alt="预览">
     </div>
 
     <script src="js/config.js"></script>

@@ -1,8 +1,8 @@
-uri: 
+uri:
 address: [ tongyuan-mongodb:27017 ]
 database: openim_v3
 username: openIM
 password: openIM123
-authSource: openim_v3
+authSource: admin
 maxPoolSize: 100
 maxRetry: 10

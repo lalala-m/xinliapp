@@ -1,6 +1,7 @@
-address: [ tongyuan-redis:6379 ]
-username: 
-password: 
+address:
+  - tongyuan-redis:6379
+username:
+password: Redis@2026
 clusterMode: false
 db: 0
 maxRetry: 10

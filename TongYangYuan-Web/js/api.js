@@ -111,5 +111,44 @@ const API = {
             method: 'DELETE',
             ...options
         });
+    },
+
+    // 上传文件（multipart/form-data）
+    async upload(endpoint, formData) {
+        const url = this.getUrl(endpoint);
+        const token = this.getToken();
+        
+        const headers = {};
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        // 注意：不设置 Content-Type，让浏览器自动设置包含 boundary
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: headers,
+                body: formData
+            });
+
+            if (response.status === 401) {
+                Utils.showToast('登录已过期，请重新登录', 'error');
+                Auth.logout();
+                return null;
+            }
+
+            const data = await response.json();
+            
+            if (data.code === 200) {
+                return data.data || data;
+            } else {
+                Utils.showToast(data.message || '上传失败', 'error');
+                throw new Error(data.message || '上传失败');
+            }
+        } catch (error) {
+            console.error('Upload Error:', error);
+            Utils.showToast('文件上传失败', 'error');
+            throw error;
+        }
     }
 };

@@ -3,10 +3,11 @@
 
 port: 7880
 rtc:
-  port_range_start: 50000
-  port_range_end: 60000
+  port_range_start: 61000
+  port_range_end: 61999
   tcp_port: 7881
   use_external_ip: false
+  node-ip: 127.0.0.1
 
 keys:
   devkey: TongYuanLiveKit@2026SecretKeyXXX

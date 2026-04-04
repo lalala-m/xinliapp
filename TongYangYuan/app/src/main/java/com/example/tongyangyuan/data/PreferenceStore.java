@@ -194,6 +194,65 @@ public class PreferenceStore {
         }
     }
 
+    /**
+     * 从服务器拉取真实会员状态（is_vip）并更新本地存储。
+     * 登录成功后应调用此方法刷新会员状态。
+     * @param context 用于发起网络请求
+     */
+    public void refreshPaidStatusFromServer(final Context context) {
+        final String token = getAuthToken();
+        if (TextUtils.isEmpty(token)) {
+            return;
+        }
+        final String accountKey = getAccountKey();
+        new Thread(() -> {
+            try {
+                String baseUrl = com.example.tongyangyuan.database.NetworkConfig.getBaseUrl();
+                java.net.URL url = new java.net.URL(baseUrl + "/user/payment-status");
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setRequestProperty("Authorization", "Bearer " + token);
+                conn.setConnectTimeout(5000);
+                conn.setReadTimeout(5000);
+
+                if (conn.getResponseCode() == 200) {
+                    java.io.BufferedReader br = new java.io.BufferedReader(
+                            new java.io.InputStreamReader(conn.getInputStream()));
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = br.readLine()) != null) sb.append(line);
+                    br.close();
+
+                    org.json.JSONObject response = new org.json.JSONObject(sb.toString());
+                    if (response.optInt("code") == 200 && response.has("data")) {
+                        org.json.JSONObject data = response.getJSONObject("data");
+                        boolean isPaid = data.optBoolean("isPaid", false);
+                        boolean isVip = data.optBoolean("isVip", false);
+                        // 付费状态：isPaid 或 isVip 任一为真即视为付费用户
+                        boolean paid = isPaid || isVip;
+
+                        // 更新本地存储（按账号 key 存）
+                        try {
+                            org.json.JSONObject map = new org.json.JSONObject(
+                                    sharedPreferences.getString(KEY_PAID_USER_MAP, "{}"));
+                            map.put(accountKey, paid);
+                            sharedPreferences.edit()
+                                    .putString(KEY_PAID_USER_MAP, map.toString())
+                                    .putBoolean(KEY_IS_PAID, paid)
+                                    .apply();
+                            android.util.Log.d("PreferenceStore", "会员状态已从服务器刷新: isPaid=" + isPaid + ", isVip=" + isVip);
+                        } catch (org.json.JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+                conn.disconnect();
+            } catch (Exception e) {
+                android.util.Log.e("PreferenceStore", "刷新会员状态失败", e);
+            }
+        }, "refresh-paid-status").start();
+    }
+
     private String getAccountKey() {
         String phone = getLastLoginPhone();
         if (TextUtils.isEmpty(phone)) {

@@ -9,10 +9,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
 
-/**
- * 首页配置接口：轮播广告、广告卡片
- * 管理后台可通过 PUT 接口更新，前端通过 GET 获取
- */
 @RestController
 @RequestMapping("/home")
 public class HomeController {
@@ -28,22 +24,14 @@ public class HomeController {
         this.redisTemplate = redisTemplate;
     }
 
-    /**
-     * 获取首页配置（轮播图 + 广告卡片）
-     */
     @GetMapping("/config")
     public ApiResponse<Map<String, Object>> getConfig() {
         try {
             Map<String, Object> config = new HashMap<>();
-
-            // 轮播图
             List<Map<String, String>> banners = getBanners();
             config.put("banners", banners);
-
-            // 广告卡片
             Map<String, String> adCard = getAdCard();
             config.put("adCard", adCard);
-
             return ApiResponse.success(config);
         } catch (Exception e) {
             return ApiResponse.error(e.getMessage());
@@ -58,29 +46,20 @@ public class HomeController {
             }
         } catch (Exception ignored) {}
 
-        // 默认轮播（共3张）
         List<Map<String, String>> defaultBanners = new ArrayList<>();
-
         Map<String, String> b1 = new HashMap<>();
         b1.put("image", "");
         b1.put("link", "");
         b1.put("title", "💎 会员限时优惠");
-        b1.put("subtitle", "年度会员8折优惠，享受全年无限次咨询");
+        b1.put("subtitle", "年度会员8折优惠");
         defaultBanners.add(b1);
 
         Map<String, String> b2 = new HashMap<>();
         b2.put("image", "");
         b2.put("link", "");
         b2.put("title", "👨‍⚕️ 专业导师团队");
-        b2.put("subtitle", "30+认证咨询师全程陪伴，定制专属方案");
+        b2.put("subtitle", "30+认证咨询师");
         defaultBanners.add(b2);
-
-        Map<String, String> b3 = new HashMap<>();
-        b3.put("image", "");
-        b3.put("link", "");
-        b3.put("title", "🎁 首单优惠40%");
-        b3.put("subtitle", "轻松打开心灵窗户，让爱陪伴成长每一步");
-        defaultBanners.add(b3);
 
         return defaultBanners;
     }
@@ -102,28 +81,35 @@ public class HomeController {
         return defaultAd;
     }
 
-    /**
-     * 管理后台：更新轮播图配置
-     * @param banners [{"image":"url","link":"","title":"","subtitle":""}]
-     */
-    @PutMapping("/admin/banners")
-    public ApiResponse<Void> updateBanners(@RequestBody List<Map<String, String>> banners) {
+    @RequestMapping(value = "/admin/banners", method = {RequestMethod.POST, RequestMethod.PUT})
+    public ApiResponse<String> updateBanners(@RequestBody String body) {
         try {
-            String json = objectMapper.writeValueAsString(banners != null ? banners : Collections.emptyList());
+            if (body == null || body.trim().isEmpty()) {
+                return ApiResponse.error("请求体为空");
+            }
+            
+            // 解析JSON数组
+            List<Map<String, String>> banners = objectMapper.readValue(body, 
+                new TypeReference<List<Map<String, String>>>() {});
+            
+            String json = objectMapper.writeValueAsString(banners);
             redisTemplate.opsForValue().set(REDIS_KEY_BANNERS, json);
-            return ApiResponse.success("更新成功", null);
+            return ApiResponse.success("更新成功", "已设置 " + banners.size() + " 张轮播图");
         } catch (Exception e) {
-            return ApiResponse.error(e.getMessage());
+            e.printStackTrace();
+            return ApiResponse.error("更新失败: " + e.getMessage());
         }
     }
 
-    /**
-     * 管理后台：更新广告卡片配置
-     */
-    @PutMapping("/admin/adCard")
-    public ApiResponse<Void> updateAdCard(@RequestBody Map<String, String> adCard) {
+    @RequestMapping(value = "/admin/adCard", method = {RequestMethod.POST, RequestMethod.PUT})
+    public ApiResponse<String> updateAdCard(@RequestBody String body) {
         try {
-            String json = objectMapper.writeValueAsString(adCard != null ? adCard : Collections.emptyMap());
+            if (body == null || body.trim().isEmpty()) {
+                return ApiResponse.error("请求体为空");
+            }
+            Map<String, String> adCard = objectMapper.readValue(body, 
+                new TypeReference<Map<String, String>>() {});
+            String json = objectMapper.writeValueAsString(adCard);
             redisTemplate.opsForValue().set(REDIS_KEY_AD_CARD, json);
             return ApiResponse.success("更新成功", null);
         } catch (Exception e) {

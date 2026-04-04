@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>咨询评价 - 童养园</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/chat.css">
+    <style>
+        body {
+            background: var(--primary-gradient);
+            min-height: 100vh;
+        }
+        
+        .review-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+        }
+        
+        .review-header {
+            background: white;
+            padding: 24px;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow-sm);
+            text-align: center;
+        }
+        
+        .review-header h1 {
+            font-size: 22px;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+        
+        .review-header p {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        .review-section {
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .section-title .icon {
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+        }
+        
+        /* 评分星星 */
+        .rating-container {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .rating-star {
+            font-size: 36px;
+            color: #ddd;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .rating-star.active {
+            color: #FFD700;
+            transform: scale(1.1);
+        }
+        
+        .rating-star:hover {
+            transform: scale(1.2);
+        }
+        
+        .rating-label {
+            text-align: center;
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+        
+        /* 评价选项 */
+        .evaluation-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        
+        .tag-item {
+            padding: 8px 16px;
+            background: var(--surface);
+            border: 2px solid var(--border-color);
+            border-radius: 20px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .tag-item.selected {
+            background: rgba(0, 188, 212, 0.1);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+        
+        .tag-item:hover {
+            border-color: var(--primary-color);
+        }
+        
+        /* 文字输入 */
+        .textarea-field {
+            width: 100%;
+            min-height: 120px;
+            padding: 14px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 15px;
+            font-family: inherit;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        
+        .textarea-field:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        
+        .textarea-label {
+            display: block;
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        
+        .char-count {
+            text-align: right;
+            font-size: 12px;
+            color: var(--text-hint);
+            margin-top: 6px;
+        }
+        
+        /* 紧急程度 */
+        .urgency-options {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        
+        .urgency-item {
+            padding: 14px;
+            text-align: center;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .urgency-item.selected {
+            border-color: var(--primary-color);
+            background: rgba(0, 188, 212, 0.1);
+        }
+        
+        .urgency-item .urgency-icon {
+            font-size: 24px;
+            margin-bottom: 6px;
+        }
+        
+        .urgency-item .urgency-text {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .urgency-item .urgency-desc {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        
+        .urgency-item.selected .urgency-text {
+            color: var(--primary-color);
+        }
+        
+        /* 提交按钮 */
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 188, 212, 0.3);
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 188, 212, 0.4);
+        }
+        
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+        
+        .submit-btn:disabled {
+            background: #ccc;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+        
+        .skip-btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            background: transparent;
+            color: var(--text-secondary);
+            border: none;
+            font-size: 15px;
+            cursor: pointer;
+            text-align: center;
+            margin-top: 12px;
+        }
+        
+        .skip-btn:hover {
+            color: var(--text-primary);
+        }
+        
+        /* 成功状态 */
+        .success-container {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #4CAF50, #66BB6A);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            animation: successPop 0.5s ease;
+        }
+        
+        @keyframes successPop {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        
+        .success-icon svg {
+            width: 40px;
+            height: 40px;
+            stroke: white;
+        }
+        
+        .success-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+        
+        .success-desc {
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+        }
+        
+        .back-btn-large {
+            display: inline-block;
+            padding: 14px 40px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="review-container" id="reviewContainer">
+        <!-- 评价表单 -->
+        <div id="reviewForm">
+            <div class="review-header">
+                <h1>📋 咨询评价</h1>
+                <p>感谢您的专业服务，请完成本次咨询的评价</p>
+            </div>
+            
+            <!-- 满意度评分 -->
+            <div class="review-section">
+                <div class="section-title">
+                    <span class="icon">⭐</span>
+                    咨询满意度
+                </div>
+                <div class="rating-container" id="ratingStars">
+                    <span class="rating-star" data-rating="1">★</span>
+                    <span class="rating-star" data-rating="2">★</span>
+                    <span class="rating-star" data-rating="3">★</span>
+                    <span class="rating-star" data-rating="4">★</span>
+                    <span class="rating-star" data-rating="5">★</span>
+                </div>
+                <div class="rating-label" id="ratingLabel">点击选择评分</div>
+            </div>
+            
+            <!-- 服务标签 -->
+            <div class="review-section">
+                <div class="section-title">
+                    <span class="icon">✓</span>
+                    本次服务评价（可多选）
+                </div>
+                <div class="evaluation-tags" id="serviceTags">
+                    <span class="tag-item" data-tag="professional">专业耐心</span>
+                    <span class="tag-item" data-tag="effective">效果明显</span>
+                    <span class="tag-item" data-tag="warm">温暖关怀</span>
+                    <span class="tag-item" data-tag="helpful">很有帮助</span>
+                    <span class="tag-item" data-tag="clear">讲解清晰</span>
+                    <span class="tag-item" data-tag="patient">倾听认真</span>
+                </div>
+            </div>
+            
+            <!-- 孩子情况 -->
+            <div class="review-section">
+                <div class="section-title">
+                    <span class="icon">👶</span>
+                    孩子情况记录
+                </div>
+                <textarea 
+                    class="textarea-field" 
+                    id="childNotes" 
+                    placeholder="记录本次咨询中孩子的表现、情绪状态、突出问题等..."
+                    maxlength="500"
+                    oninput="updateCharCount('childNotes', 500)"
+                ></textarea>
+                <div class="char-count"><span id="childNotesCount">0</span>/500</div>
+            </div>
+            
+            <!-- 紧急程度 -->
+            <div class="review-section">
+                <div class="section-title">
+                    <span class="icon">⚡</span>
+                    后续关注建议
+                </div>
+                <div class="urgency-options" id="urgencyOptions">
+                    <div class="urgency-item" data-urgency="follow_up">
+                        <div class="urgency-icon">📅</div>
+                        <div class="urgency-text">定期随访</div>
+                        <div class="urgency-desc">1-2周后回访</div>
+                    </div>
+                    <div class="urgency-item" data-urgency="attention">
+                        <div class="urgency-icon">👀</div>
+                        <div class="urgency-text">持续关注</div>
+                        <div class="urgency-desc">日常观察</div>
+                    </div>
+                    <div class="urgency-item selected" data-urgency="resolved">
+                        <div class="urgency-icon">✅</div>
+                        <div class="urgency-text">已解决</div>
+                        <div class="urgency-desc">无需特别关注</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 建议备注 -->
+            <div class="review-section">
+                <div class="section-title">
+                    <span class="icon">💬</span>
+                    咨询备注（选填）
+                </div>
+                <textarea 
+                    class="textarea-field" 
+                    id="consultantNotes" 
+                    placeholder="添加任何需要记录的咨询细节、后续跟进事项..."
+                    maxlength="300"
+                    oninput="updateCharCount('consultantNotes', 300)"
+                ></textarea>
+                <div class="char-count"><span id="consultantNotesCount">0</span>/300</div>
+            </div>
+            
+            <button class="submit-btn" id="submitBtn" onclick="submitReview()">
+                提交评价
+            </button>
+            <button class="skip-btn" onclick="skipReview()">
+                稍后评价
+            </button>
+        </div>
+        
+        <!-- 成功状态 -->
+        <div id="successContainer" style="display: none;">
+            <div class="review-header">
+                <div class="success-container">
+                    <div class="success-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                    </div>
+                    <div class="success-title">评价已提交</div>
+                    <div class="success-desc">感谢您的反馈，咨询记录已保存</div>
+                    <a href="dashboard.html" class="back-btn-large">返回工作台</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/config.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    
+    <script>
+        // 评价数据
+        const Review = {
+            appointmentId: null,
+            parentUserId: null,
+            childId: null,
+            rating: 0,
+            tags: [],
+            childNotes: '',
+            urgency: 'resolved',
+            consultantNotes: ''
+        };
+        
+        // 初始化
+        function init() {
+            const consultant = Auth.checkAuth();
+            if (!consultant) {
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            // 获取URL参数
+            const urlParams = new URLSearchParams(window.location.search);
+            Review.appointmentId = urlParams.get('appointmentId');
+            Review.parentUserId = urlParams.get('parentUserId');
+            Review.childId = urlParams.get('childId');
+            
+            if (!Review.appointmentId) {
+                Utils.showToast('缺少预约ID参数', 'error');
+                setTimeout(() => window.location.href = 'dashboard.html', 1500);
+                return;
+            }
+            
+            initRatingStars();
+            initServiceTags();
+            initUrgencyOptions();
+        }
+        
+        // 初始化评分星星
+        function initRatingStars() {
+            const stars = document.querySelectorAll('.rating-star');
+            const label = document.getElementById('ratingLabel');
+            
+            const labels = ['', '很差', '较差', '一般', '满意', '非常满意'];
+            
+            stars.forEach(star => {
+                star.addEventListener('click', () => {
+                    const rating = parseInt(star.dataset.rating);
+                    Review.rating = rating;
+                    
+                    stars.forEach((s, index) => {
+                        if (index < rating) {
+                            s.classList.add('active');
+                        } else {
+                            s.classList.remove('active');
+                        }
+                    });
+                    
+                    label.textContent = labels[rating];
+                });
+            });
+        }
+        
+        // 初始化服务标签
+        function initServiceTags() {
+            const tags = document.querySelectorAll('.tag-item');
+            
+            tags.forEach(tag => {
+                tag.addEventListener('click', () => {
+                    tag.classList.toggle('selected');
+                    
+                    Review.tags = [];
+                    tags.forEach(t => {
+                        if (t.classList.contains('selected')) {
+                            Review.tags.push(t.dataset.tag);
+                        }
+                    });
+                });
+            });
+        }
+        
+        // 初始化紧急程度选项
+        function initUrgencyOptions() {
+            const options = document.querySelectorAll('.urgency-item');
+            
+            options.forEach(option => {
+                option.addEventListener('click', () => {
+                    options.forEach(o => o.classList.remove('selected'));
+                    option.classList.add('selected');
+                    Review.urgency = option.dataset.urgency;
+                });
+            });
+        }
+        
+        // 更新字符计数
+        function updateCharCount(fieldId, maxLength) {
+            const field = document.getElementById(fieldId);
+            const counter = document.getElementById(fieldId + 'Count');
+            counter.textContent = field.value.length;
+        }
+        
+        // 提交评价
+        async function submitReview() {
+            if (Review.rating === 0) {
+                Utils.showToast('请选择满意度评分', 'warning');
+                return;
+            }
+            
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '提交中...';
+            
+            try {
+                // 收集表单数据
+                Review.childNotes = document.getElementById('childNotes').value.trim();
+                Review.consultantNotes = document.getElementById('consultantNotes').value.trim();
+                
+                // 发送到服务器
+                const payload = {
+                    appointmentId: Number(Review.appointmentId),
+                    consultantId: Auth.checkAuth().consultantId,
+                    parentUserId: Review.parentUserId ? Number(Review.parentUserId) : null,
+                    childId: Review.childId ? Number(Review.childId) : null,
+                    rating: Review.rating,
+                    tags: Review.tags.join(','),
+                    childNotes: Review.childNotes,
+                    urgency: Review.urgency,
+                    consultantNotes: Review.consultantNotes,
+                    submittedAt: new Date().toISOString()
+                };
+                
+                await API.post('/consultation-reviews', payload);
+                
+                // 显示成功状态
+                document.getElementById('reviewForm').style.display = 'none';
+                document.getElementById('successContainer').style.display = 'block';
+                
+            } catch (error) {
+                console.error('提交评价失败:', error);
+                Utils.showToast('提交失败，请重试', 'error');
+                submitBtn.disabled = false;
+                submitBtn.textContent = '提交评价';
+            }
+        }
+        
+        // 跳过评价
+        function skipReview() {
+            if (confirm('确定要跳过评价吗？评价可以帮助我们改进服务。')) {
+                window.location.href = 'dashboard.html';
+            }
+        }
+        
+        // 页面加载初始化
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

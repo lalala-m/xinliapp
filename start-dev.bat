@@ -1,272 +1,342 @@
 @echo off
-chcp 65001 >nul 2>&1
 setlocal EnableDelayedExpansion
-
-:: =============================================
-::  TongYangYuan 一键启动脚本
-::  包含：MySQL + Redis + LiveKit + OpenIM 全套 + Spring Boot + 前端
-:: =============================================
-title TongYangYuan - 一键启动
 
 set "PROJECT_DIR=D:\AllProject\AndroidStudioProjects\TYY"
 set "SERVER_DIR=%PROJECT_DIR%\TongYangYuan-Server"
-set "WEB_DIR=%SERVER_DIR%\web"
-set "CONSULTANT_DIR=%PROJECT_DIR%\TongYangYuan-Web"
 set "DEPLOY_DIR=%SERVER_DIR%\deploy"
+set "CONSULTANT_DIR=%PROJECT_DIR%\TongYangYuan-Web"
+set "WEB_DIR=%SERVER_DIR%\web"
 
-:: 颜色定义
-set "C_OK=[OK]"
-set "C_FAIL=[FAIL]"
-set "C_INFO=[INFO]"
-set "C_WARN=[WARN]"
-set "C_END=[DONE]"
-
-:: =============================================
-::  启动标题
-:: =============================================
 echo.
-echo  ========================================
-echo    TongYangYuan 一键启动脚本
-echo  ========================================
+echo =============================================
+echo   TongYangYuan 一键启动脚本 v9 (完整版)
+echo =============================================
 echo.
 
 :: =============================================
-::  检查 Docker
+:: Step 1: 检查 Docker
 :: =============================================
-echo [1/8] 检查 Docker Desktop...
+echo [1/9] 检查 Docker...
 where docker >nul 2>&1
 if errorlevel 1 (
-    echo %C_FAIL% 未找到 Docker，请安装 Docker Desktop
-    echo.
-    echo 按任意键退出...
-    pause >nul
-    exit
+    echo [FAIL] Docker 未安装，请先安装 Docker Desktop
+    pause
+    exit /b 1
 )
-
 docker info >nul 2>&1
 if errorlevel 1 (
-    echo %C_FAIL% Docker 未运行
-    echo   请先启动 Docker Desktop，然后重新运行此脚本
-    echo.
-    echo 按任意键退出...
-    pause >nul
-    exit
+    echo [FAIL] Docker 未运行，请先启动 Docker Desktop
+    pause
+    exit /b 1
 )
-echo %C_OK% Docker 已运行
+echo [OK] Docker 运行正常
 
-:: =============================================
-::  确保必要目录存在
-:: =============================================
-echo.
-echo [2/8] 准备目录...
-if not exist "%DEPLOY_DIR%\redis\data"      mkdir "%DEPLOY_DIR%\redis\data"
-if not exist "%DEPLOY_DIR%\mysql\data"      mkdir "%DEPLOY_DIR%\mysql\data"
-if not exist "%DEPLOY_DIR%\mysql\conf"      mkdir "%DEPLOY_DIR%\mysql\conf"
-if not exist "%DEPLOY_DIR%\openim\data"     mkdir "%DEPLOY_DIR%\openim\data"
-if not exist "%DEPLOY_DIR%\etcd\data"       mkdir "%DEPLOY_DIR%\etcd\data"
-if not exist "%DEPLOY_DIR%\mongodb\data"    mkdir "%DEPLOY_DIR%\mongodb\data"
-if not exist "%DEPLOY_DIR%\kafka\data"      mkdir "%DEPLOY_DIR%\kafka\data"
-if not exist "%DEPLOY_DIR%\minio\data"      mkdir "%DEPLOY_DIR%\minio\data"
-echo %C_OK% 目录已就绪
-
-:: =============================================
-::  启动 MySQL 和 Redis（基础服务）
-:: =============================================
-echo.
-echo [3/8] 启动 MySQL + Redis...
-
-cd /d "%DEPLOY_DIR%"
-
-docker compose up -d mysql redis
-
+where docker-compose >nul 2>&1
 if errorlevel 1 (
-    echo %C_WARN% docker compose 启动 MySQL/Redis 失败，尝试手动启动...
-
-    docker stop tongyangyuan-mysql 2>nul
-    docker rm   tongyangyuan-mysql 2>nul
-    docker run -d --name tongyangyuan-mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=TongYuan@2026 -e MYSQL_DATABASE=mental_health_db -v "%DEPLOY_DIR%\mysql\data:/var/lib/mysql" mysql:8.0 --default-authentication-plugin=mysql_native_password
-
-    docker stop tongyangyuan-redis 2>nul
-    docker rm   tongyangyuan-redis 2>nul
-    docker run -d --name tongyangyuan-redis -p 6379:6379 -v "%DEPLOY_DIR%\redis\data:/data" redis:7-alpine redis-server --appendonly yes --requirepass Redis@2026
-)
-
-echo.
-echo   等待 MySQL + Redis 启动...
-timeout /t 5 /nobreak >nul
-
-:: 检查容器状态
-docker ps --filter "name=tongyangyuan-mysql" --filter "name=tongyangyuan-redis" --format "%%{.Names}: %%.{Status}"
-
-:: =============================================
-::  等待 MySQL 完全就绪
-:: =============================================
-echo.
-echo [4/8] 等待 MySQL 就绪（最多 60 秒）...
-
-set "MYSQL_UP=0"
-for /L %%i in (1,1,60) do (
-    docker exec tongyangyuan-mysql mysqladmin ping -h localhost -uroot -pTongYuan@2026 >nul 2>&1
-    if !errorlevel!==0 (
-        set "MYSQL_UP=1"
-        goto :mysql_ready
+    docker compose version >nul 2>&1
+    if errorlevel 1 (
+        echo [FAIL] docker-compose 未安装
+        pause
+        exit /b 1
     )
-    echo   等待 MySQL 初始化... %%i/60
-    timeout /t 2 /nobreak >nul
-)
-:mysql_ready
-if "!MYSQL_UP!"=="1" (
-    echo %C_OK% MySQL 已就绪
+    set "DC=docker compose"
+    echo [OK] 使用 docker compose (v2)
 ) else (
-    echo %C_WARN% MySQL 启动可能超时，但仍会继续...
+    set "DC=docker-compose"
+    echo [OK] 使用 docker-compose
 )
 
 :: =============================================
-::  启动 LiveKit
+:: Step 2: 检查 Windows MySQL 和端口 3306
 :: =============================================
 echo.
-echo [5/8] 启动 LiveKit 视频服务...
-
-docker compose up -d livekit
-if errorlevel 1 (
-    echo %C_WARN% docker compose 启动 LiveKit 失败，尝试手动启动...
-
-    docker stop tongyangyuan-livekit 2>nul
-    docker rm   tongyangyuan-livekit 2>nul
-    docker run -d --name tongyangyuan-livekit -p 7880:7880 -p 7881:7881 -p 7882:7882/udp -v "%DEPLOY_DIR%\livekit\config.yaml:/etc/livekit.yaml" livekit/livekit-server:latest --config /etc/livekit.yaml --node-ip 127.0.0.1
+echo [2/9] 检查 MySQL (端口 3306)...
+set "USE_WINDOWS_MYSQL=0"
+set "MYSQL_PORT=3306"
+for /f "tokens=*" %%a in ('powershell -NoProfile -Command "try { (Get-NetTCPConnection -LocalPort 3306 -ErrorAction Stop).OwningProcess -join ',' } catch { }" 2^>nul') do (
+    if not "%%a"=="" (
+        set "PID_3306=%%a"
+    )
+)
+if defined PID_3306 (
+    for /f "tokens=*" %%n in ('powershell -NoProfile -Command "try { Get-Process -Id !PID_3306! -ErrorAction Stop ^| Select-Object -ExpandProperty ProcessName } catch { }" 2^>nul') do (
+        echo %%n | findstr /i "mysql" >nul 2>&1
+        if not errorlevel 1 (
+            echo [OK] Windows MySQL 正在运行 (PID: !PID_3306!)
+            echo [INFO] Spring Boot 将连接 Windows MySQL: localhost:3306
+            set "USE_WINDOWS_MYSQL=1"
+        ) else (
+            echo [INFO] 端口 3306 被其他进程占用 (PID: !PID_3306!)
+            echo [INFO] 将启动 Docker MySQL 替代，映射到端口 3307
+            set "USE_WINDOWS_MYSQL=0"
+            set "MYSQL_PORT=3307"
+        )
+    )
+) else (
+    echo [OK] 端口 3306 空闲，将启动 Docker MySQL
+    set "USE_WINDOWS_MYSQL=0"
+    set "MYSQL_PORT=3306"
 )
 
-:: 等待 LiveKit
-set "LIVEKIT_UP=0"
-for /L %%i in (1,1,30) do (
-    curl.exe -s -o nul http://localhost:7880/ 2>nul
-    if !errorlevel!==0 (
-        set "LIVEKIT_UP=1"
+:: =============================================
+:: Step 3: 创建目录
+:: =============================================
+echo.
+echo [3/9] 创建数据目录...
+for %%d in (redis\data mysql\data etcd\data mongodb\data kafka\data minio\data livekit openim\data) do (
+    if not exist "%DEPLOY_DIR%\%%d" mkdir "%DEPLOY_DIR%\%%d" 2>nul
+)
+echo [OK] 目录就绪
+
+:: =============================================
+:: Step 4: 停止旧的 Docker 容器（避免名称冲突）
+:: =============================================
+echo.
+echo [4/9] 停止旧容器...
+:: 先尝试用 docker-compose 停止
+%DC% -f "%DEPLOY_DIR%\docker-compose-openim.yml" down >nul 2>&1
+:: 单独停止可能残留的容器（兼容不同命名）
+docker stop -t 3 tongyangyuan-openim 2>nul
+docker rm -f tongyangyuan-openim 2>nul
+docker stop -t 3 tongyuan-openim 2>nul
+docker rm -f tongyuan-openim 2>nul
+docker stop -t 3 tongyangyuan-redis 2>nul
+docker rm -f tongyangyuan-redis 2>nul
+docker stop -t 3 tongyuan-redis 2>nul
+docker rm -f tongyuan-redis 2>nul
+docker stop -t 3 tongyangyuan-livekit 2>nul
+docker rm -f tongyangyuan-livekit 2>nul
+docker stop -t 3 tongyuan-kafka 2>nul
+docker rm -f tongyuan-kafka 2>nul
+docker stop -t 3 tongyuan-etcd 2>nul
+docker rm -f tongyuan-etcd 2>nul
+docker stop -t 3 tongyuan-mongodb 2>nul
+docker rm -f tongyuan-mongodb 2>nul
+docker stop -t 3 tongyuan-minio 2>nul
+docker rm -f tongyuan-minio 2>nul
+docker stop -t 3 tongyangyuan-mysql 2>nul
+docker rm -f tongyangyuan-mysql 2>nul
+echo [OK] 旧容器已清理
+
+:: =============================================
+:: Step 5: 启动 LiveKit (Docker)
+:: =============================================
+echo.
+echo [5/9] 启动 LiveKit (视频通话)...
+
+:: 获取 Docker 网关 IP
+set "LIVEKIT_NODE_IP=127.0.0.1"
+for /f "tokens=*" %%a in ('powershell -NoProfile -Command "try { (docker network inspect bridge --format \"%%(Gateway)\" 2>^$null) } catch { }" 2^>nul') do (
+    if not "%%a"=="" (
+        echo %%a | findstr /r "^[0-9]" >nul 2>&1
+        if not errorlevel 1 set "LIVEKIT_NODE_IP=%%a"
+    )
+)
+echo   节点 IP: %LIVEKIT_NODE_IP%
+
+:: 更新 LiveKit 配置
+powershell -NoProfile -Command "$f='%DEPLOY_DIR%\livekit\config.yaml'; $c=Get-Content $f -Raw; $c -replace '(?m)^(node-ip:\s*).*','$1%LIVEKIT_NODE_IP%' | Set-Content $f -NoNewline -Encoding UTF8"
+
+docker run -d --name tongyangyuan-livekit ^
+    -p 7880:7880 ^
+    -p 7881:7881 ^
+    -p 7882:7882/udp ^
+    -p 61000-61999:61000-61999/udp ^
+    -v "%DEPLOY_DIR%\livekit\config.yaml:/etc/livekit.yaml" ^
+    livekit/livekit-server:latest ^
+    --config /etc/livekit.yaml ^
+    --node-ip %LIVEKIT_NODE_IP%
+if errorlevel 1 (
+    docker start tongyangyuan-livekit >nul 2>&1
+)
+echo [OK] LiveKit 已启动 (ws://localhost:7880)
+
+:: 等待 LiveKit 启动
+for /L %%i in (1,1,20) do (
+    curl.exe -s --max-time 3 -o nul http://localhost:7880/ 2>nul
+    if not errorlevel 1 (
+        echo [OK] LiveKit 就绪
         goto :livekit_ready
     )
-    echo   等待 LiveKit 初始化... %%i/30
     timeout /t 2 /nobreak >nul
 )
+echo [WARN] LiveKit 启动超时，继续...
 :livekit_ready
-if "!LIVEKIT_UP!"=="1" (
-    echo %C_OK% LiveKit 已就绪
-) else (
-    echo %C_WARN% LiveKit 启动可能超时，但仍会继续...
+
+:: =============================================
+:: Step 6: 启动 OpenIM 全家桶 (docker-compose)
+:: =============================================
+echo.
+echo [6/9] 启动 OpenIM 全家桶 (Redis/Kafka/etcd/MinIO/MongoDB/OpenIM)...
+
+:: 创建 Docker 网络（如果不存在）
+docker network inspect tongyuan-openim-net >nul 2>&1
+if errorlevel 1 (
+    docker network create tongyuan-openim-net >nul 2>&1
+    echo [OK] 创建网络: tongyuan-openim-net
 )
 
-:: =============================================
-::  启动 OpenIM（即时通讯 - etcd + MongoDB + Kafka + MinIO + OpenIM Server）
-:: =============================================
-echo.
-echo [6/8] OpenIM 即时通讯已改用 Spring Boot 内置 STOMP WebSocket（端口 8080）
-echo   Android 客户端无需独立 OpenIM 服务器，直接连接后端 ws://.../stomp
-echo %C_OK% 无需额外配置
+:: 启动所有 OpenIM 相关容器
+%DC% -f "%DEPLOY_DIR%\docker-compose-openim.yml" up -d
+if errorlevel 1 (
+    echo [FAIL] docker-compose 启动失败，查看日志:
+    echo   docker-compose -f "%DEPLOY_DIR%\docker-compose-openim.yml" logs
+    pause
+    exit /b 1
+)
+echo [OK] docker-compose 启动完成
 
-:: =============================================
-::  配置 ADB 端口转发（模拟器用）
-:: =============================================
+:: 等待各服务就绪
 echo.
-echo [ADB] 配置模拟器端口转发（让模拟器连到本机服务）...
-set "ADB=%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe"
-if exist "%ADB%" (
-    echo   检测到 ADB，开始配置端口转发...
-    :: 先检查是否有模拟器连接
-    "%ADB%" devices >"%TEMP%\adb_devices.txt" 2>&1
-    findstr /C:"device$" "%TEMP%\adb_devices.txt" | findstr /v "List" >nul 2>&1
+echo   等待 etcd...
+for /L %%i in (1,1,15) do (
+    curl.exe -s --max-time 3 -o nul http://localhost:12379/health 2>nul
     if not errorlevel 1 (
-        "%ADB%" reverse tcp:8080   tcp:8080   >nul 2>&1
-        "%ADB%" reverse tcp:7880   tcp:7880   >nul 2>&1
-        echo %C_OK% ADB 端口转发已配置（模拟器可正常访问本机服务）
-    ) else (
-        echo %C_WARN% 未检测到模拟器，跳过 ADB 配置
-        echo   启动模拟器后，请手动运行以下命令：
-        echo   "%ADB%" reverse tcp:8080   tcp:8080
-        echo   "%ADB%" reverse tcp:7880   tcp:7880
+        echo [OK] etcd 就绪
+        goto :etcd_ok
     )
-    del "%TEMP%\adb_devices.txt" 2>nul
-) else (
-    echo %C_WARN% ADB 未找到，跳过端口转发
-    echo   如需配置，请安装 Android SDK 或手动转发端口
+    timeout /t 2 /nobreak >nul
 )
+:etcd_ok
+
+echo   等待 Kafka...
+for /L %%i in (1,1,20) do (
+    curl.exe -s --max-time 3 -o nul http://localhost:19092/ 2>nul
+    if not errorlevel 1 (
+        echo [OK] Kafka 就绪
+        goto :kafka_ok
+    )
+    timeout /t 2 /nobreak >nul
+)
+:kafka_ok
+
+echo   等待 MongoDB...
+for /L %%i in (1,1,15) do (
+    curl.exe -s --max-time 3 -o nul http://localhost:27017/ 2>nul
+    if not errorlevel 1 (
+        echo [OK] MongoDB 就绪
+        goto :mongo_ok
+    )
+    timeout /t 2 /nobreak >nul
+)
+:mongo_ok
+
+echo   等待 MinIO...
+for /L %%i in (1,1,15) do (
+    curl.exe -s --max-time 3 -o nul http://localhost:10005/minio/health/live 2>nul
+    if not errorlevel 1 (
+        echo [OK] MinIO 就绪
+        goto :minio_ok
+    )
+    timeout /t 2 /nobreak >nul
+)
+:minio_ok
+
+echo   等待 OpenIM Server...
+for /L %%i in (1,1,20) do (
+    curl.exe -s --max-time 3 -o nul http://localhost:10002/ 2>nul
+    if not errorlevel 1 (
+        echo [OK] OpenIM Server 就绪
+        goto :openim_ok
+    )
+    timeout /t 3 /nobreak >nul
+)
+:openim_ok
 
 :: =============================================
-::  启动 Spring Boot 后端
+:: Step 7: 验证 Docker 容器状态
 :: =============================================
 echo.
-echo [7/8] 启动 Spring Boot 后端...
+echo [7/9] Docker 容器状态:
+docker ps --filter "name=tongyangyuan" --filter "name=tongyuan" --format "  %%names%% : %%status%%"
+
+:: =============================================
+:: Step 8: 配置并启动 Spring Boot 后端
+:: =============================================
+echo.
+echo [8/9] 启动 Spring Boot 后端...
 
 :: 设置 JAVA_HOME
 if not defined JAVA_HOME (
-    if exist "D:\Android-studio\jbr\bin\java.exe" (
-        set "JAVA_HOME=D:\Android-studio\jbr"
-    ) else if exist "D:\Android Studio\jbr\bin\java.exe" (
-        set "JAVA_HOME=D:\Android Studio\jbr"
+    if exist "D:\Android-studio\jbr\bin\java.exe" set "JAVA_HOME=D:\Android-studio\jbr"
+    if exist "D:\Android Studio\jbr\bin\java.exe" set "JAVA_HOME=D:\Android Studio\jbr"
+)
+if defined JAVA_HOME set "PATH=%JAVA_HOME%\bin;%PATH%"
+echo   JAVA_HOME: !JAVA_HOME!
+
+:: 杀死旧的后端进程
+for /f "tokens=*" %%a in ('powershell -NoProfile -Command "try { (Get-NetTCPConnection -LocalPort 8080 -ErrorAction Stop).OwningProcess -join ',' } catch { }" 2^>nul') do (
+    for %%p in (%%a) do (
+        echo   停止旧后端 (PID: %%p)
+        taskkill /F /PID %%p >nul 2>&1
     )
 )
-if defined JAVA_HOME (
-    set "PATH=%JAVA_HOME%\bin;%PATH%"
+timeout /t 2 /nobreak >nul
+
+:: 更新 application.properties 中的 MySQL 端口（如果用了 Docker MySQL）
+if "!MYSQL_PORT!"=="3307" (
+    echo   更新 MySQL 端口为 3307...
+    powershell -NoProfile -Command "$f='%SERVER_DIR%\src\main\resources\application.properties'; $c=Get-Content $f -Raw; $c -replace 'localhost:3306','localhost:3307' | Set-Content $f -NoNewline -Encoding UTF8"
 )
 
-:: 杀掉旧的 Spring Boot 进程
-wmic process where "name='java.exe' and commandline like '%%mental-health%%'" call terminate >nul 2>&1
-wmic process where "name='java.exe' and commandline like '%%tongyangyuan%%'" call terminate >nul 2>&1
-
-:: 启动后端（在新窗口中运行）
+:: 启动后端
 start "TongYangYuan-Backend" cmd /k "title TongYangYuan-Backend && cd /d "%SERVER_DIR%" && mvn spring-boot:run"
-
-echo %C_INFO% 后端已在新窗口启动（需要 20-60 秒编译启动）
-echo   请查看 "TongYangYuan-Backend" 窗口查看日志
+echo [INFO] 后端已在新窗口启动（首次启动需编译 30-90 秒）
+echo   请查看 "TongYangYuan-Backend" 窗口等待启动完成
 
 :: =============================================
-::  启动前端服务
+:: Step 9: 启动前端服务
 :: =============================================
 echo.
-echo [8/8] 启动前端服务...
+echo [9/9] 启动前端服务...
 
-:: 启动咨询师端（Python HTTP 服务器）
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":5500 " ^| findstr "LISTENING"') do (
-    taskkill /F /PID %%a >nul 2>&1
+:: 清理旧端口进程
+for /f "tokens=*" %%a in ('powershell -NoProfile -Command "try { (Get-NetTCPConnection -LocalPort 5500 -ErrorAction Stop).OwningProcess -join ',' } catch { }" 2^>nul') do (
+    for %%p in (%%a) do taskkill /F /PID %%p >nul 2>&1
 )
 start "TongYangYuan-Consultant" cmd /k "title TongYangYuan-Consultant && cd /d "%CONSULTANT_DIR%" && python -m http.server 5500"
-echo %C_OK% 咨询师端已启动 (http://localhost:5500)
+echo [OK] 咨询师前端: http://localhost:5500
 
-:: 启动管理后台（如果 node_modules 存在）
-if exist "%WEB_DIR%\node_modules" (
-    start "TongYangYuan-Admin" cmd /k "title TongYangYuan-Admin && cd /d "%WEB_DIR%" && npm run dev"
-    echo %C_OK% 管理后台已启动 (http://localhost:8002)
-) else (
-    echo %C_WARN% 管理后台依赖未安装，跳过
-    echo   如需启动，请先: cd "%WEB_DIR%" ^&^& npm install
+for /f "tokens=*" %%a in ('powershell -NoProfile -Command "try { (Get-NetTCPConnection -LocalPort 8002 -ErrorAction Stop).OwningProcess -join ',' } catch { }" 2^>nul') do (
+    for %%p in (%%a) do taskkill /F /PID %%p >nul 2>&1
+)
+if exist "%WEB_DIR%\package.json" (
+    if exist "%WEB_DIR%\node_modules" (
+        start "TongYangYuan-Admin" cmd /k "title TongYangYuan-Admin && cd /d "%WEB_DIR%" && npm run dev"
+        echo [OK] 管理后台: http://localhost:8002
+    ) else (
+        echo [SKIP] Admin Web 未安装 (npm install 未运行)
+    )
 )
 
 :: =============================================
-::  完成汇总
+:: 完成总结
 :: =============================================
 echo.
-echo  ========================================
-echo %C_END%  所有服务已启动！
-echo  ========================================
+echo =============================================
+echo   所有服务已启动！
+echo =============================================
 echo.
-echo   服务地址（本机浏览器访问电脑）:
-echo   ----------------------------------------
-docker ps --filter "name=tongyangyuan" --format "  %%.{Names}: %%.{Status}"
+echo 端口映射：
+echo   后端 API    - http://localhost:8080
+echo   STOMP WS   - ws://localhost:8080/api/stomp
+echo   OpenIM API  - http://localhost:10002
+echo   OpenIM WS  - ws://localhost:10001
+echo   LiveKit     - ws://localhost:7880
+echo   Redis      - localhost:6379
+echo   MongoDB    - localhost:27017
+echo   etcd       - localhost:12379
+echo   MinIO API  - http://localhost:10005
+echo   MinIO Console - http://localhost:10006
+echo   Kafka      - localhost:19092
+echo   MySQL      - localhost:%MYSQL_PORT%  ^(Windows MySQL^)
 echo.
-echo   咨询师端:     http://localhost:5500
-echo   管理后台:     http://localhost:8002 ^(如已安装^)
-echo   后端 API:     http://localhost:8080/api
-echo   STOMP WS:     ws://localhost:8080/stomp（Android 实时消息）
-echo   LiveKit:      ws://localhost:7880（视频通话）
+echo   咨询师前端  - http://localhost:5500
+echo   管理后台   - http://localhost:8002
 echo.
-echo   模拟器访问地址（App 通过 adb reverse 连接本机）:
-echo   ----------------------------------------
-echo   后端:    http://127.0.0.1:8080/api
-echo   即时通讯: ws://127.0.0.1:8080/stomp（STOMP WebSocket，集成在后端）
-echo   视频通话: ws://127.0.0.1:7880（LiveKit）
-echo.
-echo  ========================================
-echo   按任意键打开咨询师端测试页面...
-echo  ========================================
+echo =============================================
+echo 提示：等待 "TongYangYuan-Backend" 窗口出现
+echo       "Started TongYangYuanApplication" 后表示后端就绪
+echo =============================================
 pause >nul
-
-:: 打开浏览器
 start http://localhost:5500

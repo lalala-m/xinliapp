@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>咨询聊天</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body { font-family: sans-serif; }
+        .debug-box {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #333;
+            color: #0f0;
+            padding: 10px;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 999999;
+        }
+        .debug-box div { margin: 2px 0; }
+        .status-ok { color: #0f0; }
+        .status-fail { color: #f00; }
+    </style>
+</head>
+<body>
+    <h1>Chat 调试版 v3</h1>
+    <p>Android: <span id="androidStatus">checking...</span></p>
+    <p>getAuthToken: <span id="tokenStatus">checking...</span></p>
+    <p>等待时间: <span id="waitTime">0</span> ms</p>
+    
+    <div class="debug-box" id="debugLog"></div>
+    
+    <!-- 静态加载外部 JS -->
+    <script src="js/stomp.min.js"></script>
+    <script src="js/app.js"></script>
+    
+    <script>
+        var log = document.getElementById('debugLog');
+        var startTime = Date.now();
+        
+        function addLog(msg) {
+            console.log('[CHAT]', msg);
+            var div = document.createElement('div');
+            div.textContent = (Date.now() - startTime) + 'ms - ' + msg;
+            log.appendChild(div);
+        }
+        
+        function checkAndroid() {
+            var androidStatus = document.getElementById('androidStatus');
+            var tokenStatus = document.getElementById('tokenStatus');
+            
+            addLog('Checking Android interface...');
+            addLog('window.Android: ' + typeof window.Android);
+            addLog('window.Android.getAuthToken: ' + typeof window.Android?.getAuthToken);
+            
+            if (window.Android) {
+                androidStatus.textContent = 'EXISTS ✓';
+                androidStatus.className = 'status-ok';
+                
+                if (typeof window.Android.getAuthToken === 'function') {
+                    tokenStatus.textContent = 'FUNCTION ✓ (value: ' + window.Android.getAuthToken() + ')';
+                    tokenStatus.className = 'status-ok';
+                    return true;
+                } else if (window.Android.getAuthToken !== undefined) {
+                    tokenStatus.textContent = 'VALUE: ' + window.Android.getAuthToken;
+                    tokenStatus.className = 'status-ok';
+                    return true;
+                } else {
+                    tokenStatus.textContent = 'NO FUNCTION ✗';
+                    tokenStatus.className = 'status-fail';
+                }
+            } else {
+                androidStatus.textContent = 'UNDEFINED ✗';
+                androidStatus.className = 'status-fail';
+            }
+            return false;
+        }
+        
+        // 等待 Android 接口
+        var waitCount = 0;
+        var maxWait = 50; // 最多等待 5 秒
+        function waitForAndroid() {
+            waitCount++;
+            document.getElementById('waitTime').textContent = waitCount * 100;
+            
+            if (checkAndroid()) {
+                addLog('Android interface ready after ' + (waitCount * 100) + 'ms');
+            } else if (waitCount >= maxWait) {
+                addLog('TIMEOUT! Try calling Android manually...');
+                // 尝试通过 prompt 获取 token
+                var result = prompt('Test Android interface', 'getAuthToken');
+                addLog('prompt result: ' + result);
+            } else {
+                setTimeout(waitForAndroid, 100);
+            }
+        }
+        
+        // 检查静态 JS
+        if (typeof Stomp !== 'undefined') {
+            addLog('Stomp loaded ✓');
+        } else {
+            addLog('Stomp NOT loaded ✗');
+        }
+        
+        if (typeof window.resolveIdentityTag === 'function') {
+            addLog('app.js loaded ✓');
+        } else {
+            addLog('app.js NOT loaded ✗');
+        }
+        
+        // 开始等待 Android
+        addLog('Page ready, waiting for Android interface...');
+        waitForAndroid();
+    </script>
+</body>
+</html>

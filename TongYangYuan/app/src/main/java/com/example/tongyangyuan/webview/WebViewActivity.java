@@ -61,12 +61,23 @@ public class WebViewActivity extends AppCompatActivity {
 
         ViewGroup container = findViewById(R.id.container);
 
-        mAgentWeb = AgentWeb.with(this)
-                .setAgentWebParent(container, new LinearLayout.LayoutParams(-1, -1))
-                .useDefaultIndicator()
-                .createAgentWeb()
-                .ready()
-                .go(null);
+        try {
+            mAgentWeb = AgentWeb.with(this)
+                    .setAgentWebParent(container, new LinearLayout.LayoutParams(-1, -1))
+                    .useDefaultIndicator()
+                    .createAgentWeb()
+                    .ready()
+                    .go(null);
+        } catch (Exception e) {
+            android.util.Log.e("WebViewActivity", "AgentWeb init failed", e);
+            // 降级：直接使用原生 WebView
+            android.webkit.WebView fallbackWebView = new android.webkit.WebView(this);
+            fallbackWebView.setLayoutParams(new LinearLayout.LayoutParams(-1, -1));
+            container.addView(fallbackWebView);
+            mAgentWeb = null;
+            loadHtmlFileWithWebView(fallbackWebView, htmlFile);
+            return;
+        }
 
         // 允许 file:// 页面发起跨域请求（SockJS 需要）
         android.webkit.WebSettings webSettings = mAgentWeb.getWebCreator().getWebView().getSettings();
@@ -81,13 +92,42 @@ public class WebViewActivity extends AppCompatActivity {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
-                if (!mAgentWeb.back()) {
+                if (mAgentWeb != null && !mAgentWeb.back()) {
+                    finish();
+                } else {
                     finish();
                 }
             }
         });
 
         loadHtmlFile(htmlFile);
+    }
+
+    private void loadHtmlFileWithWebView(android.webkit.WebView webView, String htmlFile) {
+        String url = "file:///android_asset/" + htmlFile;
+        Bundle extras = getIntent().getExtras();
+        if (extras != null && extras.size() > 1) {
+            StringBuilder urlBuilder = new StringBuilder(url);
+            boolean firstParam = true;
+            String selectedQuestions = extras.getString("selected_questions");
+            if (selectedQuestions != null) {
+                urlBuilder.append(firstParam ? "?" : "&");
+                urlBuilder.append("questions").append("=").append(android.net.Uri.encode(selectedQuestions));
+                firstParam = false;
+            }
+            for (String key : extras.keySet()) {
+                if (!EXTRA_HTML_FILE.equals(key) && !"selected_questions".equals(key)) {
+                    String value = extras.getString(key);
+                    if (value != null) {
+                        urlBuilder.append(firstParam ? "?" : "&");
+                        urlBuilder.append(key).append("=").append(android.net.Uri.encode(value));
+                        firstParam = false;
+                    }
+                }
+            }
+            url = urlBuilder.toString();
+        }
+        webView.loadUrl(url);
     }
 
     private void loadHtmlFile(String htmlFile) {
@@ -120,12 +160,14 @@ public class WebViewActivity extends AppCompatActivity {
             url = urlBuilder.toString();
         }
 
-        mAgentWeb.getUrlLoader().loadUrl(url);
+        if (mAgentWeb != null) {
+            mAgentWeb.getUrlLoader().loadUrl(url);
+        }
     }
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (mAgentWeb.handleKeyEvent(keyCode, event)) {
+        if (mAgentWeb != null && mAgentWeb.handleKeyEvent(keyCode, event)) {
             return true;
         }
         return super.onKeyDown(keyCode, event);
@@ -156,14 +198,18 @@ public class WebViewActivity extends AppCompatActivity {
 
     @Override
     protected void onPause() {
-        mAgentWeb.getWebLifeCycle().onPause();
+        if (mAgentWeb != null) {
+            mAgentWeb.getWebLifeCycle().onPause();
+        }
         super.onPause();
 
     }
 
     @Override
     protected void onResume() {
-        mAgentWeb.getWebLifeCycle().onResume();
+        if (mAgentWeb != null) {
+            mAgentWeb.getWebLifeCycle().onResume();
+        }
         super.onResume();
     }
 
@@ -184,7 +230,9 @@ public class WebViewActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        mAgentWeb.getWebLifeCycle().onDestroy();
+        if (mAgentWeb != null) {
+            mAgentWeb.getWebLifeCycle().onDestroy();
+        }
         super.onDestroy();
     }
 }

@@ -354,10 +354,10 @@
         }
 
         function submitAppointment() {
-            if (!selectedDomain && consultant && consultant.specialty) {
-                 // 只有当咨询师有特定领域时才强制校验
-                 showToast('请选择咨询领域');
-                 return;
+            // 领域必须选择（服务器要求，不依赖 consultant 是否加载成功）
+            if (!selectedDomain) {
+                showToast('请选择咨询领域');
+                return;
             }
             if (!selectedDate) {
                 showToast('请选择预约日期');

@@ -222,38 +222,36 @@
         let appointmentsCache = [];
         let cacheInitialized = false;
         let pendingDelete = null;
+        let loadingIndicatorTimer = null;
+
+        function showLoading() {
+            const container = document.getElementById('appointmentsList');
+            if (container) {
+                container.innerHTML = '<div style="text-align:center;padding:32px;color:#999;">加载中...</div>';
+            }
+        }
 
         function loadAppointments(forceReload = false) {
-            // 如果是强制重新加载，或者缓存未初始化，从数据源加载
+            // 立即显示加载中，避免白屏/卡死
+            showLoading();
+
             if (forceReload || !cacheInitialized) {
-                // 从Android接口或本地存储加载数据
-                const appointments = (window.getAppointments && window.getAppointments()) || [];
-                const newAppointments = Array.isArray(appointments) ? appointments : [];
-                
-                // 尝试从localStorage加载（非Android环境）
-                if (!window.Android) {
+                // Android.getAppointments() 会阻塞 2s 等网络超时，
+                // 故先用 50ms setTimeout 让 WebView 先渲染出加载提示，再调用 Java
+                setTimeout(function() {
                     try {
-                        const saved = localStorage.getItem('appointmentsCache');
-                        if (saved) {
-                            const parsed = JSON.parse(saved);
-                            if (Array.isArray(parsed) && parsed.length > 0) {
-                                appointmentsCache = parsed;
-                                cacheInitialized = true;
-                                renderAppointments();
-                                return;
-                            }
-                        }
+                        var appointments = window.getAppointments && window.getAppointments();
+                        appointmentsCache = (Array.isArray(appointments) ? appointments : []);
                     } catch (e) {
-                        console.warn('Load from localStorage failed', e);
+                        console.error('loadAppointments error:', e);
+                        appointmentsCache = [];
                     }
-                }
-                
-                // 更新缓存
-                appointmentsCache = newAppointments;
-                cacheInitialized = true;
+                    cacheInitialized = true;
+                    renderAppointments();
+                }, 50);
+            } else {
+                renderAppointments();
             }
-            
-            renderAppointments();
         }
 
         function saveAppointmentsCache() {

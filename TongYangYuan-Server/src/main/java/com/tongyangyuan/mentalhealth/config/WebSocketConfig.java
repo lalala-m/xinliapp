@@ -27,9 +27,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // 原生 WebSocket（无 SockJS）：Android WebView 从 file:// 加载时，SockJS 依赖 /info + JSESSIONID，
-        // 跨域场景下 Cookie 常不可用，导致一直「连接中」。客户端用 ws://.../api/stomp + STOMP。
+        // /stomp 在根路径，但 context-path = /api，故同时注册 /api/stomp 供客户端直接 baseUrl + '/stomp'
         registry.addEndpoint("/stomp")
+                .setAllowedOriginPatterns("*")
+                .addInterceptors(webSocketAuthInterceptor)
+                .setHandshakeHandler(new CustomHandshakeHandler());
+
+        registry.addEndpoint("/api/stomp")
                 .setAllowedOriginPatterns("*")
                 .addInterceptors(webSocketAuthInterceptor)
                 .setHandshakeHandler(new CustomHandshakeHandler());

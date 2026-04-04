@@ -115,51 +115,55 @@ public class OpenIMService {
      * 从后端获取配置后初始化
      */
     public void init() {
+        executor.execute(() -> {
+            doInit();
+        });
+    }
+
+    private synchronized void doInit() {
         if (isInitialized) {
             Log.w(TAG, "OpenIM already initialized");
             return;
         }
 
-        executor.execute(() -> {
-            try {
-                // 从后端获取 OpenIM 配置
-                String configUrl = NetworkConfig.getBaseUrl() + "/openim/config";
-                Log.d(TAG, "Fetching OpenIM config from: " + configUrl);
+        try {
+            // 从后端获取 OpenIM 配置
+            String configUrl = NetworkConfig.getBaseUrl() + "/openim/config";
+            Log.d(TAG, "Fetching OpenIM config from: " + configUrl);
 
-                URL url = URI.create(configUrl).toURL();
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setConnectTimeout(5000);
-                conn.setReadTimeout(5000);
+            URL url = URI.create(configUrl).toURL();
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(5000);
 
-                if (conn.getResponseCode() == 200) {
-                    BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                    StringBuilder sb = new StringBuilder();
-                    String line;
-                    while ((line = br.readLine()) != null) sb.append(line);
-                    br.close();
+            if (conn.getResponseCode() == 200) {
+                BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = br.readLine()) != null) sb.append(line);
+                br.close();
 
-                    JSONObject json = new JSONObject(sb.toString());
-                    if (json.optInt("code") == 200) {
-                        JSONObject data = json.getJSONObject("data");
-                        // resolveHost：将后端返回的 localhost/127.0.0.1 替换为当前环境的正确主机
-                        // 模拟器上需要 127.0.0.1 + adb reverse，真机/局域网直接用局域网IP
-                        apiUrl = NetworkConfig.resolveHost(data.optString("apiUrl", ""));
-                        wsUrl  = NetworkConfig.resolveHost(data.optString("wsUrl", ""));
-                        boolean available = data.optBoolean("available", false);
+                JSONObject json = new JSONObject(sb.toString());
+                if (json.optInt("code") == 200) {
+                    JSONObject data = json.getJSONObject("data");
+                    // resolveHost：将后端返回的 localhost/127.0.0.1 替换为当前环境的正确主机
+                    // 模拟器上需要 127.0.0.1 + adb reverse，真机/局域网直接用局域网IP
+                    apiUrl = NetworkConfig.resolveHost(data.optString("apiUrl", ""));
+                    wsUrl  = NetworkConfig.resolveHost(data.optString("wsUrl", ""));
+                    boolean available = data.optBoolean("available", false);
 
-                        config.setApiUrl(apiUrl);
-                        config.setWsUrl(wsUrl);
-                        config.setAvailable(available);
+                    config.setApiUrl(apiUrl);
+                    config.setWsUrl(wsUrl);
+                    config.setAvailable(available);
 
-                        Log.i(TAG, "OpenIM config loaded: api=" + apiUrl + ", ws=" + wsUrl + ", available=" + available);
-                    }
+                    Log.i(TAG, "OpenIM config loaded: api=" + apiUrl + ", ws=" + wsUrl + ", available=" + available);
                 }
-
-                conn.disconnect();
-            } catch (Exception e) {
-                Log.e(TAG, "Failed to load OpenIM config", e);
             }
-        });
+
+            conn.disconnect();
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to load OpenIM config", e);
+        }
 
         isInitialized = true;
         Log.i(TAG, "OpenIM SDK initialized");
@@ -220,7 +224,8 @@ public class OpenIMService {
                 synchronized (wsLock) {
                     wsConnected = true;
                 }
-                // 发送 STOMP CONNECT 帧
+                // 发送 STOMP CONNECT 帧（Spring STOMP 支持 JWT Bearer token）
+                // STOMP 协议要求：header 和 body 之间用空行分隔
                 webSocket.send("CONNECT\naccept-version:1.2\nAuthorization:Bearer " + wsAuthToken + "\n\n");
             }
 
@@ -274,8 +279,13 @@ public class OpenIMService {
         }
 
         // 解析 STOMP MESSAGE 帧，找到空行后的 body
+        // STOMP MESSAGE 帧格式：MESSAGE\nheaders\n\nbody
+        // 空行是 header 和 body 的分隔符
         int bodyStart = msg.indexOf("\n\n");
-        if (bodyStart < 0) return;
+        if (bodyStart < 0) {
+            // 整个帧没有 body，跳过
+            return;
+        }
         String body = msg.substring(bodyStart + 2).trim();
         if (body.isEmpty()) return;
 
@@ -352,7 +362,7 @@ public class OpenIMService {
      */
     public void login(String userId, String token, LoginCallback callback) {
         if (!isInitialized) {
-            init();
+            doInit(); // 同步初始化配置（阻塞等待完成）
         }
 
         executor.execute(() -> {
@@ -369,7 +379,10 @@ public class OpenIMService {
                     HttpURLConnection conn = (HttpURLConnection) URI.create(tokenUrl).toURL().openConnection();
                     conn.setRequestMethod("POST");
                     conn.setRequestProperty("Content-Type", "application/json");
-                    conn.setRequestProperty("Authorization", "Bearer " + NetworkConfig.getAuthToken(context));
+                    String jwt = NetworkConfig.getAuthToken(context);
+                    if (jwt != null && !jwt.isEmpty()) {
+                        conn.setRequestProperty("Authorization", "Bearer " + jwt);
+                    }
                     conn.setDoOutput(true);
                     conn.setConnectTimeout(10000);
                     conn.setReadTimeout(10000);
@@ -378,37 +391,48 @@ public class OpenIMService {
                     body.put("userId", Long.parseLong(userId));
                     conn.getOutputStream().write(body.toString().getBytes("UTF-8"));
 
-                    if (conn.getResponseCode() == 200) {
+                    int responseCode = conn.getResponseCode();
+                    if (responseCode == 200) {
                         BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                         StringBuilder sb = new StringBuilder();
                         String line;
                         while ((line = br.readLine()) != null) sb.append(line);
                         br.close();
 
-                            JSONObject json = new JSONObject(sb.toString());
-                            if (json.optInt("code") == 200) {
-                                JSONObject data = json.getJSONObject("data");
-                                effectiveToken = data.optString("token", "");
-                                // resolveHost：将后端返回的 localhost 替换为当前环境的正确主机
-                                effectiveWsUrl = NetworkConfig.resolveHost(data.optString("wsUrl", wsUrl));
-                                String resolvedApiUrl = NetworkConfig.resolveHost(data.optString("apiUrl", apiUrl));
-                                config.saveFromResponse(userId, effectiveToken,
-                                        effectiveWsUrl, resolvedApiUrl);
-                            }
+                        JSONObject json = new JSONObject(sb.toString());
+                        if (json.optInt("code") == 200) {
+                            JSONObject data = json.getJSONObject("data");
+                            effectiveToken = data.optString("token", "");
+                            effectiveWsUrl = NetworkConfig.resolveHost(data.optString("wsUrl", wsUrl));
+                            String resolvedApiUrl = NetworkConfig.resolveHost(data.optString("apiUrl", apiUrl));
+                            config.saveFromResponse(userId, effectiveToken, effectiveWsUrl, resolvedApiUrl);
+                            Log.i(TAG, "OpenIM token obtained from backend");
+                        } else {
+                            Log.w(TAG, "Backend /openim/init returned code=" + json.optInt("code") + ", msg=" + json.optString("message"));
                         }
+                    } else {
+                        Log.w(TAG, "Backend /openim/init HTTP " + responseCode);
+                    }
                     conn.disconnect();
                 }
 
                 if (effectiveToken == null || effectiveToken.isEmpty()) {
-                    // OpenIM 服务未部署，返回模拟成功
-                    Log.w(TAG, "OpenIM server not available, using mock login");
-                    currentUserId = userId;
-                    isLoggedIn = true;
-                    mainHandler.post(this::flushPendingCalls);
-                    mainHandler.post(() -> {
-                        if (callback != null) callback.onSuccess();
-                    });
-                    return;
+                    // OpenIM Server 不可用时，尝试使用 App JWT 连接 Spring STOMP（Spring 支持 JWT Bearer token 认证）
+                    String jwtToken = NetworkConfig.getAuthToken(context);
+                    if (jwtToken != null && !jwtToken.isEmpty()) {
+                        effectiveToken = jwtToken;
+                        Log.i(TAG, "OpenIM server unavailable, using App JWT for Spring STOMP");
+                    } else {
+                        // 既无 OpenIM Token 又无 JWT，进入 Mock 模式（仅本地模拟，无信令）
+                        Log.w(TAG, "OpenIM server not available, using mock login");
+                        currentUserId = userId;
+                        isLoggedIn = true;
+                        mainHandler.post(this::flushPendingCalls);
+                        mainHandler.post(() -> {
+                            if (callback != null) callback.onSuccess();
+                        });
+                        return;
+                    }
                 }
 
                 // 2. 连接 OpenIM WebSocket

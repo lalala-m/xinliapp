@@ -43,6 +43,9 @@
     --transition-fast: 0.2s ease;
     --transition-normal: 0.3s ease;
     --transition-slow: 0.4s ease;
+    
+    /* 底部安全区域 - 用于适配手机底部导航键 */
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* 重置样式 */
@@ -55,6 +58,7 @@
 html, body {
     width: 100%;
     min-height: 100vh;
+    min-height: 100dvh; /* 支持动态视口高度 */
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     font-size: 16px;
     line-height: 1.5;
@@ -63,6 +67,39 @@ html, body {
     background-attachment: fixed; /* 保持背景固定 */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* 防止iOS Safari中页面弹性滚动导致的问题 */
+    overflow-x: hidden;
+}
+
+/* 移动端适配：防止导航键冲突 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    body {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+}
+
+/* 通用底部安全区域补丁类 */
+.safe-area-bottom {
+    padding-bottom: var(--safe-area-bottom);
+}
+
+/* 修复输入框被键盘遮挡的问题 */
+@media (max-width: 768px) {
+    html {
+        height: auto;
+    }
+    
+    body {
+        min-height: 100vh;
+        min-height: 100dvh;
+        position: relative;
+    }
+    
+    /* 确保输入框在键盘弹出时可见 */
+    input:focus, textarea:focus {
+        position: relative;
+        z-index: 1;
+    }
 }
 
 /* 滚动条样式 */
@@ -172,6 +209,38 @@ html, body {
 
 .btn-danger:hover:not(:disabled) {
     background: #d32f2f;
+}
+
+/* 边框按钮样式 */
+.btn-outline {
+    background: transparent;
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+    padding: 10px 20px;
+}
+
+.btn-outline:hover:not(:disabled) {
+    background: rgba(0, 188, 212, 0.1);
+}
+
+.btn-outline:active:not(:disabled) {
+    background: rgba(0, 188, 212, 0.2);
+}
+
+/* 危险边框按钮 */
+.btn-danger-outline {
+    background: transparent;
+    color: var(--error-color);
+    border: 2px solid var(--error-color);
+    padding: 10px 20px;
+}
+
+.btn-danger-outline:hover:not(:disabled) {
+    background: rgba(244, 67, 54, 0.1);
+}
+
+.btn-danger-outline:active:not(:disabled) {
+    background: rgba(244, 67, 54, 0.2);
 }
 
 .btn-icon {

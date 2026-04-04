@@ -71,7 +71,9 @@ public class AppointmentAdapter extends RecyclerView.Adapter<AppointmentAdapter.
         }
 
         void bind(AppointmentRecord appointment) {
-            tvConsultantName.setText(appointment.getConsultant().getName() + " 咨询师");
+            // 顾问名字已包含完整称呼（如"咨询师"或"咨询师一"），无需追加
+            String name = appointment.getConsultant().getName();
+            tvConsultantName.setText(name != null ? name : "咨询师");
             tvAppointmentTime.setText(appointment.getDate() + " " + appointment.getTimeSlot());
             tvDescription.setText(appointment.getDescription());
 

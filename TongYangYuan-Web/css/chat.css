@@ -463,6 +463,19 @@
     background: white;
     border-top: 1px solid var(--border-color);
     padding: var(--spacing-md) var(--spacing-lg);
+    /* 底部安全区域适配 - 适配iOS和Android */
+    padding-bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom, 20px));
+    /* 确保在导航键上方 */
+    position: relative;
+    z-index: 10;
+}
+
+/* 移动端额外适配 */
+@media (max-width: 768px) {
+    .input-area {
+        /* Android设备额外增加底部间距 */
+        padding-bottom: calc(var(--spacing-md) + max(env(safe-area-inset-bottom, 0px), 20px));
+    }
 }
 
 .input-container {
@@ -546,4 +559,201 @@
         padding: 8px 12px;
         font-size: 14px;
     }
+}
+
+/* ========== 语音消息样式 ========== */
+.voice-input-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+
+.voice-hold-btn {
+    flex: 1;
+    height: 44px;
+    border: 1px solid var(--border-color);
+    border-radius: 22px;
+    background: white;
+    font-size: 16px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.voice-hold-btn:active,
+.voice-hold-btn.recording {
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+    border-color: #4caf50;
+    color: #2e7d32;
+}
+
+.voice-hold-btn.recording {
+    animation: voicePulse 1s ease-in-out infinite;
+}
+
+@keyframes voicePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+}
+
+.voice-hold-btn.cancelling {
+    background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+    border-color: #f44336;
+    color: #c62828;
+}
+
+/* 语音取消提示 */
+.voice-cancel-hint {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 16px 24px;
+    border-radius: 12px;
+    display: none;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+.voice-cancel-hint.show {
+    display: flex;
+}
+
+/* 语音消息气泡样式 */
+.message-audio {
+    display: inline-flex !important;
+    align-items: center !important;
+    min-width: 150px;
+    max-width: 220px;
+    padding: 10px 14px;
+    background: white;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.message-audio:hover {
+    background: #f5f5f5;
+}
+
+.message.from-consultant .message-audio {
+    background: var(--primary-color);
+    color: white;
+}
+
+.message.from-consultant .message-audio:hover {
+    background: #3d5afe;
+}
+
+.message-audio .audio-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.message-audio .audio-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.message-audio .audio-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.message-audio .audio-wave {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    flex: 1;
+    min-width: 60px;
+}
+
+.audio-wave-bar {
+    width: 3px;
+    height: 12px;
+    background: var(--primary-color);
+    border-radius: 2px;
+    animation: audioWave 0.8s ease-in-out infinite;
+}
+
+.audio-wave-bar:nth-child(1) { animation-delay: 0s; height: 8px; }
+.audio-wave-bar:nth-child(2) { animation-delay: 0.1s; height: 14px; }
+.audio-wave-bar:nth-child(3) { animation-delay: 0.2s; height: 10px; }
+.audio-wave-bar:nth-child(4) { animation-delay: 0.3s; height: 16px; }
+.audio-wave-bar:nth-child(5) { animation-delay: 0.4s; height: 12px; }
+
+@keyframes audioWave {
+    0%, 100% { transform: scaleY(0.5); }
+    50% { transform: scaleY(1); }
+}
+
+.message.from-consultant .audio-wave-bar {
+    background: white;
+}
+
+.message-audio .audio-duration {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-left: 8px;
+}
+
+/* 语音播放中 */
+.message-audio.playing .audio-wave-bar {
+    animation: audioWavePlaying 0.5s ease-in-out infinite;
+}
+
+@keyframes audioWavePlaying {
+    0%, 100% { transform: scaleY(1); }
+    50% { transform: scaleY(0.5); }
+}
+
+/* 媒体预览弹窗 */
+.media-preview-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.media-preview-modal.show {
+    display: flex;
+}
+
+.media-preview-modal img {
+    max-width: 90%;
+    max-height: 90%;
+    border-radius: 12px;
+}
+
+.preview-close-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    border: none;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: white;
 }
