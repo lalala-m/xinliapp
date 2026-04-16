@@ -102,35 +102,36 @@
         }
         .banner-dot.active { background: white; width: 18px; border-radius: 3px; }
 
-        /* 六宫格按钮 */
+        /* 八宫格按钮 */
         .action-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 14px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
             margin: 0 0 20px;
         }
         .action-btn {
             aspect-ratio: 1;
             background: var(--background);
-            border-radius: 20px;
+            border-radius: 16px;
             box-shadow: var(--shadow);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 6px;
             cursor: pointer;
             transition: all 0.2s;
+            padding: 8px 4px;
         }
         .action-btn:active { transform: scale(0.96); box-shadow: var(--shadow-hover); }
         .action-btn-icon {
-            width: 48px; height: 48px;
+            width: 40px; height: 40px;
             border-radius: 50%;
             background: linear-gradient(135deg, #6FA6F8 0%, #A9C9FF 100%);
             display: flex; align-items: center; justify-content: center;
-            color: white; font-size: 20px;
+            color: white; font-size: 18px;
         }
-        .action-btn span { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+        .action-btn span { font-size: 13px; font-weight: 600; color: var(--text-primary); text-align: center; line-height: 1.2; }
 
         /* 广告卡片（背景图由 JS 设置；无图时用渐变） */
         .ad-card {
@@ -373,31 +374,39 @@
             <div class="banner-dots" id="bannerDots"></div>
         </div>
 
-        <!-- 六宫格 -->
+        <!-- 八宫格 -->
         <div class="action-grid">
             <div class="action-btn" onclick="onActionClick('consult')">
                 <div class="action-btn-icon">💬</div>
                 <span>咨询指导</span>
             </div>
-            <div class="action-btn" onclick="onActionClick('sport')">
-                <div class="action-btn-icon">🏃</div>
-                <span>运动健康</span>
-            </div>
-            <div class="action-btn" onclick="onActionClick('research')">
-                <div class="action-btn-icon">📚</div>
-                <span>研学拓展</span>
+            <div class="action-btn" onclick="onActionClick('family')">
+                <div class="action-btn-icon">🏠</div>
+                <span>家校共育</span>
             </div>
             <div class="action-btn" onclick="onActionClick('life')">
                 <div class="action-btn-icon">🛠</div>
                 <span>生活技能</span>
             </div>
+            <div class="action-btn" onclick="onActionClick('sport')">
+                <div class="action-btn-icon">🏃</div>
+                <span>健康体能</span>
+            </div>
+            <div class="action-btn" onclick="onActionClick('study')">
+                <div class="action-btn-icon">📖</div>
+                <span>学识提升</span>
+            </div>
+            <div class="action-btn" onclick="onActionClick('research')">
+                <div class="action-btn-icon">📚</div>
+                <span>研学拓展</span>
+            </div>
+            <div class="action-btn" onclick="onActionClick('insurance')">
+                <div class="action-btn-icon">🛡</div>
+                <span>保险金融</span>
+            </div>
             <div class="action-btn" onclick="onActionClick('tech')">
                 <div class="action-btn-icon">🤖</div>
                 <span>智慧科技</span>
-            </div>
-            <div class="action-btn" onclick="onActionClick('one2one')">
-                <div class="action-btn-icon">👤</div>
-                <span>一对一指导</span>
             </div>
         </div>
 
@@ -550,7 +559,7 @@
         }
 
         function onActionClick(type) {
-            const hasBackend = { consult: true, one2one: true };
+            const hasBackend = { consult: true };
             if (hasBackend[type]) {
                 navigateTo('consult');
             } else {
@@ -559,8 +568,17 @@
         }
 
         function showDevModal(type) {
-            const names = { sport: '运动健康', research: '研学拓展', life: '生活技能', tech: '智慧科技' };
-            document.getElementById('devModalDesc').textContent = names[type] + '功能即将上线，敬请期待';
+            const names = {
+                consult: '咨询指导',
+                family: '家校共育',
+                life: '生活技能',
+                sport: '健康体能',
+                study: '学识提升',
+                research: '研学拓展',
+                insurance: '保险金融',
+                tech: '智慧科技'
+            };
+            document.getElementById('devModalDesc').textContent = (names[type] || '该') + '功能即将上线，敬请期待';
             document.getElementById('devModal').classList.add('show');
         }
         function closeDevModal() {

@@ -50,7 +50,7 @@ async function updateStatistics() {
 
     try {
         const params = new URLSearchParams({ startDate, endDate });
-        const response = await AdminCommon.request(`/api/admin/statistics?${params}`);
+        const response = await AdminCommon.request(`/admin/statistics?${params}`);
         
         if (response && response.code === 200) {
             statisticsData = response.data || {};

@@ -66,6 +66,16 @@ xinliapp-github/
 **/deploy/openim/data/
 **/deploy/openim/config/
 
+# User uploads (runtime data, don't commit)
+**/uploads/audios/
+**/uploads/images/
+**/uploads/videos/
+
+# Temp / scratch files
+sssss.txt
+*.tmp
+*.swp
+
 # Large model files (uncomment if needed)
 # *.pt
 # *.pth

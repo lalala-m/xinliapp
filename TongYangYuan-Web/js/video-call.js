@@ -1,4 +1,4 @@
-// 童养园咨询师端 - 视频通话 (支持来电等待 + 正确信令流程)
+// 童康源咨询师端 - 视频通话 (支持来电等待 + 正确信令流程)
 // 角色: caller(主动发起) / callee(被动等待)
 // 信令: WebSocket STOMP /queue/webrtc
 // 媒体: LiveKit
@@ -42,7 +42,8 @@ const VideoCall = {
         await this.loadAppointmentInfo();
 
         // 建立 WebSocket 连接（用于收信令）- callee 必须先连接才能收到信令
-        this.connectWebSocket();
+        // 重要：WebSocket 连接是异步的，必须等待连接成功后再发送信令
+        await this.connectWebSocketAsync();
 
         // 根据角色启动流程
         if (this.role === 'caller') {
@@ -89,6 +90,46 @@ const VideoCall = {
                 setTimeout(() => this.connectWebSocket(), 5000);
             }
         );
+    },
+
+    /**
+     * 异步等待 WebSocket 连接建立成功后再返回
+     * 用于主叫场景：必须等连接就绪才能发送 call 信令
+     */
+    connectWebSocketAsync() {
+        return new Promise((resolve, reject) => {
+            const token = API.getToken();
+            const socket = new SockJS(CONFIG.WS_BASE_URL, null, {
+                transports: ['websocket']
+            });
+            this.stompClient = Stomp.over(socket);
+            this.stompClient.debug = null;
+
+            this.stompClient.connect(
+                { 'Authorization': 'Bearer ' + token },
+                () => {
+                    console.log('VideoCall WebSocket Connected (async)');
+
+                    // 订阅 /queue/webrtc 收信令
+                    this.stompClient.subscribe('/user/queue/webrtc', (messageOutput) => {
+                        const signal = JSON.parse(messageOutput.body);
+                        this.handleWebRTCSignal(signal);
+                    });
+
+                    // 如果是被叫，检查 sessionStorage 是否有积压的来电信息
+                    if (this.role === 'callee') {
+                        this.checkPendingIncomingCall();
+                    }
+
+                    resolve(); // 连接成功，Promise 完成
+                },
+                (error) => {
+                    console.error('VideoCall WebSocket error:', error);
+                    // 连接失败时也要拒绝 Promise，否则会一直等待
+                    reject(error);
+                }
+            );
+        });
     },
 
     /**
@@ -149,11 +190,18 @@ const VideoCall = {
 
     sendWebRTCSignal(type, data = null) {
         if (!this.stompClient) return;
+        const toUserId = this.callerInfo && this.callerInfo.fromUserId
+            ? this.callerInfo.fromUserId
+            : (this.appointment && this.appointment.parentUserId ? this.appointment.parentUserId : null);
+        if (!toUserId) {
+            console.warn('sendWebRTCSignal: toUserId is empty, cannot send', type);
+            return;
+        }
         const payload = {
             type: type,
             fromUserId: this.currentUserId,
-            toUserId: this.callerInfo ? this.callerInfo.fromUserId : (this.appointment ? this.appointment.parentUserId : null),
-            appointmentId: parseInt(this.appointmentId),
+            toUserId: toUserId,
+            appointmentId: parseInt(this.appointmentId) || 0,
             data: data
         };
         this.stompClient.send('/app/webrtc.signal', {}, JSON.stringify(payload));
@@ -536,7 +584,7 @@ const VideoCall = {
                 : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg> 视频通话`;
         }
         if (this.isAudioCall) {
-            document.title = '语音通话 - 童养园';
+            document.title = '语音通话 - 童康源';
             if (videoCtrl) videoCtrl.style.display = 'none';
             if (localWrap) localWrap.style.display = 'none';
         }

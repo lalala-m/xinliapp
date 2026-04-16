@@ -491,7 +491,7 @@ public class WebAppInterface {
         intent.putExtra(com.example.tongyangyuan.VideoCallActivity.KEY_CURRENT_USER_ID, preferenceStore.getUserId());
         intent.putExtra(com.example.tongyangyuan.VideoCallActivity.KEY_TARGET_USER_ID, targetUserId);
         intent.putExtra(com.example.tongyangyuan.VideoCallActivity.KEY_CALL_TYPE, "video");
-        intent.putExtra(com.example.tongyangyuan.VideoCallActivity.KEY_IS_CALLER, false);
+        intent.putExtra(com.example.tongyangyuan.VideoCallActivity.KEY_IS_CALLER, true);
         context.startActivity(intent);
     }
 
@@ -510,7 +510,7 @@ public class WebAppInterface {
         intent.putExtra(com.example.tongyangyuan.VideoCallActivity.KEY_CURRENT_USER_ID, preferenceStore.getUserId());
         intent.putExtra(com.example.tongyangyuan.VideoCallActivity.KEY_TARGET_USER_ID, targetUserId);
         intent.putExtra(com.example.tongyangyuan.VideoCallActivity.KEY_CALL_TYPE, callType);
-        intent.putExtra(com.example.tongyangyuan.VideoCallActivity.KEY_IS_CALLER, false);
+        intent.putExtra(com.example.tongyangyuan.VideoCallActivity.KEY_IS_CALLER, true);
         context.startActivity(intent);
     }
 
@@ -697,6 +697,55 @@ public class WebAppInterface {
         preferenceStore.setPaidUser(false);
         preferenceStore.setLastLoginPhone("");
         showToast("已退出登录");
+        // 跳转到登录页面并关闭所有Activity
+        Intent intent = new Intent(context, com.example.tongyangyuan.AuthActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        context.startActivity(intent);
+        finishHost();
+    }
+
+    /**
+     * 更新用户资料后回调（由前端 H5 调用）
+     * 保存昵称和头像到本地
+     */
+    @JavascriptInterface
+    public void onProfileUpdated(String nickname, String avatarUrl) {
+        if (nickname != null && !nickname.isEmpty()) {
+            preferenceStore.saveNickname(nickname);
+        }
+        if (avatarUrl != null && !avatarUrl.isEmpty()) {
+            preferenceStore.saveAvatarUrl(avatarUrl);
+        }
+        Log.d(TAG, "onProfileUpdated: nickname=" + nickname + ", avatarUrl=" + avatarUrl);
+    }
+
+    /**
+     * 完整更新用户资料（由前端 H5 调用）
+     * 接收完整的 JSON 对象字符串，包含所有用户信息
+     */
+    @JavascriptInterface
+    public void updateUserProfile(String jsonProfile) {
+        try {
+            JSONObject profile = new JSONObject(jsonProfile);
+            if (profile.has("nickname")) {
+                preferenceStore.saveNickname(profile.getString("nickname"));
+            }
+            if (profile.has("avatarUrl")) {
+                preferenceStore.saveAvatarUrl(profile.getString("avatarUrl"));
+            }
+            if (profile.has("phone")) {
+                preferenceStore.saveLastLoginPhone(profile.getString("phone"));
+            }
+            if (profile.has("userType")) {
+                preferenceStore.saveUserType(profile.getString("userType"));
+            }
+            if (profile.has("isPaid")) {
+                preferenceStore.setPaidUser(profile.getBoolean("isPaid"));
+            }
+            Log.d(TAG, "updateUserProfile: " + jsonProfile);
+        } catch (JSONException e) {
+            Log.e(TAG, "updateUserProfile failed", e);
+        }
     }
 
     @JavascriptInterface
@@ -704,7 +753,11 @@ public class WebAppInterface {
         try {
             JSONObject obj = new JSONObject();
             String phone = preferenceStore.getLastLoginPhone();
+            String nickname = preferenceStore.getNickname();
+            String avatarUrl = preferenceStore.getAvatarUrl();
             obj.put("phone", phone != null ? phone : "");
+            obj.put("nickname", nickname != null ? nickname : "");
+            obj.put("avatarUrl", avatarUrl != null ? avatarUrl : "");
             obj.put("isPaid", preferenceStore.isPaidUser());
             obj.put("hasChildProfile", preferenceStore.hasChildProfile());
             obj.put("isLoggedIn", preferenceStore.isLoggedIn());

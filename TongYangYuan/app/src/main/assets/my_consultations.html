@@ -6,348 +6,457 @@
     <title>我的咨询</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        .filter-bar {
+        .consultations-tabs {
             display: flex;
-            gap: 12px;
-            padding: 16px;
-            background: white;
-            position: sticky;
-            top: 56px; /* Adjust based on top-app-bar height */
-            z-index: 10;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            gap: 8px;
+            margin-bottom: 16px;
+            padding: 0 4px;
         }
 
-        .filter-select {
+        .consultation-tab {
             flex: 1;
-            padding: 8px 12px;
-            border: 1px solid #E0E0E0;
-            border-radius: 20px;
-            background: #F8F9FA;
-            color: #333;
+            padding: 12px 16px;
+            border-radius: 12px;
+            background: white;
+            border: none;
             font-size: 14px;
-            outline: none;
-            appearance: none; /* Remove default arrow */
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 8px center;
-            background-size: 16px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
         }
 
-        .consultation-list {
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
+        .consultation-tab.active {
+            background: linear-gradient(135deg, #6FA6F8 0%, #A9C9FF 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(111, 166, 248, 0.35);
         }
 
         .consultation-card {
-            background: white;
-            border-radius: 16px;
+            margin-bottom: 12px;
             padding: 16px;
-            box-shadow: var(--shadow);
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
+            border-radius: 16px;
+            background: white;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
         }
 
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-bottom: 12px;
-            border-bottom: 1px solid #F0F0F0;
-        }
-
-        .consultant-info {
+        .consultation-header {
             display: flex;
             align-items: center;
             gap: 12px;
+            margin-bottom: 12px;
         }
 
-        .consultant-avatar {
-            width: 40px;
-            height: 40px;
+        .consultation-avatar {
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #BDEBC8 0%, #A9C9FF 100%);
+            background: linear-gradient(135deg, #6FA6F8 0%, #A9C9FF 100%);
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-weight: bold;
-            font-size: 16px;
+            font-size: 20px;
+            font-weight: 600;
+            flex-shrink: 0;
         }
 
-        .consultant-meta {
-            display: flex;
-            flex-direction: column;
+        .consultation-info {
+            flex: 1;
         }
 
-        .consultant-name {
+        .consultation-name {
             font-size: 16px;
             font-weight: 600;
-            color: #333;
+            color: var(--text-primary);
+            margin-bottom: 4px;
         }
 
-        .consultation-time {
+        .consultation-domain {
             font-size: 12px;
-            color: #999;
+            color: var(--text-secondary);
         }
 
-        .status-tag {
+        .consultation-status {
             padding: 4px 10px;
-            border-radius: 12px;
+            border-radius: 8px;
             font-size: 12px;
             font-weight: 500;
         }
 
-        .status-completed {
-            background: #E8F5E9;
-            color: #4CAF50;
+        .consultation-status.pending {
+            background: rgba(255, 152, 0, 0.12);
+            color: #E65100;
         }
 
-        .status-pending {
-            background: #FFF3E0;
-            color: #FF9800;
+        .consultation-status.confirmed {
+            background: rgba(76, 175, 80, 0.12);
+            color: #2E7D32;
         }
 
-        .card-body {
+        .consultation-status.completed {
+            background: rgba(33, 150, 243, 0.12);
+            color: #1565C0;
+        }
+
+        .consultation-status.cancelled {
+            background: rgba(158, 158, 158, 0.12);
+            color: #616161;
+        }
+
+        .consultation-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            padding: 12px;
+            background: rgba(0,0,0,0.02);
+            border-radius: 10px;
+            margin-bottom: 12px;
+        }
+
+        .consultation-detail-item {
             display: flex;
             flex-direction: column;
+            gap: 2px;
+        }
+
+        .consultation-detail-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .consultation-detail-value {
+            font-size: 13px;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .consultation-child {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            background: rgba(111, 166, 248, 0.08);
+            border-radius: 10px;
+            margin-bottom: 12px;
+        }
+
+        .consultation-child-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #FFB3C6 0%, #FF8FAB 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .consultation-child-name {
+            font-size: 14px;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .consultation-child-age {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .consultation-actions {
+            display: flex;
             gap: 8px;
         }
 
-        .info-row {
-            display: flex;
-            justify-content: space-between;
+        .consultation-btn {
+            flex: 1;
+            padding: 10px 16px;
+            border-radius: 10px;
             font-size: 14px;
-        }
-
-        .info-label {
-            color: #666;
-        }
-
-        .info-value {
-            color: #333;
             font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
         }
 
-        .card-footer {
-            display: flex;
-            justify-content: flex-end;
-            padding-top: 12px;
-            border-top: 1px solid #F0F0F0;
+        .consultation-btn.primary {
+            background: linear-gradient(135deg, #6FA6F8 0%, #A9C9FF 100%);
+            color: white;
         }
 
-        .btn-outline {
-            padding: 6px 16px;
-            border: 1px solid #6FA6F8;
-            border-radius: 16px;
-            color: #6FA6F8;
-            background: white;
-            font-size: 13px;
+        .consultation-btn.primary:active {
+            transform: scale(0.98);
+        }
+
+        .consultation-btn.secondary {
+            background: rgba(0,0,0,0.04);
+            color: var(--text-secondary);
+        }
+
+        .consultation-empty {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .consultation-empty-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .consultation-empty h3 {
+            margin: 0 0 8px;
+            font-size: 18px;
+            color: var(--text-primary);
+        }
+
+        .consultation-empty p {
+            margin: 0;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .consultation-empty-btn {
+            margin-top: 20px;
+            padding: 12px 24px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #6FA6F8 0%, #A9C9FF 100%);
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            border: none;
             cursor: pointer;
         }
 
-        .empty-state {
-            text-align: center;
-            padding: 48px 16px;
-            color: #999;
+        .consultation-list {
+            display: none;
         }
-        
-        .empty-icon {
-            width: 64px;
-            height: 64px;
-            margin-bottom: 16px;
-            opacity: 0.5;
+
+        .consultation-list.active {
+            display: block;
         }
     </style>
 </head>
 <body>
     <div class="top-app-bar glass">
-        <div class="back-btn" onclick="history.back()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/>
+        <button class="back-btn" onclick="goBack()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 18l-6-6 6-6"/>
             </svg>
-        </div>
+        </button>
         <div class="title">我的咨询</div>
     </div>
 
-    <div class="filter-bar">
-        <select class="filter-select" id="childFilter" onchange="applyFilters()">
-            <option value="all">全部孩子</option>
-            <!-- 动态生成孩子选项 -->
-        </select>
-        <select class="filter-select" id="timeFilter" onchange="applyFilters()">
-            <option value="all">全部时间</option>
-            <option value="week">近一周</option>
-            <option value="month">近一月</option>
-            <option value="half_year">近半年</option>
-        </select>
-    </div>
+    <div class="content">
+        <!-- 标签切换 -->
+        <div class="consultations-tabs">
+            <button class="consultation-tab active" data-tab="all" onclick="switchTab('all')">全部</button>
+            <button class="consultation-tab" data-tab="pending" onclick="switchTab('pending')">待确认</button>
+            <button class="consultation-tab" data-tab="confirmed" onclick="switchTab('confirmed')">已确认</button>
+            <button class="consultation-tab" data-tab="completed" onclick="switchTab('completed')">已完成</button>
+        </div>
 
-    <div class="consultation-list" id="consultationList">
-        <!-- 列表将动态生成 -->
+        <!-- 全部咨询 -->
+        <div class="consultation-list active" id="list-all">
+            <div class="consultation-card" id="consultationCard1">
+                <div class="consultation-header">
+                    <div class="consultation-avatar">李</div>
+                    <div class="consultation-info">
+                        <div class="consultation-name">李明咨询师</div>
+                        <div class="consultation-domain">亲子沟通 · 家庭教育</div>
+                    </div>
+                    <span class="consultation-status confirmed">已确认</span>
+                </div>
+                <div class="consultation-details">
+                    <div class="consultation-detail-item">
+                        <span class="consultation-detail-label">预约日期</span>
+                        <span class="consultation-detail-value">2024-03-15</span>
+                    </div>
+                    <div class="consultation-detail-item">
+                        <span class="consultation-detail-label">预约时段</span>
+                        <span class="consultation-detail-value">10:00-11:00</span>
+                    </div>
+                </div>
+                <div class="consultation-child">
+                    <div class="consultation-child-avatar">小</div>
+                    <div>
+                        <div class="consultation-child-name">小明</div>
+                        <div class="consultation-child-age">8岁</div>
+                    </div>
+                </div>
+                <div class="consultation-actions">
+                    <button class="consultation-btn primary" onclick="openChat('record1')">进入咨询</button>
+                    <button class="consultation-btn secondary" onclick="viewDetail('record1')">查看详情</button>
+                </div>
+            </div>
+
+            <div class="consultation-card">
+                <div class="consultation-header">
+                    <div class="consultation-avatar" style="background: linear-gradient(135deg, #FFB3C6 0%, #FF8FAB 100%);">王</div>
+                    <div class="consultation-info">
+                        <div class="consultation-name">王芳咨询师</div>
+                        <div class="consultation-domain">学习困难 · 注意力训练</div>
+                    </div>
+                    <span class="consultation-status pending">待确认</span>
+                </div>
+                <div class="consultation-details">
+                    <div class="consultation-detail-item">
+                        <span class="consultation-detail-label">预约日期</span>
+                        <span class="consultation-detail-value">2024-03-18</span>
+                    </div>
+                    <div class="consultation-detail-item">
+                        <span class="consultation-detail-label">预约时段</span>
+                        <span class="consultation-detail-value">15:00-16:00</span>
+                    </div>
+                </div>
+                <div class="consultation-child">
+                    <div class="consultation-child-avatar">小</div>
+                    <div>
+                        <div class="consultation-child-name">小明</div>
+                        <div class="consultation-child-age">8岁</div>
+                    </div>
+                </div>
+                <div class="consultation-actions">
+                    <button class="consultation-btn secondary" onclick="cancelAppointment('record2')">取消预约</button>
+                    <button class="consultation-btn secondary" onclick="viewDetail('record2')">查看详情</button>
+                </div>
+            </div>
+
+            <div class="consultation-card">
+                <div class="consultation-header">
+                    <div class="consultation-avatar" style="background: linear-gradient(135deg, #B9F6CA 0%, #69F0AE 100%);">张</div>
+                    <div class="consultation-info">
+                        <div class="consultation-name">张伟咨询师</div>
+                        <div class="consultation-domain">情绪管理 · 心理辅导</div>
+                    </div>
+                    <span class="consultation-status completed">已完成</span>
+                </div>
+                <div class="consultation-details">
+                    <div class="consultation-detail-item">
+                        <span class="consultation-detail-label">咨询日期</span>
+                        <span class="consultation-detail-value">2024-03-10</span>
+                    </div>
+                    <div class="consultation-detail-item">
+                        <span class="consultation-detail-label">咨询时长</span>
+                        <span class="consultation-detail-value">60分钟</span>
+                    </div>
+                </div>
+                <div class="consultation-child">
+                    <div class="consultation-child-avatar" style="background: linear-gradient(135deg, #B9F6CA 0%, #69F0AE 100%);">小</div>
+                    <div>
+                        <div class="consultation-child-name">小华</div>
+                        <div class="consultation-child-age">10岁</div>
+                    </div>
+                </div>
+                <div class="consultation-actions">
+                    <button class="consultation-btn primary" onclick="viewConsultationRecord('record3')">查看记录</button>
+                    <button class="consultation-btn secondary" onclick="rebookConsultant('record3')">再次预约</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 空状态 -->
+        <div class="consultation-empty" id="emptyState" style="display: none;">
+            <div class="consultation-empty-icon">📋</div>
+            <h3>暂无咨询记录</h3>
+            <p>您还没有预约过咨询师<br>快去预约一位专业咨询师吧</p>
+            <button class="consultation-empty-btn" onclick="findConsultant()">查找咨询师</button>
+        </div>
     </div>
 
     <script src="js/app.js"></script>
     <script>
-        let allConsultations = [];
-        let childProfiles = [];
+        // 标签切换
+        function switchTab(tab) {
+            // 更新标签样式
+            document.querySelectorAll('.consultation-tab').forEach(t => {
+                t.classList.remove('active');
+            });
+            document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
 
-        document.addEventListener('DOMContentLoaded', () => {
-            loadChildProfiles();
-            loadConsultations();
-        });
-
-        function loadChildProfiles() {
-            if (window.Android && typeof Android.getChildProfiles === 'function') {
-                try {
-                    const json = Android.getChildProfiles();
-                    childProfiles = JSON.parse(json || '[]');
-                    const select = document.getElementById('childFilter');
-                    childProfiles.forEach(child => {
-                        const option = document.createElement('option');
-                        option.value = child.name; // Assuming filtering by name for now, better by ID
-                        option.textContent = child.name;
-                        select.appendChild(option);
-                    });
-                } catch (e) {
-                    console.warn('Failed to load child profiles', e);
-                }
-            }
-        }
-
-        async function loadConsultations() {
-            if (window.Android && Android.getAppointments) {
-                try {
-                    const json = Android.getAppointments();
-                    allConsultations = JSON.parse(json || '[]');
-                    renderList(allConsultations);
-                } catch (e) {
-                    console.error('Failed to load appointments', e);
-                    showEmptyState();
-                }
-            } else {
-                // Mock data for browser testing
-                allConsultations = [
-                    {
-                        id: 1,
-                        consultantName: '李老师',
-                        childName: '小明',
-                        date: '2023-10-25',
-                        timeSlot: '14:00-15:00',
-                        status: 'COMPLETED',
-                        domain: '专注力'
-                    },
-                    {
-                        id: 2,
-                        consultantName: '王医生',
-                        childName: '小红',
-                        date: '2023-11-02',
-                        timeSlot: '09:00-10:00',
-                        status: 'PENDING',
-                        domain: '情绪管理'
-                    }
-                ];
-                renderList(allConsultations);
-            }
-        }
-
-        function applyFilters() {
-            const childVal = document.getElementById('childFilter').value;
-            const timeVal = document.getElementById('timeFilter').value;
+            // 更新列表显示
+            document.querySelectorAll('.consultation-list').forEach(list => {
+                list.classList.remove('active');
+            });
             
-            let filtered = allConsultations;
-
-            if (childVal !== 'all') {
-                filtered = filtered.filter(item => item.childName === childVal);
+            if (tab === 'all') {
+                document.getElementById('list-all').classList.add('active');
             }
-
-            if (timeVal !== 'all') {
-                const now = new Date();
-                filtered = filtered.filter(item => {
-                    const itemDate = new Date(item.date || item.appointmentDate);
-                    const diffTime = Math.abs(now - itemDate);
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    
-                    if (timeVal === 'week') return diffDays <= 7;
-                    if (timeVal === 'month') return diffDays <= 30;
-                    if (timeVal === 'half_year') return diffDays <= 180;
-                    return true;
-                });
-            }
-
-            renderList(filtered);
         }
 
-        function renderList(list) {
-            const container = document.getElementById('consultationList');
-            if (!list || list.length === 0) {
-                showEmptyState();
-                return;
-            }
-
-            container.innerHTML = list.map(item => {
-                const statusText = item.status === 'COMPLETED' ? '已完成' : '进行中';
-                const statusClass = item.status === 'COMPLETED' ? 'status-completed' : 'status-pending';
-                const date = item.date || item.appointmentDate;
-                
-                return `
-                <div class="consultation-card" onclick="viewDetail('${item.id}')">
-                    <div class="card-header">
-                        <div class="consultant-info">
-                            <div class="consultant-avatar">${item.consultantName.charAt(0)}</div>
-                            <div class="consultant-meta">
-                                <span class="consultant-name">${item.consultantName}</span>
-                                <span class="consultation-time">${date} ${item.timeSlot}</span>
-                            </div>
-                        </div>
-                        <span class="status-tag ${statusClass}">${statusText}</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="info-row">
-                            <span class="info-label">咨询对象</span>
-                            <span class="info-value">${item.childName}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">咨询领域</span>
-                            <span class="info-value">${item.domain || '未指定'}</span>
-                        </div>
-                    </div>
-                    <div class="card-footer">
-                        <button class="btn-outline">查看详情</button>
-                    </div>
-                </div>
-                `;
-            }).join('');
-        }
-
-        function showEmptyState() {
-            const container = document.getElementById('consultationList');
-            container.innerHTML = `
-                <div class="empty-state">
-                    <img src="icons/consultation-plan.svg" class="empty-icon">
-                    <p>暂无咨询记录</p>
-                </div>
-            `;
-        }
-
-        function viewDetail(id) {
-            // 查找对应的 appointment 对象
-            const appointment = allConsultations.find(a => String(a.id) === String(id));
-            if (appointment && window.Android && Android.navigateToChat) {
-                // 传递必要参数给 ChatActivity
-                // Android.navigateToChat(appointmentId, consultantName, childName, date, slot)
-                // 由于 navigateToChat 接口定义可能不同，这里假设传递 JSON 或者 ID
-                // 简单起见，我们假设 Android 端有一个根据 appointmentId 打开聊天的方法
-                // 如果没有，我们可以通过 openUrl 或者 Intent 实现
-                // 这里暂时用 showToast 模拟，实际项目需完善 Android 接口
-                
-                // 更好的方式：复用 submitAppointment 成功后的逻辑，打开 ChatActivity
-                // 但这里是在历史记录里，所以我们需要一个新的接口 openChat(appointmentJson)
-                Android.openChat(JSON.stringify(appointment));
+        // 进入咨询聊天
+        function openChat(appointmentId) {
+            if (window.Android && Android.navigateToChat) {
+                Android.navigateToChat(appointmentId);
             } else {
-                showToast('正在打开咨询详情...');
+                showToast('正在进入咨询...');
+            }
+        }
+
+        // 查看详情
+        function viewDetail(appointmentId) {
+            if (window.Android && Android.viewAppointmentDetail) {
+                Android.viewAppointmentDetail(appointmentId);
+            } else {
+                showToast('查看详情功能开发中...');
+            }
+        }
+
+        // 取消预约
+        function cancelAppointment(appointmentId) {
+            if (confirm('确定要取消这个预约吗？')) {
+                if (window.Android && Android.cancelAppointment) {
+                    Android.cancelAppointment(appointmentId);
+                } else {
+                    showToast('预约已取消');
+                }
+            }
+        }
+
+        // 查看咨询记录
+        function viewConsultationRecord(appointmentId) {
+            if (window.Android && Android.viewConsultationRecord) {
+                Android.viewConsultationRecord(appointmentId);
+            } else {
+                showToast('查看记录功能开发中...');
+            }
+        }
+
+        // 再次预约
+        function rebookConsultant(appointmentId) {
+            if (window.Android && Android.rebookConsultant) {
+                Android.rebookConsultant(appointmentId);
+            } else {
+                showToast('正在跳转预约页面...');
+            }
+        }
+
+        // 查找咨询师
+        function findConsultant() {
+            if (window.Android && Android.navigateToConsultantList) {
+                Android.navigateToConsultantList();
+            } else if (window.Android && Android.openWebPage) {
+                Android.openWebPage('consult.html');
+            } else {
+                showToast('查找咨询师功能开发中...');
+            }
+        }
+
+        function goBack() {
+            if (window.Android && Android.goBack) {
+                Android.goBack();
+            } else {
+                window.history.back();
+            }
+        }
+
+        function showToast(message) {
+            if (window.Android && Android.showToast) {
+                Android.showToast(message);
+            } else {
+                alert(message);
             }
         }
     </script>

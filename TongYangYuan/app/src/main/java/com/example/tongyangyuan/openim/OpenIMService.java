@@ -149,7 +149,12 @@ public class OpenIMService {
                     // resolveHost：将后端返回的 localhost/127.0.0.1 替换为当前环境的正确主机
                     // 模拟器上需要 127.0.0.1 + adb reverse，真机/局域网直接用局域网IP
                     apiUrl = NetworkConfig.resolveHost(data.optString("apiUrl", ""));
-                    wsUrl  = NetworkConfig.resolveHost(data.optString("wsUrl", ""));
+                    String backendWsUrl = data.optString("wsUrl", "");
+                    wsUrl = NetworkConfig.resolveHost(backendWsUrl);
+                    // 确保 wsUrl 包含 /api 前缀（因为后端 context-path=/api）
+                    if (wsUrl != null && !wsUrl.contains("/api")) {
+                        wsUrl = wsUrl.replaceFirst("^(ws://[^/]+)", "$1/api");
+                    }
                     boolean available = data.optBoolean("available", false);
 
                     config.setApiUrl(apiUrl);
@@ -199,8 +204,15 @@ public class OpenIMService {
         } else {
             wsTarget = url.startsWith("ws") ? url : "ws://" + url;
         }
-        // 只去掉 /api 前缀，保留 /stomp 等实际端点路径
-        wsTarget = wsTarget.replaceFirst("/api(/|$)", "$1");
+        
+        // 检查 baseUrl 是否包含 /api，如果是则直接使用当前 URL 作为 wsTarget
+        // 因为 baseUrl 已经是 http://127.0.0.1:8080/api，只需要把 http 替换为 ws
+        // 如果 wsUrl 已经是完整的 ws://127.0.0.1:8080/api/stomp，直接使用
+        if (!wsTarget.contains("/stomp")) {
+            // 如果不包含 /stomp，加上 /stomp
+            wsTarget = wsTarget.replaceFirst("/+$", "") + "/stomp";
+        }
+        
         // 去掉末尾可能的斜杠
         wsTarget = wsTarget.replaceAll("/+$", "");
 
@@ -403,10 +415,15 @@ public class OpenIMService {
                         if (json.optInt("code") == 200) {
                             JSONObject data = json.getJSONObject("data");
                             effectiveToken = data.optString("token", "");
-                            effectiveWsUrl = NetworkConfig.resolveHost(data.optString("wsUrl", wsUrl));
+                            String backendWsUrl = data.optString("wsUrl", "");
+                            // 确保 wsUrl 包含 /api 前缀（因为后端 context-path=/api）
+                            effectiveWsUrl = NetworkConfig.resolveHost(backendWsUrl);
+                            if (effectiveWsUrl != null && !effectiveWsUrl.contains("/api")) {
+                                effectiveWsUrl = effectiveWsUrl.replaceFirst("^(ws://[^/]+)", "$1/api");
+                            }
                             String resolvedApiUrl = NetworkConfig.resolveHost(data.optString("apiUrl", apiUrl));
                             config.saveFromResponse(userId, effectiveToken, effectiveWsUrl, resolvedApiUrl);
-                            Log.i(TAG, "OpenIM token obtained from backend");
+                            Log.i(TAG, "OpenIM token obtained from backend, wsUrl=" + effectiveWsUrl);
                         } else {
                             Log.w(TAG, "Backend /openim/init returned code=" + json.optInt("code") + ", msg=" + json.optString("message"));
                         }
@@ -570,15 +587,16 @@ public class OpenIMService {
     }
 
     private void doStartCall(String targetAccountId, String callType, long appointmentId, String sessionId, long senderUserId) {
-        Log.i(TAG, "Starting " + callType + " call to: " + targetAccountId + ", sessionId=" + sessionId);
+        Log.i(TAG, "Starting " + callType + " call to: " + targetAccountId + ", sessionId=" + sessionId + ", appointmentId=" + appointmentId);
 
-        if (appointmentId <= 0) {
-            Log.w(TAG, "startCall: invalid appointmentId, skip signaling (咨询师端将收不到来电提示)");
-            return;
+        long effectiveAppointmentId = appointmentId;
+        if (effectiveAppointmentId <= 0) {
+            effectiveAppointmentId = (System.currentTimeMillis() % 1000000L) + 1L;
+            Log.w(TAG, "startCall: invalid appointmentId, using temporary id=" + effectiveAppointmentId);
         }
 
         sendCallSignaling(
-                appointmentId,
+                effectiveAppointmentId,
                 senderUserId,
                 Long.parseLong(targetAccountId),
                 callType != null ? callType : "video",

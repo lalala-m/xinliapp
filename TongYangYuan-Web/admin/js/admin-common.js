@@ -275,7 +275,7 @@ const AdminCommon = {
     // 记录管理员操作
     async logAction(action, details) {
         try {
-            await this.request('/api/admin/logs', {
+            await this.request('/admin/logs', {
                 method: 'POST',
                 body: JSON.stringify({
                     action,

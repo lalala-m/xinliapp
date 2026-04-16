@@ -45,6 +45,8 @@ public class SecurityConfig {
                         "/learning/**",
                         "/livekit/**",
                         "/messages/**",
+                        // 注意：/uploads/** 和 /upload/** 允许公开访问（用于头像图片访问）
+                        // 但 /upload/avatar 需要认证才能上传，这由业务逻辑控制
                         "/uploads/**",
                         "/upload/**",
                         "/home/config",

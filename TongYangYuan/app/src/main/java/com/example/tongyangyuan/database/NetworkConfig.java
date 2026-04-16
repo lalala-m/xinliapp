@@ -94,14 +94,31 @@ public class NetworkConfig {
     }
 
     /**
-     * 获取当前环境的主机地址（不含协议）。
+     * 获取当前环境的主机地址（不含协议、不含端口）。
      * 模拟器：127.0.0.1（需配合 adb reverse）| 真机/局域网：LOCAL_LAN_BASE_URL 的主机部分 | 生产：PRODUCTION_BASE_URL 的主机部分
      */
     public static String getHost() {
         String baseUrl = getBaseUrl();
         // 去掉协议前缀，取 host:port 部分
         String withoutScheme = baseUrl.replaceFirst("https?://", "");
-        return withoutScheme.replaceFirst("/.*", "");
+        // 只取主机部分，去掉端口号
+        String host = withoutScheme.replaceFirst(":.*", "").replaceFirst("/.*", "");
+        return host;
+    }
+    
+    /**
+     * 获取当前环境的端口号（从 baseUrl 中提取）
+     */
+    public static int getPort() {
+        String baseUrl = getBaseUrl();
+        String withoutScheme = baseUrl.replaceFirst("https?://", "");
+        // 提取端口号
+        String portStr = withoutScheme.replaceFirst(".*:", "").replaceFirst("/.*", "");
+        try {
+            return Integer.parseInt(portStr);
+        } catch (NumberFormatException e) {
+            return 8080; // 默认端口
+        }
     }
 
     /**

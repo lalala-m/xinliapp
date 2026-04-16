@@ -1,4 +1,4 @@
-// 童养园咨询师端 - 工作台逻辑
+// 童康源咨询师端 - 工作台逻辑
 
 /** 将后端 appointmentDate 统一为 YYYY-MM-DD，避免与「今日」比较失败 */
 function normalizeAppointmentDate(apt) {
@@ -90,7 +90,7 @@ const Dashboard = {
                         const newApts = this.appointments.filter(apt => apt.status === 'pending');
                         Utils.showToast(`您有 ${newPendingCount} 个新预约待处理！`, 'info');
                         if (Notification.permission === 'granted') {
-                            new Notification('童养园 - 新预约通知', {
+                            new Notification('童康源 - 新预约通知', {
                                 body: `您有 ${newPendingCount} 个新预约待确认`,
                                 icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">👨‍⚕️</text></svg>'
                             });

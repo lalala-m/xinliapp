@@ -1,4 +1,4 @@
-// 童养园咨询师端 - 聊天逻辑（增强版：微信风格通话状态）
+// 童康源咨询师端 - 聊天逻辑（增强版：微信风格通话状态）
 
 const Chat = {
     appointmentId: null,
@@ -18,14 +18,23 @@ const Chat = {
 
     // 初始化
     async init() {
+        console.log('[Chat] Initializing...');
+        
         // 检查登录状态
         this.consultant = Auth.checkAuth();
-        if (!this.consultant) return;
+        console.log('[Chat] Auth check:', this.consultant);
+        if (!this.consultant) {
+            console.error('[Chat] Not logged in! Redirecting to login page...');
+            Utils.showToast('请先登录', 'error');
+            setTimeout(() => window.location.href = 'consultant_login.html', 1500);
+            return;
+        }
 
         // 获取URL参数
         const urlParams = new URLSearchParams(window.location.search);
         this.appointmentId = urlParams.get('appointmentId');
         this.isReadonly = urlParams.get('readonly') === 'true';
+        console.log('[Chat] appointmentId:', this.appointmentId, ', isReadonly:', this.isReadonly);
 
         if (!this.appointmentId) {
             Utils.showToast('预约ID不存在', 'error');
@@ -66,9 +75,26 @@ const Chat = {
         try {
             const appointment = await API.get(`/appointments/${this.appointmentId}`);
             if (appointment) {
+                // 尝试获取用户信息
+                let clientName = `家长#${appointment.parentUserId}`;
+                let clientAvatar = null;
+                
+                try {
+                    const userInfo = await API.get(`/user/info?userId=${appointment.parentUserId}`);
+                    if (userInfo && userInfo.nickname) {
+                        clientName = userInfo.nickname;
+                    }
+                    if (userInfo && userInfo.avatarUrl) {
+                        clientAvatar = userInfo.avatarUrl;
+                    }
+                } catch (e) {
+                    console.warn('获取用户信息失败，使用默认名称');
+                }
+
                 this.appointment = {
                     ...appointment,
-                    clientName: `家长#${appointment.parentUserId}`, // 暂无名字
+                    clientName: clientName,
+                    clientAvatar: clientAvatar,
                     childName: appointment.childName,
                     childAge: appointment.childAge
                 };
@@ -92,8 +118,14 @@ const Chat = {
         if (nameEl) nameEl.textContent = this.appointment.clientName;
         if (childEl) childEl.textContent = `孩子：${this.appointment.childName || '未填写'}（${this.appointment.childAge || '?'}岁）`;
         if (avatarEl) {
-            avatarEl.textContent = Utils.getInitials(this.appointment.clientName);
-            avatarEl.style.background = Utils.getAvatarColor(this.appointment.clientName);
+            // 如果有头像URL，显示头像图片
+            if (this.appointment.clientAvatar) {
+                avatarEl.innerHTML = `<img src="${this.escapeAttr(this.appointment.clientAvatar)}" alt="头像" onerror="this.parentElement.textContent='${Utils.getInitials(this.appointment.clientName)}'; this.parentElement.style.background='${Utils.getAvatarColor(this.appointment.clientName)}'">`;
+                avatarEl.style.background = 'transparent';
+            } else {
+                avatarEl.textContent = Utils.getInitials(this.appointment.clientName);
+                avatarEl.style.background = Utils.getAvatarColor(this.appointment.clientName);
+            }
         }
     },
 
@@ -126,6 +158,22 @@ const Chat = {
 
     // 映射后端消息格式到前端
     mapMessage(msg) {
+        // 处理时长字段：优先使用 msg.duration，否则从 content 中提取
+        let duration = msg.duration || null;
+        if (duration === null && msg.content) {
+            // 尝试从 content 中提取时长，格式如 "语音消息 01:23" 或 "01:23"
+            const durationMatch = msg.content.match(/(\d{1,2}):(\d{2})/);
+            if (durationMatch) {
+                duration = parseInt(durationMatch[1]) * 60 + parseInt(durationMatch[2]);
+            } else {
+                // 尝试提取纯数字（秒数）
+                const secondsMatch = msg.content.match(/(\d+)(?:秒|")/);
+                if (secondsMatch) {
+                    duration = parseInt(secondsMatch[1]);
+                }
+            }
+        }
+        
         return {
             id: msg.id,
             type: msg.messageType ? msg.messageType.toLowerCase() : 'text',
@@ -134,7 +182,7 @@ const Chat = {
             fromConsultant: msg.isFromConsultant,
             senderUserId: msg.senderUserId,
             mediaUrl: msg.mediaUrl || msg.url || null,  // 保留媒体URL
-            duration: msg.duration || null  // 保留时长
+            duration: duration
         };
     },
 
@@ -246,7 +294,11 @@ const Chat = {
 
     handleWebRTCSignal(signal) {
         if (!signal || !signal.type) return;
-        if (signal.appointmentId && String(signal.appointmentId) !== String(this.appointmentId)) {
+        // 放宽 appointmentId 校验：允许 0/null/undefined，或匹配当前预约ID
+        const sigApt = signal.appointmentId != null ? String(signal.appointmentId) : '';
+        const myApt = this.appointmentId != null ? String(this.appointmentId) : '';
+        if (sigApt && myApt && sigApt !== myApt) {
+            console.log('handleWebRTCSignal: appointmentId mismatch, skip. sig=', sigApt, 'mine=', myApt);
             return;
         }
 
@@ -1056,6 +1108,8 @@ const Chat = {
             };
             
             await API.post('/messages', message);
+            
+            // 不在这里立即显示，等待 WebSocket 推送回来（避免重复显示）
             Utils.showToast('语音已发送', 'success');
             
         } catch (error) {
@@ -1180,4 +1234,83 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    
+    // 绑定语音按钮事件 - 使用 JavaScript 动态绑定确保可靠性
+    const voiceHoldBtn = document.getElementById('voiceHoldBtn');
+    if (voiceHoldBtn) {
+        // 鼠标事件
+        voiceHoldBtn.addEventListener('mousedown', (e) => {
+            e.preventDefault(); // 阻止默认行为
+            Chat.startVoiceRecording(e);
+        });
+        voiceHoldBtn.addEventListener('mouseup', (e) => {
+            Chat.endVoiceRecording(e);
+        });
+        voiceHoldBtn.addEventListener('mouseleave', (e) => {
+            // 鼠标离开时，如果正在录音则取消
+            if (Chat._isRecording) {
+                Chat.cancelVoiceRecording(e);
+            }
+        });
+        
+        // 触摸事件
+        voiceHoldBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // 阻止默认行为
+            Chat.startVoiceRecording(e);
+        }, { passive: false });
+        voiceHoldBtn.addEventListener('touchend', (e) => {
+            Chat.endVoiceRecording(e);
+        });
+        voiceHoldBtn.addEventListener('touchcancel', (e) => {
+            Chat.cancelVoiceRecording(e);
+        });
+        
+        console.log('语音按钮事件绑定成功');
+    }
 });
+
+// 处理来自 Android 原生端的消息（通过 WebAppInterface 调用）
+// 这个函数会被 Android 端的 notifyMediaMessage 触发
+window.onMediaSelected = function(type, content, mediaUri) {
+    console.log('[Web onMediaSelected] type=' + type + ', content=' + content + ', mediaUri=' + mediaUri);
+    
+    // 如果 mediaUri 是 http 链接，转换为服务器相对路径
+    let mediaUrl = mediaUri;
+    if (mediaUri && mediaUri.startsWith('http')) {
+        // 保留完整 URL，让 Web 端可以直接访问
+        mediaUrl = mediaUri;
+    }
+    
+    // 从 content 中提取时长（格式如 "语音消息 01:23"）
+    let duration = 0;
+    const durationMatch = content && content.match(/(\d{2}):(\d{2})/);
+    if (durationMatch) {
+        duration = parseInt(durationMatch[1]) * 60 + parseInt(durationMatch[2]);
+    }
+    
+    // 创建消息对象
+    const message = {
+        id: 'local_' + Date.now(), // 临时本地 ID
+        type: (type || 'text').toLowerCase(),
+        content: content || '',
+        timestamp: Date.now(),
+        fromConsultant: false, // 来自家长端
+        senderUserId: Chat.appointment ? Chat.appointment.parentUserId : null,
+        mediaUrl: mediaUrl,
+        duration: duration
+    };
+    
+    // 添加到消息列表并显示
+    Chat.messages.push(message);
+    
+    const messagesArea = document.getElementById('messagesArea');
+    if (messagesArea) {
+        if (messagesArea.querySelector('.empty-messages')) {
+            messagesArea.innerHTML = '';
+        }
+        messagesArea.insertAdjacentHTML('beforeend', Chat.createMessageElement(message));
+        Chat.scrollToBottom();
+    }
+    
+    console.log('[Web onMediaSelected] Message added to UI');
+};

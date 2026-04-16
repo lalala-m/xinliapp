@@ -15,7 +15,7 @@ public class RootController {
     @GetMapping
     public ApiResponse<Map<String, Object>> welcome() {
         Map<String, Object> info = new HashMap<>();
-        info.put("name", "同养园心理健康服务平台");
+        info.put("name", "童康源心理健康服务平台");
         info.put("version", "1.0.0");
         info.put("status", "running");
         info.put("endpoints", Map.of(
@@ -25,6 +25,6 @@ public class RootController {
             "messages", "/api/messages",
             "children", "/api/children"
         ));
-        return ApiResponse.success("欢迎使用同养园心理健康服务平台 API", info);
+        return ApiResponse.success("欢迎使用童康源心理健康服务平台 API", info);
     }
 }

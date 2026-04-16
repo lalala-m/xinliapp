@@ -11,7 +11,7 @@ let dashboardData = {
 async function loadDashboardData() {
     try {
         // 获取统计数据
-        const statsResponse = await AdminCommon.request('/api/admin/statistics/overview');
+        const statsResponse = await AdminCommon.request('/admin/statistics/overview');
         if (statsResponse && statsResponse.code === 200) {
             const data = statsResponse.data || {};
             // 更新数据对象，而不是替换它
@@ -24,7 +24,7 @@ async function loadDashboardData() {
         }
 
         // 获取最近活动
-        const logsResponse = await AdminCommon.request('/api/admin/logs?limit=10');
+        const logsResponse = await AdminCommon.request('/admin/logs?limit=10');
         if (logsResponse && logsResponse.code === 200) {
             dashboardData.activities = Array.isArray(logsResponse.data) ? logsResponse.data : [];
             updateActivities();

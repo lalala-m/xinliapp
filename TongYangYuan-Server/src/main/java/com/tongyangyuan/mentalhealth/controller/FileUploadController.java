@@ -127,4 +127,59 @@ public class FileUploadController {
             return ApiResponse.error("文件上传失败: " + e.getMessage());
         }
     }
+
+    /**
+     * 上传用户头像
+     * POST /upload/avatar
+     */
+    @PostMapping("/avatar")
+    public ApiResponse<String> uploadAvatar(@RequestParam("file") MultipartFile file) {
+        if (file.isEmpty()) {
+            return ApiResponse.error("请选择要上传的文件");
+        }
+
+        // 验证文件类型
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            return ApiResponse.error("请上传图片文件");
+        }
+
+        // 限制文件大小为 5MB
+        if (file.getSize() > 5 * 1024 * 1024) {
+            return ApiResponse.error("图片大小不能超过5MB");
+        }
+
+        try {
+            String projectDir = System.getProperty("user.dir");
+            String uploadDir = projectDir + "/uploads/avatars/";
+
+            File directory = new File(uploadDir);
+            if (!directory.exists()) {
+                directory.mkdirs();
+            }
+
+            // 保留原始扩展名
+            String originalFilename = file.getOriginalFilename();
+            String extension = "";
+            if (originalFilename != null && originalFilename.contains(".")) {
+                extension = originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase();
+            }
+            // 默认使用 .jpg
+            if (extension.isEmpty() || !extension.matches("\\.(jpg|jpeg|png|gif|webp)")) {
+                extension = ".jpg";
+            }
+            String newFilename = UUID.randomUUID().toString() + extension;
+
+            File dest = new File(uploadDir + newFilename);
+            file.transferTo(dest);
+
+            // 返回访问URL
+            String fileUrl = "/uploads/avatars/" + newFilename;
+
+            return ApiResponse.success("头像上传成功", fileUrl);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return ApiResponse.error("头像上传失败: " + e.getMessage());
+        }
+    }
 }

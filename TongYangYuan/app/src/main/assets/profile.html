@@ -104,16 +104,239 @@
             stroke-width: 2;
             fill: none;
         }
+
+        /* 头像编辑区域 */
+        .profile-avatar-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .profile-avatar-container .hero-avatar {
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .profile-avatar-container .hero-avatar:active {
+            transform: scale(0.95);
+        }
+
+        .profile-edit-badge {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6FA6F8 0%, #A9C9FF 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+
+        .profile-edit-badge svg {
+            width: 14px;
+            height: 14px;
+            color: white;
+        }
+
+        /* 模态框 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            margin: 20px;
+            width: calc(100% - 40px);
+            max-width: 360px;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1E2A3B;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #E0E0E0;
+            border-radius: 12px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+        }
+
+        .modal-input:focus {
+            border-color: #6FA6F8;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+        }
+
+        .modal-btn.cancel {
+            background: #F0F0F0;
+            color: #666;
+        }
+
+        .modal-btn.confirm {
+            background: linear-gradient(135deg, #BDEBC8 0%, #A9C9FF 100%);
+            color: #1E2A3B;
+        }
+
+        .modal-btn.confirm:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* 头像上传预览 */
+        .avatar-upload-preview {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin: 0 auto 16px;
+            overflow: hidden;
+            background: linear-gradient(135deg, #BDEBC8 0%, #A9C9FF 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .avatar-upload-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .avatar-upload-btn {
+            display: block;
+            width: 120px;
+            margin: 0 auto 16px;
+            padding: 8px 16px;
+            background: rgba(111, 166, 248, 0.1);
+            color: #6FA6F8;
+            border: 1px dashed #6FA6F8;
+            border-radius: 8px;
+            font-size: 14px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .avatar-upload-btn:active {
+            background: rgba(111, 166, 248, 0.2);
+        }
+
+        /* 刷新按钮 */
+        .refresh-btn {
+            position: fixed;
+            top: 60px;
+            right: 16px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 100;
+            transition: transform 0.3s;
+        }
+
+        .refresh-btn:active {
+            transform: rotate(180deg);
+        }
+
+        .refresh-btn.loading {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .refresh-btn svg {
+            width: 20px;
+            height: 20px;
+            color: #6FA6F8;
+        }
     </style>
 </head>
 <body>
+    <!-- 刷新按钮 -->
+    <button class="refresh-btn" id="refreshBtn" onclick="refreshProfilePage()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 4v6h-6M1 20v-6h6"/>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+    </button>
+
     <div class="top-app-bar glass">
+        <button class="back-btn" onclick="goBack()" style="display:none;">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 18l-6-6 6-6"/>
+            </svg>
+        </button>
         <div class="title">我的</div>
+        <div style="width: 40px;"></div>
     </div>
 
     <div class="content">
         <div class="card profile-hero">
-            <div class="hero-avatar" id="heroAvatar">访</div>
+            <div class="profile-avatar-container" id="avatarContainer" onclick="openProfileEdit()">
+                <div class="hero-avatar" id="heroAvatar">访</div>
+                <div class="profile-edit-badge" id="editBadge" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                </div>
+            </div>
             <div class="hero-title" id="heroTitle">欢迎来到童康源</div>
             <div class="hero-subtitle" id="heroSubtitle">登录后获取个性化成长方案</div>
             <div class="status-pill" id="heroStatusPill">
@@ -231,7 +454,7 @@
                     <path d="M9 6l6 6-6 6" />
                 </svg>
             </div>
-            <div class="management-item" onclick="window.location.href='my_consultations.html'">
+            <div class="management-item" onclick="navigateToPage('my_consultations.html')">
                 <div class="management-item-content">
                     <img src="icons/consultation-plan.svg" alt="我的咨询" class="management-icon">
                     <div class="management-info">
@@ -260,7 +483,7 @@
                     <path d="M9 6l6 6-6 6" />
                 </svg>
             </div>
-            <div class="management-item" onclick="window.location.href='consultant_training.html'">
+            <div class="management-item" onclick="navigateToPage('consultant_training.html')">
                 <div class="management-item-content">
                     <img src="icons/certified-mentor.svg" alt="加入咨询师" class="management-icon">
                     <div class="management-info">
@@ -272,7 +495,7 @@
                     <path d="M9 6l6 6-6 6" />
                 </svg>
             </div>
-            <div class="management-item" onclick="window.location.href='consultant_certification.html'">
+            <div class="management-item" onclick="navigateToPage('consultant_certification.html')">
                 <div class="management-item-content">
                     <img src="icons/satisfaction-rate.svg" alt="黄V认证" class="management-icon">
                     <div class="management-info">
@@ -287,8 +510,277 @@
         </div>
     </div>
 
+    <!-- 头像编辑模态框 -->
+    <div class="modal-overlay" id="profileEditModal" onclick="closeProfileEdit(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-title">编辑资料</div>
+            
+            <div class="avatar-upload-preview" id="avatarPreview">
+                <span id="avatarPreviewInitial">访</span>
+            </div>
+            <input type="file" id="avatarFileInput" accept="image/*" style="display:none" onchange="handleAvatarPreview(this)">
+            <button class="avatar-upload-btn" onclick="document.getElementById('avatarFileInput').click()">
+                选择新头像
+            </button>
+            
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 14px; color: #666; margin-bottom: 8px;">昵称</label>
+                <input type="text" class="modal-input" id="editNicknameInput" placeholder="请输入昵称" maxlength="20">
+            </div>
+            
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="closeProfileEdit()">取消</button>
+                <button class="modal-btn confirm" id="saveProfileBtn" onclick="saveProfileData()">保存</button>
+            </div>
+        </div>
+    </div>
+
     <script src="js/app.js"></script>
     <script>
+        // ==================== 全局状态管理 ====================
+        // 监听登录状态变化（用于跨页面同步）
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'user' || e.key === 'token') {
+                // 状态发生变化，刷新页面
+                console.log('Login state changed, refreshing profile page...');
+                hydrateProfile();
+                loadChildInfo();
+                updateConsultantEntry();
+            }
+        });
+
+        // Android 端回调：通知刷新页面
+        window.onProfileUpdated = function() {
+            hydrateProfile();
+        };
+
+        // ==================== 头像编辑功能 ====================
+        let currentAvatarUrl = '';
+        let currentNickname = '';
+
+        /**
+         * 打开头像编辑弹窗
+         */
+        function openProfileEdit() {
+            const user = getUserProfile ? getUserProfile() : {};
+            if (!user.isLoggedIn) {
+                // 未登录，跳转到登录页
+                if (window.Android && Android.openAccountManagement) {
+                    Android.openAccountManagement();
+                } else {
+                    window.location.href = 'auth.html';
+                }
+                return;
+            }
+
+            // 获取当前用户信息
+            currentAvatarUrl = user.avatarUrl || '';
+            currentNickname = user.nickname || '';
+
+            // 设置模态框初始值
+            document.getElementById('editNicknameInput').value = currentNickname;
+
+            // 设置头像预览
+            const previewEl = document.getElementById('avatarPreview');
+            const previewInitial = document.getElementById('avatarPreviewInitial');
+
+            if (currentAvatarUrl) {
+                previewEl.innerHTML = `<img src="${currentAvatarUrl}" alt="头像预览" onerror="this.parentElement.innerHTML='<span id=\\'avatarPreviewInitial\\'>${currentNickname ? currentNickname.charAt(0) : '访'}</span>'">`;
+            } else {
+                previewEl.innerHTML = `<span id="avatarPreviewInitial">${currentNickname ? currentNickname.charAt(0) : '访'}</span>`;
+            }
+
+            // 显示模态框
+            const modal = document.getElementById('profileEditModal');
+            modal.classList.add('active');
+        }
+
+        /**
+         * 关闭头像编辑弹窗
+         */
+        function closeProfileEdit(e) {
+            if (e && e.target !== e.currentTarget) return;
+            document.getElementById('profileEditModal').classList.remove('active');
+        }
+
+        /**
+         * 预览选择的图片
+         */
+        function handleAvatarPreview(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+
+                // 验证文件类型
+                if (!file.type.startsWith('image/')) {
+                    window.showToast('请选择图片文件');
+                    return;
+                }
+
+                // 验证文件大小（最大5MB）
+                if (file.size > 5 * 1024 * 1024) {
+                    window.showToast('图片大小不能超过5MB');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const previewEl = document.getElementById('avatarPreview');
+                    previewEl.innerHTML = `<img src="${e.target.result}" alt="头像预览">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        /**
+         * 保存用户资料
+         */
+        async function saveProfileData() {
+            const nickname = document.getElementById('editNicknameInput').value.trim();
+            const fileInput = document.getElementById('avatarFileInput');
+            const saveBtn = document.getElementById('saveProfileBtn');
+
+            // 验证昵称
+            if (nickname && nickname.length > 20) {
+                window.showToast('昵称不能超过20个字符');
+                return;
+            }
+
+            saveBtn.disabled = true;
+            saveBtn.textContent = '保存中...';
+
+            try {
+                let newAvatarUrl = currentAvatarUrl;
+
+                // 如果选择了新头像，先上传
+                if (fileInput.files && fileInput.files[0]) {
+                    const formData = new FormData();
+                    formData.append('file', fileInput.files[0]);
+
+                    const uploadResponse = await window.fetchWithAuth('/upload/avatar', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (uploadResponse.ok) {
+                        const uploadResult = await uploadResponse.json();
+                        if (uploadResult.code === 200 && uploadResult.data && uploadResult.data.url) {
+                            newAvatarUrl = uploadResult.data.url;
+                        } else {
+                            throw new Error(uploadResult.message || '头像上传失败');
+                        }
+                    } else {
+                        throw new Error('头像上传失败');
+                    }
+                }
+
+                // 更新用户资料
+                const updateResponse = await window.fetchWithAuth('/user/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        nickname: nickname || currentNickname, 
+                        avatarUrl: newAvatarUrl 
+                    })
+                });
+
+                const updateResult = await updateResponse.json();
+
+                if (updateResult.code === 200) {
+                    // 更新成功，通知 Android 端
+                    if (window.Android && Android.onProfileUpdated) {
+                        Android.onProfileUpdated(
+                            updateResult.data.nickname || nickname,
+                            updateResult.data.avatarUrl || newAvatarUrl
+                        );
+                    }
+
+                    // 更新本地显示
+                    currentAvatarUrl = newAvatarUrl;
+                    currentNickname = updateResult.data.nickname || nickname;
+
+                    // 刷新页面显示
+                    hydrateProfile();
+                    loadChildInfo();
+
+                    closeProfileEdit();
+                    window.showToast('保存成功');
+                } else {
+                    throw new Error(updateResult.message || '保存失败');
+                }
+            } catch (error) {
+                console.error('保存失败:', error);
+                window.showToast(error.message || '保存失败，请重试');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = '保存';
+            }
+        }
+
+        // ==================== 刷新功能 ====================
+        let isRefreshing = false;
+
+        /**
+         * 完整刷新用户资料页面
+         */
+        async function refreshProfilePage() {
+            if (isRefreshing) return;
+
+            const refreshBtn = document.getElementById('refreshBtn');
+            isRefreshing = true;
+            refreshBtn.classList.add('loading');
+
+            try {
+                // 1. 从服务器获取最新用户信息
+                const response = await window.fetchWithAuth('/user/info', {
+                    method: 'GET'
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.code === 200 && result.data) {
+                        // 更新 Android 端本地存储
+                        if (window.Android && Android.updateUserProfile) {
+                            Android.updateUserProfile(JSON.stringify(result.data));
+                        }
+
+                        // 刷新页面显示
+                        hydrateProfile();
+                        loadChildInfo();
+                        updateConsultantEntry();
+
+                        window.showToast('刷新成功');
+                    } else {
+                        throw new Error(result.message || '获取用户信息失败');
+                    }
+                } else if (response.status === 401) {
+                    // Token 过期，跳转到登录页
+                    window.showToast('登录已过期，请重新登录');
+                    if (window.Android && Android.openAccountManagement) {
+                        Android.openAccountManagement();
+                    }
+                } else {
+                    throw new Error('获取用户信息失败');
+                }
+            } catch (error) {
+                console.error('刷新失败:', error);
+                window.showToast('刷新失败，请重试');
+            } finally {
+                isRefreshing = false;
+                refreshBtn.classList.remove('loading');
+            }
+        }
+
+        // ==================== 页面导航函数 ====================
+        function navigateToPage(pageName) {
+            if (window.Android && Android.openWebPage) {
+                Android.openWebPage(pageName);
+            } else {
+                window.location.href = pageName;
+            }
+        }
+
         // 孩子数据
         let childProfiles = [];
         let currentChildId = -1;
@@ -394,7 +886,7 @@
             if (window.Android && Android.openAccountManagement) {
                 Android.openAccountManagement();
             } else {
-                window.location.href = 'account_manage.html';
+                navigateToPage('account_manage.html');
             }
         }
 
@@ -402,7 +894,7 @@
             if (window.Android && Android.openConsultantLogin) {
                 Android.openConsultantLogin();
             } else {
-                window.location.href = 'consultant_login.html';
+                navigateToPage('consultant_login.html');
             }
         }
 
@@ -410,7 +902,7 @@
             if (window.Android && Android.openChildManagement) {
                 Android.openChildManagement();
             } else {
-                window.location.href = 'child_info.html';
+                navigateToPage('child_info.html');
             }
         }
 

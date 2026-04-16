@@ -1210,6 +1210,11 @@ body {
             color: white;
         }
 
+        .call-notif-btn.cancel {
+            background: linear-gradient(135deg, #FF9800, #FFA726);
+            color: white;
+        }
+
         .call-notif-btn:active {
             transform: scale(0.95);
         }
@@ -1850,7 +1855,7 @@ body {
         let currentAppointmentId = '';
         let serverAppointmentId = -1;
         let currentUserId = -1;
-        let consultantUserId = 2;
+        let consultantUserId = 0;
         /** 自己的 userId（从 Android 接口获取后缓存，避免重复调用） */
         let _cachedUserId = null;
         // 通话状态
@@ -2213,25 +2218,49 @@ body {
             const container = document.getElementById('callNotificationContainer');
             if (!container) return;
 
-            container.innerHTML = `
-                <div class="call-notification" id="callNotif">
-                    <div class="call-notif-icon ${type}">
-                        ${type === 'calling'
-                            ? `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`
-                            : type === 'connected'
-                            ? `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>`
-                            : `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`
-                        }
+            // 呼出通话（calling）时显示取消按钮
+            if (type === 'calling') {
+                container.innerHTML = `
+                    <div class="call-notification" id="callNotif">
+                        <div class="call-notif-icon calling">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+                        </div>
+                        <div class="call-notif-content">
+                            <div class="call-notif-title">${title}</div>
+                            <div class="call-notif-subtitle">${subtitle}</div>
+                            <button class="call-notif-btn cancel" onclick="cancelOutgoingCall()">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                取消
+                            </button>
+                        </div>
                     </div>
-                    <div class="call-notif-content">
-                        <div class="call-notif-title">${title}</div>
-                        <div class="call-notif-subtitle">${subtitle}</div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="call-notification" id="callNotif">
+                        <div class="call-notif-icon ${type}">
+                            ${type === 'connected'
+                                ? `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>`
+                                : `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`
+                            }
+                        </div>
+                        <div class="call-notif-content">
+                            <div class="call-notif-title">${title}</div>
+                            <div class="call-notif-subtitle">${subtitle}</div>
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
+            }
 
             // 不在此用 setTimeout 关闭：通话页在前台时 WebView 定时器暂停，会导致挂断后仍卡在「正在呼叫」。
             // 清除横幅由 Android 在 VideoCallActivity 结束时调用 notifyVideoCallClosed。
+        }
+
+        // 取消呼出通话
+        function cancelOutgoingCall() {
+            dismissCallNotification();
+            callState = null;
+            showToast('已取消通话');
         }
 
         function startIncomingCall(signal, fallbackAppointmentId) {
@@ -3082,13 +3111,49 @@ body {
                 showToast('媒体资源不存在');
                 return;
             }
+            
+            // 如果是 content:// URI，强制使用 Android 播放（因为 Web 无法访问）
+            if (uri.startsWith('content://')) {
+                console.log('[playMedia] 检测到 content:// URI，调用 Android 播放:', uri);
+                if (window.Android && typeof Android.playMedia === 'function') {
+                    Android.playMedia(type, uri);
+                } else {
+                    showToast('无法播放：需要在APP内播放');
+                }
+                return;
+            }
+            
+            // 如果有 Android 接口，也走 Android 播放（更稳定）
             if (window.Android && typeof Android.playMedia === 'function') {
                 Android.playMedia(type, uri);
                 if (type === 'audio' && typeof Android.notifyAudioPlaying === 'function') {
                     Android.notifyAudioPlaying(uri, true);
                 }
             } else {
-                showToast('请在APP内播放');
+                // Web 端 fallback：使用 audio 标签播放
+                tryPlayInBrowser(type, uri);
+            }
+        }
+        
+        function tryPlayInBrowser(type, uri) {
+            console.log('[playMedia] 尝试在浏览器播放:', type, uri);
+            if (type === 'audio') {
+                // 创建音频元素播放
+                const audio = new Audio(uri);
+                audio.crossOrigin = 'anonymous';
+                audio.play().then(() => {
+                    audio.onended = () => {
+                        if (typeof onAudioPlayEnded === 'function') {
+                            onAudioPlayEnded();
+                        }
+                    };
+                }).catch(err => {
+                    console.error('[playMedia] 音频播放失败:', err);
+                    showToast('音频加载失败');
+                });
+            } else {
+                // 视频：打开新窗口
+                window.open(uri, '_blank');
             }
         }
 

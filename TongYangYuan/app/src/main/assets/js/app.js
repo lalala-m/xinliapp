@@ -61,13 +61,22 @@
             try {
                 const payload = Android.getUserProfile();
                 const parsed = typeof payload === 'string' ? JSON.parse(payload) : payload;
-                return parsed || {};
+                return {
+                    phone: parsed.phone || '',
+                    nickname: parsed.nickname || '',
+                    avatarUrl: parsed.avatarUrl || '',
+                    isPaid: !!parsed.isPaid,
+                    hasChildProfile: !!parsed.hasChildProfile,
+                    isLoggedIn: !!parsed.isLoggedIn
+                };
             } catch (e) {
                 console.warn('读取用户信息失败', e);
             }
         }
         return {
             phone: '',
+            nickname: '',
+            avatarUrl: '',
             isPaid: false,
             hasChildProfile: false,
             isLoggedIn: false
@@ -112,34 +121,49 @@
         try {
             if (window.Android && typeof Android.getBaseUrl === 'function') {
                 var url = Android.getBaseUrl();
-                // 去掉末尾的 /api（若有），保留 http://host:port 格式
+                // Android 端返回的 URL 已经是 http://host:port/api 格式，直接使用
                 if (url && typeof url === 'string') {
-                    return url.replace(/\/api\/?$/, '');
+                    return url;
                 }
             }
         } catch (e) { /* ignore */ }
         // 模拟器 fallback：adb reverse tcp:8080 tcp:8080
-        return 'http://127.0.0.1:8080';
+        // 注意：后端配置 context-path 为 /api，所以这里要包含 /api
+        return 'http://127.0.0.1:8080/api';
     })();
 
     // 带认证的Fetch
     window.fetchWithAuth = async function(url, options = {}) {
         const token = window.getToken();
-        const headers = options.headers || {};
-
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
+        console.log('fetchWithAuth - Token:', token ? token.substring(0, 20) + '...' : 'empty');
+        
+        // 确保 headers 是对象
+        const headers = {};
+        if (options.headers) {
+            Object.keys(options.headers).forEach(key => {
+                headers[key] = options.headers[key];
+            });
         }
 
-        // 如果是相对路径，拼接 Base URL（已去掉末尾的 /api）
+        // 添加 Authorization header
+        if (token) {
+            headers['Authorization'] = 'Bearer ' + token;
+        }
+
+        // 如果是相对路径，拼接 Base URL
+        // 注意：API_BASE_URL 已经是 http://host:port/api 格式，所以直接拼接
         let fullUrl = url;
         if (url.startsWith('/')) {
-            fullUrl = window.API_BASE_URL + '/api' + url;
+            fullUrl = window.API_BASE_URL + url;
         }
+        
+        console.log('fetchWithAuth - URL:', fullUrl);
 
         const newOptions = {
-            ...options,
-            headers: headers
+            method: options.method || 'GET',
+            headers: headers,
+            body: options.body,
+            mode: 'cors'
         };
 
         return fetch(fullUrl, newOptions);
@@ -184,6 +208,28 @@
             Android.showToast(message);
         } else {
             console.log('Toast:', message);
+        }
+    };
+
+    // 更新用户头像和昵称
+    window.updateUserProfile = async function(nickname, avatarUrl) {
+        try {
+            const response = await window.fetchWithAuth('/user/profile', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ nickname, avatarUrl })
+            });
+            const result = await response.json();
+            if (result.code === 200) {
+                return result.data;
+            } else {
+                throw new Error(result.message || '更新失败');
+            }
+        } catch (e) {
+            console.error('更新用户信息失败:', e);
+            throw e;
         }
     };
 

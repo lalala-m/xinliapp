@@ -89,6 +89,41 @@ public class UserController {
     }
 
     /**
+     * 更新用户昵称和头像
+     * PUT /user/profile
+     */
+    @PutMapping("/profile")
+    public ApiResponse<Map<String, Object>> updateProfile(
+            @RequestBody UpdateProfileRequest request,
+            @RequestHeader("Authorization") String token) {
+        try {
+            Long userId = jwtUtil.extractUserId(token.replace("Bearer ", ""));
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("用户不存在"));
+
+            // 更新昵称
+            if (request.getNickname() != null && !request.getNickname().trim().isEmpty()) {
+                user.setNickname(request.getNickname().trim());
+            }
+
+            // 更新头像
+            if (request.getAvatarUrl() != null) {
+                user.setAvatarUrl(request.getAvatarUrl());
+            }
+
+            userRepository.save(user);
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("nickname", user.getNickname());
+            result.put("avatarUrl", user.getAvatarUrl());
+
+            return ApiResponse.success("用户信息已更新", result);
+        } catch (Exception e) {
+            return ApiResponse.error(e.getMessage());
+        }
+    }
+
+    /**
      * 设置VIP状态（管理员用或支付回调）
      * PUT /user/vip
      */
@@ -136,6 +171,27 @@ public class UserController {
 
         public void setExpireTime(String expireTime) {
             this.expireTime = expireTime;
+        }
+    }
+
+    public static class UpdateProfileRequest {
+        private String nickname;
+        private String avatarUrl;
+
+        public String getNickname() {
+            return nickname;
+        }
+
+        public void setNickname(String nickname) {
+            this.nickname = nickname;
+        }
+
+        public String getAvatarUrl() {
+            return avatarUrl;
+        }
+
+        public void setAvatarUrl(String avatarUrl) {
+            this.avatarUrl = avatarUrl;
         }
     }
 }

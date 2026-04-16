@@ -538,6 +538,8 @@ public class ChatActivity extends AppCompatActivity implements WebAppInterface.M
         
         try {
             String baseUrl = com.example.tongyangyuan.database.NetworkConfig.getBaseUrl();
+            Log.d("ChatActivity", "[UPLOAD] 开始上传到: " + baseUrl + "/upload/audio");
+            Log.d("ChatActivity", "[UPLOAD] 文件路径: " + file.getAbsolutePath() + ", 大小: " + file.length());
             java.net.URL url = new java.net.URL(baseUrl + "/upload/audio");
             java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
@@ -579,6 +581,7 @@ public class ChatActivity extends AppCompatActivity implements WebAppInterface.M
             os.close();
             
             int responseCode = conn.getResponseCode();
+            Log.d("ChatActivity", "[UPLOAD] 响应码: " + responseCode + ", URL: " + url);
             if (responseCode == 200 || responseCode == 201) {
                 java.io.BufferedReader br = new java.io.BufferedReader(
                         new java.io.InputStreamReader(conn.getInputStream(), "UTF-8"));
@@ -589,25 +592,48 @@ public class ChatActivity extends AppCompatActivity implements WebAppInterface.M
                 }
                 br.close();
                 
-                // 解析响应：{code: 200, data: {url: "..."}}
-                org.json.JSONObject jsonResponse = new org.json.JSONObject(response.toString());
-                if (jsonResponse.optInt("code") == 200 && jsonResponse.has("data")) {
-                    org.json.JSONObject data = jsonResponse.getJSONObject("data");
-                    String fileUrl = data.optString("url", "");
-                    if (!android.text.TextUtils.isEmpty(fileUrl)) {
-                        // 确保 URL 是完整的
-                        if (fileUrl.startsWith("http")) {
-                            return fileUrl;
-                        } else {
-                            return baseUrl + fileUrl;
+                String responseBody = response.toString();
+                Log.d("ChatActivity", "[UPLOAD] 响应内容: " + responseBody);
+                
+                // 解析响应：{code: 200, data: {url: "..."}} 或 {code: 200, data: "/path/to/file"}
+                try {
+                    org.json.JSONObject jsonResponse = new org.json.JSONObject(responseBody);
+                    if (jsonResponse.optInt("code") == 200 && jsonResponse.has("data")) {
+                        Object dataObj = jsonResponse.get("data");
+                        String fileUrl = null;
+                        
+                        if (dataObj instanceof String) {
+                            // data 是字符串路径，如 "/uploads/audios/xxx.m4a"
+                            fileUrl = (String) dataObj;
+                        } else if (dataObj instanceof org.json.JSONObject) {
+                            // data 是对象，如 {"url": "/uploads/audios/xxx.m4a"}
+                            org.json.JSONObject data = (org.json.JSONObject) dataObj;
+                            fileUrl = data.optString("url", "");
+                        }
+                        
+                        if (!android.text.TextUtils.isEmpty(fileUrl)) {
+                            // 确保 URL 是完整的
+                            if (fileUrl.startsWith("http")) {
+                                return fileUrl;
+                            } else {
+                                return baseUrl + fileUrl;
+                            }
                         }
                     }
+                    Log.e("ChatActivity", "[UPLOAD] 响应解析失败: code=" + jsonResponse.optInt("code") + ", hasData=" + jsonResponse.has("data"));
+                } catch (Exception e) {
+                    // JSON 解析失败，检查是否直接返回的是 URL 路径
+                    Log.e("ChatActivity", "[UPLOAD] JSON解析异常: " + e.getMessage() + ", body=" + responseBody);
                 }
             }
             conn.disconnect();
             Log.e("ChatActivity", "上传媒体文件失败，响应码: " + responseCode);
+        } catch (java.net.SocketTimeoutException e) {
+            Log.e("ChatActivity", "[UPLOAD] 连接超时: " + e.getMessage(), e);
+        } catch (java.net.ConnectException e) {
+            Log.e("ChatActivity", "[UPLOAD] 连接失败，请检查网络或服务器: " + e.getMessage(), e);
         } catch (Exception e) {
-            Log.e("ChatActivity", "上传媒体文件异常", e);
+            Log.e("ChatActivity", "[UPLOAD] 上传媒体文件异常: " + e.getClass().getName() + ": " + e.getMessage(), e);
         }
         return null;
     }

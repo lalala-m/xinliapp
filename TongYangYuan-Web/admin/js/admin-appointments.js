@@ -25,7 +25,7 @@ async function loadAppointments() {
         if (dateFilter) params.append('date', dateFilter);
         if (searchInput) params.append('search', searchInput);
 
-        const response = await AdminCommon.request(`/api/admin/appointments?${params}`);
+        const response = await AdminCommon.request(`/admin/appointments?${params}`);
         
         if (response && response.code === 200) {
             // 后端如果是分页返回，data 可能包含 content
@@ -114,7 +114,7 @@ function renderAppointments() {
 // 更新统计数据
 async function updateStats() {
     try {
-        const statsResponse = await AdminCommon.request('/api/admin/statistics/appointments');
+        const statsResponse = await AdminCommon.request('/admin/statistics/appointments');
         if (statsResponse && statsResponse.code === 200) {
             const stats = statsResponse.data || {};
             document.getElementById('todayCount').textContent = stats.today || 0;
@@ -172,7 +172,7 @@ function refreshAppointments() {
 // 查看预约详情
 async function viewAppointment(appointmentId) {
     try {
-        const appointment = await AdminCommon.request(`/api/admin/appointments/${appointmentId}`);
+        const appointment = await AdminCommon.request(`/admin/appointments/${appointmentId}`);
         if (appointment) {
             currentAppointment = appointment;
             showAppointmentModal(appointment);
@@ -218,7 +218,7 @@ async function confirmAppointment() {
     if (!AdminCommon.confirm('确定要确认该预约吗？')) return;
 
     try {
-        await AdminCommon.request(`/api/admin/appointments/${currentAppointment.id}/confirm`, {
+        await AdminCommon.request(`/admin/appointments/${currentAppointment.id}/confirm`, {
             method: 'PUT'
         });
         
@@ -236,7 +236,7 @@ async function confirmAppointmentDirect(appointmentId) {
     if (!AdminCommon.confirm('确定要确认该预约吗？')) return;
 
     try {
-        await AdminCommon.request(`/api/admin/appointments/${appointmentId}/confirm`, {
+        await AdminCommon.request(`/admin/appointments/${appointmentId}/confirm`, {
             method: 'PUT'
         });
         
@@ -255,7 +255,7 @@ async function cancelAppointment() {
     if (!AdminCommon.confirm('确定要取消该预约吗？')) return;
 
     try {
-        await AdminCommon.request(`/api/admin/appointments/${currentAppointment.id}/cancel`, {
+        await AdminCommon.request(`/admin/appointments/${currentAppointment.id}/cancel`, {
             method: 'PUT'
         });
         
@@ -273,7 +273,7 @@ async function cancelAppointmentDirect(appointmentId) {
     if (!AdminCommon.confirm('确定要取消该预约吗？')) return;
 
     try {
-        await AdminCommon.request(`/api/admin/appointments/${appointmentId}/cancel`, {
+        await AdminCommon.request(`/admin/appointments/${appointmentId}/cancel`, {
             method: 'PUT'
         });
         

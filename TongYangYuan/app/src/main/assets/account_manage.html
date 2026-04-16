@@ -6,96 +6,175 @@
     <title>账号管理</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        .account-hero {
-            margin-top: 12px;
-            padding: 24px;
+        .user-profile-card {
+            margin: 16px;
+            background: white;
             border-radius: 24px;
-            background: linear-gradient(135deg, #D6E7FF 0%, #F6F9FF 70%);
+            padding: 24px;
+            box-shadow: 0 2px 16px rgba(189, 235, 200, 0.2);
+            text-align: center;
+        }
+
+        .user-avatar-wrapper {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 16px;
+        }
+
+        .user-avatar {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #BDEBC8 0%, #A9C9FF 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            box-shadow: 0 6px 20px rgba(189, 235, 200, 0.4);
+        }
+
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .user-avatar-initial {
+            font-size: 36px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .avatar-edit-btn {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6FA6F8 0%, #A9C9FF 100%);
+            border: 3px solid white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .avatar-edit-btn svg {
+            width: 14px;
+            height: 14px;
+            color: white;
+        }
+
+        .user-nickname {
+            font-size: 20px;
+            font-weight: 700;
             color: #1E2A3B;
+            margin-bottom: 4px;
         }
 
-        .account-hero h2 {
-            margin: 0 0 8px;
-            font-size: 22px;
+        .user-phone {
+            font-size: 14px;
+            color: #666;
         }
 
-        .account-hero p {
-            margin: 0;
-            color: rgba(30, 42, 59, 0.7);
-        }
-
-        .account-pill {
+        .edit-nickname-btn {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
             padding: 6px 14px;
             border-radius: 999px;
-            background: rgba(255, 255, 255, 0.7);
-            color: #1E2A3B;
+            background: rgba(111, 166, 248, 0.1);
+            color: #6FA6F8;
             font-size: 13px;
-            margin-top: 16px;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
         }
 
-        .account-list {
-            margin-top: 20px;
+        .edit-nickname-btn svg {
+            width: 14px;
+            height: 14px;
         }
 
-        .account-item {
-            padding: 18px 0;
-            border-bottom: 1px solid rgba(0,0,0,0.05);
+        .account-status-card {
+            margin: 0 16px 16px;
+            background: white;
+            border-radius: 20px;
+            padding: 16px 20px;
+            box-shadow: 0 2px 16px rgba(189, 235, 200, 0.2);
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
 
-        .account-meta {
+        .status-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #BDEBC8 0%, #A9C9FF 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .status-text {
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 2px;
         }
 
-        .account-meta strong {
-            font-size: 16px;
-            color: var(--text-primary);
-        }
-
-        .account-meta span {
+        .status-label {
             font-size: 13px;
-            color: var(--text-secondary);
+            color: #999;
+        }
+
+        .status-value {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1E2A3B;
         }
 
         .status-badge {
-            padding: 4px 12px;
-            border-radius: 12px;
-            background: #BDEBC8;
-            color: #1E2A3B;
-            font-size: 12px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .status-badge.active {
+            background: rgba(189, 235, 200, 0.2);
+            color: #2E7D32;
         }
 
         .status-badge.pending {
-            background: rgba(255,193,7,0.2);
+            background: rgba(255, 193, 7, 0.2);
             color: #AB6800;
         }
 
         .action-card {
-            margin-top: 12px;
-            padding: 0;
+            margin: 0 16px 16px;
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 2px 16px rgba(189, 235, 200, 0.2);
         }
 
         .action-item {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 14px 12px;
+            padding: 16px 18px;
             border-bottom: 1px solid rgba(0,0,0,0.05);
             cursor: pointer;
-        }
-
-        .management-icon {
-            width: 24px;
-            height: 24px;
-            color: #6FA6F8;
-            flex-shrink: 0;
+            transition: all 0.2s ease;
         }
 
         .action-item:last-child {
@@ -106,77 +185,231 @@
             background: rgba(111, 166, 248, 0.08);
         }
 
+        .action-icon-wrapper {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-right: 14px;
+        }
+
+        .action-icon-wrapper.blue {
+            background: linear-gradient(135deg, #6FA6F8 0%, #A9C9FF 100%);
+        }
+
+        .action-icon-wrapper.green {
+            background: linear-gradient(135deg, #BDEBC8 0%, #7ED39C 100%);
+        }
+
+        .action-icon-wrapper svg {
+            width: 22px;
+            height: 22px;
+            color: white;
+        }
+
+        .action-text {
+            flex: 1;
+            min-width: 0;
+        }
+
         .action-item strong {
-            font-size: 14px;
+            display: block;
+            font-size: 15px;
+            font-weight: 600;
             color: var(--text-primary);
+            margin-bottom: 3px;
         }
 
         .action-item span {
             font-size: 12px;
             color: var(--text-secondary);
+            line-height: 1.3;
+        }
+
+        .chevron-icon {
+            width: 18px;
+            height: 18px;
+            color: #C0C0C0;
+            flex-shrink: 0;
+            margin-left: 10px;
         }
 
         .logout-button {
-            margin-top: 20px;
+            margin: 20px 16px;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            margin: 20px;
+            width: calc(100% - 40px);
+            max-width: 360px;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1E2A3B;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .modal-input {
             width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #E0E0E0;
+            border-radius: 12px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .modal-input:focus {
+            border-color: #6FA6F8;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+        }
+
+        .modal-btn.cancel {
+            background: #F0F0F0;
+            color: #666;
+        }
+
+        .modal-btn.confirm {
+            background: linear-gradient(135deg, #BDEBC8 0%, #A9C9FF 100%);
+            color: #1E2A3B;
+        }
+
+        .content {
+            padding-bottom: 40px !important;
         }
     </style>
 </head>
 <body>
     <div class="top-app-bar glass">
+        <button class="back-btn" onclick="history.back()">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 18l-6-6 6-6"/>
+            </svg>
+        </button>
         <div class="title">账号管理</div>
     </div>
 
     <div class="content">
-        <div class="card account-hero">
-            <h2 id="currentAccount">未登录</h2>
-            <p id="accountStatus">登录以同步孩子信息和会员权益</p>
-            <div class="account-pill" id="accountPill">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 6v6l3 3" />
+        <div class="user-profile-card">
+            <div class="user-avatar-wrapper">
+                <div class="user-avatar" id="userAvatar">
+                    <span class="user-avatar-initial" id="avatarInitial">访</span>
+                </div>
+                <label class="avatar-edit-btn" for="avatarInput">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                </label>
+                <input type="file" id="avatarInput" accept="image/*" style="display:none" onchange="handleAvatarChange(event)">
+            </div>
+            <div class="user-nickname" id="userNickname">未登录</div>
+            <div class="user-phone" id="userPhone">-</div>
+            <button class="edit-nickname-btn" onclick="showNicknameModal()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                 </svg>
-                当前账号状态
-            </div>
+                修改昵称
+            </button>
         </div>
 
-        <div class="section-title">已登录账号</div>
-        <div class="card">
-            <div class="account-list" id="accountList">
-                <div class="account-item">
-                    <div class="account-meta">
-                        <strong id="accountLabel">游客</strong>
-                        <span id="accountDesc">未登录</span>
-                    </div>
-                    <span class="status-badge pending" id="accountBadge">未登录</span>
+        <div class="account-status-card">
+            <div class="status-info">
+                <div class="status-icon">👤</div>
+                <div class="status-text">
+                    <span class="status-label">账号状态</span>
+                    <span class="status-value" id="loginTime">-</span>
                 </div>
             </div>
+            <span class="status-badge active" id="statusBadge">已登录</span>
         </div>
 
-        <div class="section-title">常用操作</div>
-        <div class="card action-card">
+        <div class="section-title" style="margin: 16px 16px 12px;">常用操作</div>
+        <div class="action-card">
             <div class="action-item" onclick="switchAccount()">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <img src="icons/switch-account.svg" alt="切换账号" class="management-icon">
-                    <div>
-                        <strong>切换/新增账号</strong>
-                        <span>使用其他手机号或微信重新登录</span>
-                    </div>
+                <div class="action-icon-wrapper blue">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
                 </div>
-                <svg class="chevron-icon" viewBox="0 0 24 24">
-                    <path d="M9 6l6 6-6 6" />
+                <div class="action-text">
+                    <strong>切换/新增账号</strong>
+                    <span>使用其他手机号或微信重新登录</span>
+                </div>
+                <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 6l6 6-6 6"/>
                 </svg>
             </div>
             <div class="action-item" onclick="manageChildInfo()">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <img src="icons/child-management.svg" alt="孩子管理" class="management-icon">
-                    <div>
-                        <strong>孩子信息管理</strong>
-                        <span>进入孩子档案管理页</span>
-                    </div>
+                <div class="action-icon-wrapper green">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
                 </div>
-                <svg class="chevron-icon" viewBox="0 0 24 24">
-                    <path d="M9 6l6 6-6 6" />
+                <div class="action-text">
+                    <strong>孩子信息管理</strong>
+                    <span>进入孩子档案管理页</span>
+                </div>
+                <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 6l6 6-6 6"/>
                 </svg>
             </div>
         </div>
@@ -186,28 +419,216 @@
         </button>
     </div>
 
+    <div class="modal-overlay" id="nicknameModal" onclick="closeNicknameModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-title">修改昵称</div>
+            <input type="text" class="modal-input" id="nicknameInput" placeholder="请输入新昵称" maxlength="20">
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="closeNicknameModal()">取消</button>
+                <button class="modal-btn confirm" onclick="saveNickname()">保存</button>
+            </div>
+        </div>
+    </div>
+
     <script src="js/app.js"></script>
     <script>
-        function updateAccountInfo() {
-            const profile = getUserProfile ? getUserProfile() : {};
-            const isLoggedIn = !!profile.isLoggedIn;
-            const phone = profile.phone || '';
-            const masked = isLoggedIn && phone ? phone.slice(0,3) + '****' + phone.slice(-4) : '未登录';
+        var currentUserData = {
+            nickname: '',
+            avatarUrl: '',
+            phone: '',
+            isLoggedIn: false
+        };
 
-            document.getElementById('currentAccount').textContent = masked;
-            document.getElementById('accountStatus').textContent = isLoggedIn
-                ? '已登录，可继续使用当前账号'
-                : '登录以同步孩子信息和会员权益';
-            document.getElementById('accountLabel').textContent = masked;
-            document.getElementById('accountDesc').textContent = isLoggedIn ? '已登录 · 同步中' : '未登录状态';
-            const badge = document.getElementById('accountBadge');
-            if (isLoggedIn) {
-                badge.textContent = '已登录';
-                badge.classList.remove('pending');
-            } else {
-                badge.textContent = '未登录';
-                badge.classList.add('pending');
+        function setTextContent(id, text) {
+            var el = document.getElementById(id);
+            if (el) {
+                el.textContent = text || '';
             }
+        }
+
+        function escapeHtml(text) {
+            if (text === undefined || text === null) return '';
+            return String(text).replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>');
+        }
+
+        function updateUI() {
+            var profile = window.getUserProfile ? window.getUserProfile() : {};
+            currentUserData.isLoggedIn = !!profile.isLoggedIn;
+            currentUserData.phone = profile.phone || '';
+            currentUserData.nickname = profile.nickname || '';
+            currentUserData.avatarUrl = profile.avatarUrl || '';
+
+            var maskedPhone = currentUserData.isLoggedIn && currentUserData.phone 
+                ? currentUserData.phone.slice(0,3) + '****' + currentUserData.phone.slice(-4) 
+                : '未登录';
+
+            setTextContent('userPhone', maskedPhone);
+            setTextContent('userNickname', currentUserData.nickname || '未登录');
+            setTextContent('loginTime', currentUserData.isLoggedIn ? '已登录' : '未登录');
+
+            var statusBadge = document.getElementById('statusBadge');
+            if (statusBadge) {
+                if (currentUserData.isLoggedIn) {
+                    statusBadge.textContent = '已登录';
+                    statusBadge.className = 'status-badge active';
+                } else {
+                    statusBadge.textContent = '未登录';
+                    statusBadge.className = 'status-badge pending';
+                }
+            }
+
+            renderAvatar();
+        }
+
+        function renderAvatar() {
+            var avatarContainer = document.getElementById('userAvatar');
+            if (!avatarContainer) return;
+            
+            var initial = currentUserData.nickname ? currentUserData.nickname.charAt(0) : '访';
+            
+            if (currentUserData.avatarUrl) {
+                avatarContainer.innerHTML = '<img src="' + escapeHtml(currentUserData.avatarUrl) + '" alt="头像" onerror="this.parentElement.innerHTML=\'<span class=user-avatar-initial>访</span>\'">';
+            } else {
+                avatarContainer.innerHTML = '<span class="user-avatar-initial">' + escapeHtml(initial) + '</span>';
+            }
+            setTextContent('avatarInitial', initial);
+        }
+
+        function showNicknameModal() {
+            if (!currentUserData.isLoggedIn) {
+                window.location.href = 'auth.html';
+                return;
+            }
+            var modal = document.getElementById('nicknameModal');
+            var nicknameInput = document.getElementById('nicknameInput');
+            if (nicknameInput) {
+                nicknameInput.value = currentUserData.nickname || '';
+            }
+            if (modal) {
+                modal.classList.add('active');
+            }
+            setTimeout(function() {
+                var input = document.getElementById('nicknameInput');
+                if (input) input.focus();
+            }, 100);
+        }
+
+        function closeNicknameModal(e) {
+            if (e && e.target !== e.currentTarget) return;
+            var modal = document.getElementById('nicknameModal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
+        }
+
+        async function saveNickname() {
+            var nicknameInput = document.getElementById('nicknameInput');
+            if (!nicknameInput) return;
+            
+            var nickname = nicknameInput.value.trim();
+            if (!nickname) {
+                window.showToast('请输入昵称');
+                return;
+            }
+            if (nickname.length > 20) {
+                window.showToast('昵称不能超过20个字符');
+                return;
+            }
+            
+            window.showToast('正在保存...');
+            
+            try {
+                var response = await window.fetchWithAuth('/user/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        nickname: nickname, 
+                        avatarUrl: currentUserData.avatarUrl || '' 
+                    })
+                });
+                
+                var result = await response.json();
+                
+                if (result.code === 200) {
+                    var updatedNickname = (result.data && result.data.nickname) ? result.data.nickname : nickname;
+                    var updatedAvatar = (result.data && result.data.avatarUrl) ? result.data.avatarUrl : currentUserData.avatarUrl;
+                    
+                    currentUserData.nickname = updatedNickname;
+                    currentUserData.avatarUrl = updatedAvatar;
+                    
+                    renderAvatar();
+                    setTextContent('userNickname', updatedNickname);
+                    closeNicknameModal();
+                    window.showToast('昵称修改成功');
+                    
+                    if (window.Android && Android.onProfileUpdated) {
+                        Android.onProfileUpdated(updatedNickname, updatedAvatar);
+                    }
+                } else {
+                    window.showToast('修改失败: ' + (result.message || 'code=' + result.code));
+                }
+            } catch (e) {
+                window.showToast('修改失败: ' + (e.message || '网络错误'));
+            }
+        }
+
+        async function handleAvatarChange(event) {
+            var file = event.target.files[0];
+            if (!file) return;
+            
+            if (!file.type.startsWith('image/')) {
+                window.showToast('请选择图片文件');
+                return;
+            }
+            
+            if (file.size > 5 * 1024 * 1024) {
+                window.showToast('图片大小不能超过5MB');
+                return;
+            }
+
+            var reader = new FileReader();
+            reader.onload = async function(e) {
+                var previewUrl = e.target.result;
+                var avatarContainer = document.getElementById('userAvatar');
+                if (avatarContainer) {
+                    avatarContainer.innerHTML = '<img src="' + previewUrl + '" alt="头像预览">';
+                }
+                
+                try {
+                    var formData = new FormData();
+                    formData.append('file', file);
+                    
+                    var response = await window.fetchWithAuth('/upload/avatar', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    var avatarUrl = previewUrl;
+                    
+                    if (response.ok) {
+                        var result = await response.json();
+                        if (result.code === 200 && result.data && result.data.url) {
+                            avatarUrl = result.data.url;
+                        }
+                    }
+                    
+                    var updateResult = await window.updateUserProfile(currentUserData.nickname, avatarUrl);
+                    currentUserData.avatarUrl = avatarUrl;
+                    renderAvatar();
+                    window.showToast('头像修改成功');
+                    
+                    if (window.Android && Android.onProfileUpdated) {
+                        Android.onProfileUpdated(currentUserData.nickname, currentUserData.avatarUrl);
+                    }
+                } catch (e) {
+                    renderAvatar();
+                    window.showToast('头像上传失败，请重试');
+                }
+            };
+            reader.readAsDataURL(file);
+            event.target.value = '';
         }
 
         function switchAccount() {
@@ -218,7 +639,7 @@
             if (window.Android && Android.logoutAccount) {
                 Android.logoutAccount();
             }
-            setTimeout(() => {
+            setTimeout(function() {
                 window.location.href = 'auth.html';
             }, 300);
         }
@@ -231,8 +652,9 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', updateAccountInfo);
+        document.addEventListener('DOMContentLoaded', function() {
+            updateUI();
+        });
     </script>
 </body>
 </html>
-

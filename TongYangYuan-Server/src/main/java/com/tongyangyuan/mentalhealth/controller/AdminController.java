@@ -2,6 +2,7 @@ package com.tongyangyuan.mentalhealth.controller;
 
 import com.tongyangyuan.mentalhealth.annotation.RequireAdmin;
 import com.tongyangyuan.mentalhealth.dto.ApiResponse;
+import com.tongyangyuan.mentalhealth.dto.UpdateUserProfileRequest;
 import com.tongyangyuan.mentalhealth.entity.AdminLog;
 import com.tongyangyuan.mentalhealth.entity.Appointment;
 import com.tongyangyuan.mentalhealth.entity.ChatMessage;
@@ -18,6 +19,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -131,6 +133,89 @@ public class AdminController {
             return ApiResponse.success("删除用户成功", null);
         } catch (Exception e) {
             return ApiResponse.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 更新用户资料（昵称和头像）
+     * PUT /admin/users/{id}/profile
+     */
+    @PutMapping("/users/{id}/profile")
+    public ApiResponse<Map<String, Object>> updateUserProfile(
+            @PathVariable Long id,
+            @RequestBody UpdateUserProfileRequest request) {
+        try {
+            User user = adminService.updateUserProfile(id, request);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("id", user.getId());
+            result.put("nickname", user.getNickname());
+            result.put("avatarUrl", user.getAvatarUrl());
+            
+            return ApiResponse.success("用户资料已更新", result);
+        } catch (Exception e) {
+            return ApiResponse.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 管理员上传用户头像
+     * POST /admin/users/{id}/avatar
+     */
+    @PostMapping("/users/{id}/avatar")
+    public ApiResponse<Map<String, Object>> uploadUserAvatar(
+            @PathVariable Long id,
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        try {
+            // 1. 验证用户存在
+            User user = adminService.getAllUsers().stream()
+                    .filter(u -> u.getId().equals(id))
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException("用户不存在"));
+            
+            // 2. 验证文件类型
+            String contentType = file.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                return ApiResponse.error("只能上传图片文件");
+            }
+            
+            // 3. 验证文件大小（最大2MB）
+            if (file.getSize() > 2 * 1024 * 1024) {
+                return ApiResponse.error("图片大小不能超过2MB");
+            }
+            
+            // 4. 生成文件名
+            String originalFilename = file.getOriginalFilename();
+            String extension = "";
+            if (originalFilename != null && originalFilename.contains(".")) {
+                extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            }
+            String newFilename = "avatar_" + id + "_" + System.currentTimeMillis() + extension;
+            
+            // 5. 保存文件
+            String uploadPath = System.getProperty("user.dir") + "/uploads/avatars/";
+            java.io.File dir = new java.io.File(uploadPath);
+            if (!dir.exists()) {
+                dir.mkdirs();
+            }
+            
+            java.io.File destFile = new java.io.File(uploadPath + newFilename);
+            file.transferTo(destFile);
+            
+            // 6. 更新用户头像URL
+            String avatarUrl = "/uploads/avatars/" + newFilename;
+            user.setAvatarUrl(avatarUrl);
+            adminService.updateUser(id, user);
+            
+            // 7. 返回结果
+            Map<String, Object> result = new HashMap<>();
+            result.put("id", user.getId());
+            result.put("avatarUrl", avatarUrl);
+            result.put("filename", newFilename);
+            
+            return ApiResponse.success("头像上传成功", result);
+        } catch (Exception e) {
+            return ApiResponse.error("头像上传失败: " + e.getMessage());
         }
     }
 

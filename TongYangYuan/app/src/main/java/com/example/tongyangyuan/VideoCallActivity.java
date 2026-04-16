@@ -17,6 +17,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.lifecycle.LifecycleOwner;
 
 import com.example.tongyangyuan.data.ChatStore;
 import com.example.tongyangyuan.data.ChatMessageRecord;
@@ -124,6 +125,7 @@ public class VideoCallActivity extends AppCompatActivity {
         @Override
         public void onCallAnswered(String sessionId, boolean accepted) {
             mainHandler.post(() -> {
+                cancelCallTimeoutTimer();
                 if (accepted) {
                     // 对方接听 → 主叫端开始 LiveKit 连接
                     if (isCaller) {
@@ -258,6 +260,17 @@ public class VideoCallActivity extends AppCompatActivity {
             isAudioCall = "audio".equalsIgnoreCase(callType);
         }
 
+        if (appointmentId == null || appointmentId <= 0) {
+            appointmentId = (System.currentTimeMillis() % 1000000L) + 1L;
+            Log.w(TAG, "extractIntentData: invalid appointmentId, using temporary id=" + appointmentId);
+        }
+
+        Log.d(TAG, "extractIntentData: appointmentId=" + appointmentId
+                + ", currentUserId=" + currentUserId
+                + ", targetUserId=" + targetUserId
+                + ", callType=" + callType
+                + ", isCaller=" + isCaller);
+
         if (currentUserId == -1L || targetUserId == -1L) {
             Toast.makeText(this, "通话数据无效", Toast.LENGTH_SHORT).show();
             finish();
@@ -385,10 +398,12 @@ public class VideoCallActivity extends AppCompatActivity {
         mainHandler.post(this::startRingAnimation);
         statusText.setText("等待 " + consultantName + " 接听...");
         String targetAccountId = String.valueOf(targetUserId);
-        long apt = (appointmentId != null && appointmentId > 0) ? appointmentId : -1L;
+        long apt = (appointmentId != null && appointmentId > 0) ? appointmentId : ((System.currentTimeMillis() % 1000000L) + 1L);
         currentSessionId = openIMService.startCall(targetAccountId, callType, apt);
         // 拉取 LiveKit Token（等对方 accept 后再连，这里先拉好）
         fetchLiveKitTokenAndConnect();
+        // 启动 60 秒超时检测
+        startCallTimeoutTimer();
     }
 
     /**
@@ -514,6 +529,30 @@ public class VideoCallActivity extends AppCompatActivity {
                 retryLiveKitConnection(); // 再试一次
             }
         }, 500);
+    }
+
+    private Runnable callTimeoutRunnable;
+
+    /**
+     * 启动呼叫超时检测（60秒无响应自动挂断）
+     */
+    private void startCallTimeoutTimer() {
+        cancelCallTimeoutTimer();
+        callTimeoutRunnable = () -> {
+            if (!liveKitConnectStarted && !isFinishing()) {
+                Log.w(TAG, "Call timeout: no answer within 60s");
+                Toast.makeText(VideoCallActivity.this, "无人接听", Toast.LENGTH_SHORT).show();
+                endCall();
+            }
+        };
+        mainHandler.postDelayed(callTimeoutRunnable, 60000);
+    }
+
+    private void cancelCallTimeoutTimer() {
+        if (callTimeoutRunnable != null) {
+            mainHandler.removeCallbacks(callTimeoutRunnable);
+            callTimeoutRunnable = null;
+        }
     }
 
     private void toggleMute() {

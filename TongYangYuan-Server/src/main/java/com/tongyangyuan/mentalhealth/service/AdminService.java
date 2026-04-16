@@ -2,6 +2,7 @@ package com.tongyangyuan.mentalhealth.service;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
+import com.tongyangyuan.mentalhealth.dto.UpdateUserProfileRequest;
 import com.tongyangyuan.mentalhealth.entity.*;
 import com.tongyangyuan.mentalhealth.repository.*;
 import org.springframework.data.domain.PageRequest;
@@ -182,6 +183,58 @@ public class AdminService {
             throw new RuntimeException("用户不存在");
         }
         userRepository.deleteById(id);
+    }
+
+    /**
+     * 更新用户资料（昵称和头像）
+     * @param userId 用户ID
+     * @param request 更新请求
+     * @return 更新后的用户
+     */
+    @Transactional
+    public User updateUserProfile(Long userId, UpdateUserProfileRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("用户不存在"));
+        
+        // 更新昵称
+        if (request.getNickname() != null && !request.getNickname().trim().isEmpty()) {
+            if (request.getNickname().length() > 50) {
+                throw new RuntimeException("昵称不能超过50个字符");
+            }
+            user.setNickname(request.getNickname().trim());
+        }
+        
+        // 更新头像
+        if (request.getAvatarUrl() != null) {
+            // 空字符串或有效URL都可以
+            if (request.getAvatarUrl().isEmpty() || isValidUrl(request.getAvatarUrl())) {
+                user.setAvatarUrl(request.getAvatarUrl());
+            } else {
+                throw new RuntimeException("头像URL格式不正确");
+            }
+        }
+        
+        User saved = userRepository.save(user);
+        
+        // 如果是咨询师，同时同步到咨询师档案
+        if (saved.getUserType() == User.UserType.CONSULTANT) {
+            consultantRepository.findByUserId(saved.getId()).ifPresent(c -> {
+                if (request.getNickname() != null && !request.getNickname().trim().isEmpty()) {
+                    c.setName(request.getNickname().trim());
+                }
+                if (saved.getAvatarUrl() != null && !saved.getAvatarUrl().isEmpty()) {
+                    c.setAvatarUrl(saved.getAvatarUrl());
+                }
+                consultantRepository.save(c);
+            });
+        }
+        
+        return saved;
+    }
+
+    private boolean isValidUrl(String url) {
+        if (url == null || url.isEmpty()) return true;
+        return url.matches("^(https?://|/).*");
     }
 
     // ==================== 咨询师管理 ====================
