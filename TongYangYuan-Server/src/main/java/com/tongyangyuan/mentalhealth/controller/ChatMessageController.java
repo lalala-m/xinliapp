@@ -55,18 +55,22 @@ public class ChatMessageController {
             forwardCallSignalingToWebrtcIfNeeded(saved);
 
             // 推送给接收者
-            messagingTemplate.convertAndSendToUser(
-                saved.getReceiverUserId().toString(),
-                "/queue/messages",
-                dto
-            );
+            if (saved.getReceiverUserId() != null) {
+                messagingTemplate.convertAndSendToUser(
+                    saved.getReceiverUserId().toString(),
+                    "/queue/messages",
+                    dto
+                );
+            }
             
             // 推送给发送者（用于多端同步）
-            messagingTemplate.convertAndSendToUser(
-                saved.getSenderUserId().toString(),
-                "/queue/messages",
-                dto
-            );
+            if (saved.getSenderUserId() != null) {
+                messagingTemplate.convertAndSendToUser(
+                    saved.getSenderUserId().toString(),
+                    "/queue/messages",
+                    dto
+                );
+            }
             
             return ApiResponse.success("消息发送成功", saved);
         } catch (Exception e) {
@@ -107,11 +111,13 @@ public class ChatMessageController {
         data.put("sessionId", sessionId);
         sig.setData(data);
 
-        messagingTemplate.convertAndSendToUser(
-                saved.getReceiverUserId().toString(),
-                "/queue/webrtc",
-                sig
-        );
+        if (saved.getReceiverUserId() != null) {
+            messagingTemplate.convertAndSendToUser(
+                    saved.getReceiverUserId().toString(),
+                    "/queue/webrtc",
+                    sig
+            );
+        }
     }
 
     private ChatMessageDTO convertToDTO(ChatMessage message) {

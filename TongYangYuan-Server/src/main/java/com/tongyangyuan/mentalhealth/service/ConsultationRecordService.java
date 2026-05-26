@@ -55,9 +55,9 @@ public class ConsultationRecordService {
         target.setParentUserId(appointment.getParentUserId());
         target.setChildId(appointment.getChildId());
 
-        ConsultationRecord.ConsultationType consultationType = record.getConsultationType() != null
+        String consultationType = record.getConsultationType() != null
             ? record.getConsultationType()
-            : ConsultationRecord.ConsultationType.ONLINE;
+            : "ONLINE";
         target.setConsultationType(consultationType);
 
         if (record.getDuration() != null) {
@@ -74,6 +74,18 @@ public class ConsultationRecordService {
         }
         if (record.getStatus() != null) {
             target.setStatus(record.getStatus());
+        }
+        if (record.getConsultantSummary() != null) {
+            target.setConsultantSummary(record.getConsultantSummary());
+        }
+        if (record.getParentAcknowledged() != null) {
+            target.setParentAcknowledged(record.getParentAcknowledged());
+        }
+        if (record.getVerificationMediaUrl() != null) {
+            target.setVerificationMediaUrl(record.getVerificationMediaUrl());
+        }
+        if (record.getRecordCompleteness() != null) {
+            target.setRecordCompleteness(record.getRecordCompleteness());
         }
 
         ConsultationRecord saved = consultationRecordRepository.save(target);

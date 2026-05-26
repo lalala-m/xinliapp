@@ -232,6 +232,8 @@
         .consultant-info { flex: 1; min-width: 0; }
         .consultant-name { font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
         .consultant-title { font-size: 13px; color: var(--text-secondary); line-height: 1.35; }
+        .consultant-stages { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+        .stage-tag { font-size: 10px; color: #6FA6F8; background: rgba(111,166,248,0.1); padding: 2px 6px; border-radius: 8px; white-space: nowrap; }
         .consultant-rating {
             flex-shrink: 0;
             display: flex;
@@ -465,7 +467,9 @@
 
         async function loadHomeConfig() {
             try {
-                const res = await fetch(getApiBase() + '/home/config');
+                // 添加时间戳绕过缓存
+                const ts = Date.now();
+                const res = await fetch(getApiBase() + '/home/config?_t=' + ts, { cache: 'no-cache' });
                 const json = await res.json();
                 if (json.code === 200 && json.data) {
                     homeConfig = json.data;
@@ -484,15 +488,30 @@
             const slidesEl = document.getElementById('bannerSlides');
             const dotsEl = document.getElementById('bannerDots');
 
+            console.log('[renderBanners] banners count:', banners.length);
+            console.log('[renderBanners] apiBase:', getApiBase());
+
             if (banners.length === 0) return;
+
+            // 🔧 辅助函数：获取图片完整URL
+            function getFullImageUrl(url) {
+                if (!url) return '';
+                if (url.startsWith('http')) return url;
+                const full = getApiBase() + url;
+                console.log('[getFullImageUrl]', url, '->', full);
+                return full;
+            }
 
             // 渲染所有轮播图（使用单引号包裹URL，避免HTML引号冲突）
             slidesEl.innerHTML = banners.map((b, i) => {
-                const img = (b.image && String(b.image).trim()) ? String(b.image).trim() : '';
+                const img = (b.image && String(b.image).trim()) ? getFullImageUrl(String(b.image).trim()) : '';
                 const bg = img
                     ? "background-image:url('" + img + "');background-size:cover;background-position:center;"
                     : 'background:linear-gradient(135deg, rgba(189,235,200,0.9) 0%, rgba(169,201,255,0.9) 100%);';
+                // 如果有图片，添加一个隐藏的 img 标签用于预加载和错误检测
+                const preloadImg = img ? '<img src="' + img + '" style="display:none;" onerror="console.error(\'[Banner Image Load Error] ' + img + '\')" onload="console.log(\'[Banner Image Load OK] ' + img + '\')">' : '';
                 return '<div class="banner-slide' + (i === 0 ? ' active' : '') + '" style="' + bg + '">' +
+                    preloadImg +
                     '<div class="banner-slide-content">' +
                     '<h3>' + (b.title || '') + '</h3>' +
                     '<p>' + (b.subtitle || '') + '</p>' +
@@ -543,6 +562,10 @@
             document.getElementById('adCardBtn').textContent = ad.buttonText || '点击咨询';
             var el = document.getElementById('adCard');
             var img = ad.image && String(ad.image).trim() ? String(ad.image).trim() : '';
+            // 🔧 修复：拼接完整URL
+            if (img && !img.startsWith('http')) {
+                img = getApiBase() + img;
+            }
             if (img) {
                 el.style.backgroundImage = 'url("' + img.replace(/"/g, '\\"') + '")';
                 el.classList.add('has-bg-image');
@@ -561,7 +584,12 @@
         function onActionClick(type) {
             const hasBackend = { consult: true };
             if (hasBackend[type]) {
-                navigateTo('consult');
+                // 直接跳转到分类选择页面
+                if (window.Android && Android.openWebPage) {
+                    Android.openWebPage('consult.html');
+                } else {
+                    window.location.href = 'consult.html';
+                }
             } else {
                 showDevModal(type);
             }
@@ -618,12 +646,18 @@
                     ? '<img src="' + String(c.avatarUrl).replace(/"/g, '&quot;') + '" alt="">'
                     : (c.name ? c.name.charAt(0) : '师');
                 var ratingNum = c.rating != null ? (typeof c.rating === 'number' ? c.rating.toFixed(1) : String(c.rating)) : '5.0';
+                // 擅长阶段标签
+                const stages = c.stages || [];
+                const stagesHtml = stages.length > 0 
+                    ? '<div class="consultant-stages">' + stages.map(s => '<span class="stage-tag">' + (s.name || '') + '</span>').join('') + '</div>'
+                    : '';
                 return '<div class="consultant-card" onclick="window.navigateToConsultantDetail && navigateToConsultantDetail(\'' + (c.name || '').replace(/'/g, "\\'") + '\')">' +
                     '<div class="consultant-card-main">' +
                     '<div class="consultant-avatar" style="' + avatarStyle + '">' + avatarHtml + '</div>' +
                     '<div class="consultant-info">' +
                     '<div class="consultant-name">' + (c.name || '咨询师') + '</div>' +
                     '<div class="consultant-title">' + (c.title || '导师') + '</div>' +
+                    stagesHtml +
                     '</div></div>' +
                     '<div class="consultant-rating"><span class="star">⭐</span>' + ratingNum + '</div>' +
                     '</div>';

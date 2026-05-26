@@ -10,6 +10,8 @@
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
@@ -27,9 +29,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.TongYangYuan">
         <activity
-            android:name=".VideoCallActivity"
+            android:name=".videocall.WebRTCVideoCallActivity"
             android:exported="false"
-            android:screenOrientation="portrait" />
+            android:screenOrientation="portrait"
+            android:launchMode="singleTask"
+            android:showOnLockScreen="true"
+            android:turnScreenOn="true" />
         <activity
             android:name=".ChildInfoActivity"
             android:exported="false" />
@@ -64,14 +69,17 @@
             android:name=".MainActivity"
             android:exported="false" />
         <activity
-            android:name=".LauncherActivity"
-            android:exported="true">
+            android:name=".SplashActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".LauncherActivity"
+            android:exported="false" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

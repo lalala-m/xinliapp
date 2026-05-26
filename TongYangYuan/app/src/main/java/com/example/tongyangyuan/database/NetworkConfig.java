@@ -14,20 +14,39 @@ public class NetworkConfig {
     // 或 ③ 在 Application 启动前通过 initFromPrefs 已写入的 SharedPreferences「base_url」覆盖（见 setServerUrl）。
     // 仅开手机流量(4G/5G)无法访问你家里的 192.168.x.x，除非走公网/隧道。
 
-    // 模拟器访问本机后端：须先在电脑执行 adb reverse tcp:8080 tcp:8080（模拟器已连接时）
-    // 10.0.2.2 在部分 Windows/Hyper-V 环境下会连不上，127.0.0.1 + adb reverse 更稳
-    // LiveKit：后端返回 ws://127.0.0.1:7880 时在模拟器上保持不改，须执行 adb reverse tcp:7880 tcp:7880；
-    // 并确保本机已启动 livekit（如 docker）。勿依赖 10.0.2.2:7880，与 adb reverse 冲突。
+    // 模拟器访问本机后端：
+    // Android Studio 模拟器使用 10.0.2.2 访问宿主机（不需要 adb reverse）
+    // 其他模拟器（如 Genymotion）可能需要 10.0.3.2
+    // 如果用 adb reverse，则可以用 127.0.0.1
+    // 注意：10.0.2.2 在部分 Windows/Hyper-V 环境下可能连不上，此时改用 127.0.0.1 + adb reverse
+    // 【重要】使用 127.0.0.1 需要配合 adb reverse tcp:8080 tcp:8080
+    // === 原服务器配置（保留）===
+    // private static final String EMULATOR_BASE_URL = "http://127.0.0.1:8080/api";
+    // ===========================
+    // 【本地测试配置】USB连接真机 + adb reverse 时使用 127.0.0.1
     private static final String EMULATOR_BASE_URL = "http://127.0.0.1:8080/api";
 
     // 真机连接电脑本地后端（手机和电脑需在同一 WiFi）；请改为本机实际局域网 IP，不要用占位 IP
-    private static final String LOCAL_LAN_BASE_URL = "http://192.168.56.1:8080/api";
+    // === 原服务器配置（保留）===
+    // 当前WiFi IP: 172.17.81.135
+    // private static final String LOCAL_LAN_BASE_URL = "http://172.17.81.135:8080/api";
+    // ===========================
+    // 【本地测试配置】如需WiFi局域网调试，请改为本机实际IP（ipconfig查看）
+    private static final String LOCAL_LAN_BASE_URL = "http://172.17.81.135:8080/api";
 
     // 生产环境 - 远程服务器地址
-    private static final String PRODUCTION_BASE_URL = "http://106.120.183.117:8080/api";
+    // === 原服务器配置（保留）===
+    // private static final String PRODUCTION_BASE_URL = "http://139.196.5.153:8080/api";
+    // ===========================
+    // 【本地测试配置】生产环境地址（保留备用）
+    private static final String PRODUCTION_BASE_URL = "http://139.196.5.153:8080/api";
 
-    // 环境：0=生产(106) 1=模拟器(127.0.0.1 + adb reverse) 2=真机本地(电脑IP，同一WiFi局域网)
-    private static final int ENV_MODE = 1;
+    // 环境：0=生产 1=模拟器/本地调试(127.0.0.1+adb reverse) 2=真机局域网(WiFi)
+    // === 原配置 ===
+    // 上线生产环境，改为模式0
+    // ==============
+    // 【生产环境配置】模式0：连接远程服务器
+    private static final int ENV_MODE = 0;
 
     private static String cachedBaseUrl = null;
 
@@ -123,13 +142,18 @@ public class NetworkConfig {
 
     /**
      * 将任意 URL 中的 localhost / 127.0.0.1 替换为当前环境的正确主机地址。
-     * 用于 OpenIM / LiveKit 等后端返回含 localhost 的 wsUrl/apiUrl，
-     * 在模拟器上需映射到 127.0.0.1，真机/局域网保持不变。
+     * 用于 OpenIM / WebRTC 等后端返回含 localhost 的 wsUrl/apiUrl。
+     * 模拟器环境：后端返回 127.0.0.1，但模拟器需要用 10.0.2.2 访问宿主机
      */
     public static String resolveHost(String url) {
         if (url == null || url.isEmpty()) return url;
+        // 模拟器环境：将 127.0.0.1 替换为 10.0.2.2（Android 模拟器访问宿主机的标准地址）
+        if (EMULATOR_BASE_URL.contains("10.0.2.2")) {
+            return url.replaceFirst("://localhost", "://10.0.2.2")
+                      .replaceFirst("://127\\.0\\.0\\.1", "://10.0.2.2");
+        }
+        // 其他环境（真机/局域网）：使用当前配置的主机
         String host = getHost();
-        // 替换 localhost 或 127.0.0.1
         return url.replaceFirst("://localhost", "://" + host)
                   .replaceFirst("://127\\.0\\.0\\.1", "://" + host);
     }

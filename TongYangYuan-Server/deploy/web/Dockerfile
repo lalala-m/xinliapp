@@ -1,11 +1,11 @@
 # TongYangYuan 前端 Nginx Dockerfile
-FROM nginx:alpine
+FROM nginx:latest
 
 # 删除默认配置
 RUN rm -rf /etc/nginx/conf.d/default.conf /usr/share/nginx/html/*
 
 # 复制前端构建文件
-COPY dist/ /usr/share/nginx/html/
+COPY html/ /usr/share/nginx/html/
 
 # 复制 Nginx 配置
 COPY nginx.conf /etc/nginx/conf.d/default.conf

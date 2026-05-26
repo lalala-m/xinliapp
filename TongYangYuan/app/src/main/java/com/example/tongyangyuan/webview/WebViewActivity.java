@@ -10,6 +10,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.ViewGroup;
+import android.webkit.ConsoleMessage;
 import android.webkit.PermissionRequest;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
@@ -26,7 +27,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.example.tongyangyuan.R;
-import com.example.tongyangyuan.VideoCallActivity;
+import com.example.tongyangyuan.videocall.WebRTCVideoCallActivity;
 import com.example.tongyangyuan.WechatScanActivity;
 import com.just.agentweb.AgentWeb;
 
@@ -84,9 +85,20 @@ public class WebViewActivity extends AppCompatActivity {
         webSettings.setAllowFileAccessFromFileURLs(true);
         webSettings.setAllowUniversalAccessFromFileURLs(true);
         webSettings.setDomStorageEnabled(true);
+        webSettings.setCacheMode(WebSettings.LOAD_NO_CACHE);
+
+        // 设置 WebChromeClient 以捕获 JS console 日志
+        mAgentWeb.getWebCreator().getWebView().setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
+                android.util.Log.d("WebViewConsole", "[" + consoleMessage.sourceId() + ":" + consoleMessage.lineNumber() + "] " + consoleMessage.message());
+                return true;
+            }
+        });
 
         // 注入 JS 接口
         mWebAppInterface = new WebAppInterface(this, mAgentWeb.getWebCreator().getWebView());
+        mWebAppInterface.setActivity(this);
         mAgentWeb.getJsInterfaceHolder().addJavaObject("Android", mWebAppInterface);
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
@@ -138,6 +150,13 @@ public class WebViewActivity extends AppCompatActivity {
             StringBuilder urlBuilder = new StringBuilder(url);
             boolean firstParam = true;
 
+            // 优先处理 query_string（来自 navigateToPage 的完整参数串）
+            String queryString = extras.getString("query_string");
+            if (queryString != null && !queryString.isEmpty()) {
+                urlBuilder.append("?").append(queryString);
+                firstParam = false;
+            }
+
             String selectedQuestions = extras.getString("selected_questions");
             if (selectedQuestions != null) {
                 urlBuilder.append(firstParam ? "?" : "&");
@@ -147,7 +166,7 @@ public class WebViewActivity extends AppCompatActivity {
             }
 
             for (String key : extras.keySet()) {
-                if (!EXTRA_HTML_FILE.equals(key) && !"selected_questions".equals(key)) {
+                if (!EXTRA_HTML_FILE.equals(key) && !"selected_questions".equals(key) && !"query_string".equals(key)) {
                     String value = extras.getString(key);
                     if (value != null) {
                         urlBuilder.append(firstParam ? "?" : "&");
@@ -177,7 +196,7 @@ public class WebViewActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         if (!videoCallReceiverRegistered) {
-            IntentFilter f = new IntentFilter(VideoCallActivity.ACTION_VIDEO_CALL_FINISHED);
+            IntentFilter f = new IntentFilter(WebRTCVideoCallActivity.ACTION_VIDEO_CALL_FINISHED);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 registerReceiver(videoCallFinishedReceiver, f, Context.RECEIVER_NOT_EXPORTED);
             } else {

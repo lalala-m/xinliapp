@@ -25,10 +25,16 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry registry) {
-        // 映射上传文件的存储路径
-        // 假设文件存储在运行目录下的 uploads 文件夹
-        String uploadPath = "file:" + System.getProperty("user.dir") + "/uploads/";
+        // 🔧 使用相对路径 file:./uploads/，这样 uploads 目录跟随应用部署位置
+        // 无论部署到哪个服务器，只要 uploads/ 在应用运行目录下就能访问
+        String uploadPath = "file:./uploads/";
+        System.out.println("[WebMvcConfig] Upload resource path (relative): " + uploadPath);
+        
+        // 映射 /api/uploads/** 到 file:./uploads/
+        // 因为 server.servlet.context-path=/api，所以这里用 /uploads/**
+        // Spring 会自动加上 context-path 前缀
         registry.addResourceHandler("/uploads/**")
-                .addResourceLocations(uploadPath);
+                .addResourceLocations(uploadPath)
+                .setCachePeriod(3600);
     }
 }

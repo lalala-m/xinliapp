@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>钱包充值</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body {
+            background: linear-gradient(180deg, #F4F7FF 0%, #FFFFFF 60%);
+            min-height: 100vh;
+        }
+
+        .content {
+            padding: 16px;
+            padding-bottom: 100px;
+        }
+
+        /* 当前余额卡片 - 与profile-hero一致的渐变色 */
+        .balance-card {
+            margin: 16px 0;
+            padding: 24px;
+            background: linear-gradient(135deg, #BDEBC8 0%, #A9C9FF 100%);
+            border-radius: var(--border-radius);
+            text-align: center;
+            color: #1E2A3B;
+            box-shadow: 0 8px 24px rgba(169, 201, 255, 0.3);
+        }
+
+        .balance-label {
+            font-size: 14px;
+            opacity: 0.75;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .balance-value {
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+
+        /* 区块标题 */
+        .section-title {
+            font-size: 15px;
+            color: var(--text-secondary);
+            margin: 20px 0 12px;
+            font-weight: 600;
+        }
+
+        /* 充值套餐网格 */
+        .package-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .package-card {
+            background: var(--background);
+            border-radius: var(--border-radius);
+            padding: 20px 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2.5px solid transparent;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .package-card:active {
+            transform: scale(0.97);
+        }
+
+        .package-card.selected {
+            border-color: var(--primary-color);
+            background: linear-gradient(135deg, rgba(111, 166, 248, 0.06) 0%, rgba(169, 201, 255, 0.06) 100%);
+            box-shadow: 0 8px 24px rgba(111, 166, 248, 0.2);
+        }
+
+        .package-amount {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .package-bonus {
+            font-size: 12px;
+            color: #E53935;
+            font-weight: 600;
+            min-height: 18px;
+        }
+
+        .package-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: linear-gradient(135deg, #6FA6F8 0%, #A9C9FF 100%);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .package-card.selected .package-badge {
+            opacity: 1;
+        }
+
+        /* 自定义金额区域 */
+        .custom-amount-section {
+            background: var(--background);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        .custom-input-wrapper {
+            display: flex;
+            align-items: center;
+            border: 2px solid #E0E0E0;
+            border-radius: 12px;
+            padding: 12px 16px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .custom-input-wrapper:focus-within {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(111, 166, 248, 0.1);
+        }
+
+        .custom-input-prefix {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-right: 8px;
+        }
+
+        .custom-input {
+            border: none;
+            outline: none;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            width: 100%;
+            background: transparent;
+        }
+
+        .custom-input::placeholder {
+            color: var(--text-hint);
+            font-weight: 400;
+        }
+
+        /* 支付方式 */
+        .payment-methods {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .payment-btn {
+            padding: 16px;
+            border: 2.5px solid transparent;
+            border-radius: var(--border-radius);
+            background: var(--background);
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            box-shadow: var(--shadow);
+        }
+
+        .payment-btn:active {
+            transform: scale(0.96);
+        }
+
+        .payment-btn.selected {
+            border-color: var(--primary-color);
+            background: linear-gradient(135deg, rgba(111, 166, 248, 0.06) 0%, rgba(169, 201, 255, 0.06) 100%);
+            box-shadow: 0 8px 24px rgba(111, 166, 248, 0.2);
+        }
+
+        .payment-icon {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+        }
+
+        .payment-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* 确认按钮 */
+        .confirm-btn {
+            width: calc(100% - 32px);
+            margin: 16px;
+            padding: 16px;
+            border-radius: var(--border-radius);
+            border: none;
+            background: linear-gradient(135deg, #6FA6F8 0%, #A9C9FF 100%);
+            color: white;
+            font-size: 17px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 8px 24px rgba(111, 166, 248, 0.35);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: fixed;
+            bottom: 16px;
+            left: 0;
+            right: 0;
+            max-width: 488px;
+            margin: 0 auto;
+        }
+
+        .confirm-btn:active {
+            transform: scale(0.98);
+            box-shadow: 0 4px 16px rgba(111, 166, 248, 0.4);
+        }
+
+        .confirm-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* 顶部导航栏 */
+        .top-app-bar {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .top-app-bar .title {
+            color: var(--text-primary);
+        }
+
+        .top-app-bar .back-btn {
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="top-app-bar glass">
+        <button class="back-btn" onclick="history.back()">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 18l-6-6 6-6"/>
+            </svg>
+        </button>
+        <div class="title">钱包充值</div>
+        <div style="width: 40px;"></div>
+    </div>
+
+    <div class="content">
+        <div class="balance-card">
+            <div class="balance-label">当前余额</div>
+            <div class="balance-value" id="currentBalance">¥0.00</div>
+        </div>
+
+        <div class="section-title">选择充值金额</div>
+        <div class="package-grid" id="packageGrid">
+            <!-- 动态加载 -->
+        </div>
+
+        <div class="custom-amount-section">
+            <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px; font-weight: 500;">自定义金额</div>
+            <div class="custom-input-wrapper">
+                <span class="custom-input-prefix">¥</span>
+                <input type="number" class="custom-input" id="customAmount" placeholder="输入充值金额" min="1" step="1">
+            </div>
+        </div>
+
+        <div class="section-title">选择支付方式</div>
+        <div class="payment-methods">
+            <div class="payment-btn" onclick="selectPayment('alipay', event)">
+                <img src="images/ZFB.webp" alt="支付宝" class="payment-icon">
+                <div class="payment-name">支付宝</div>
+            </div>
+            <div class="payment-btn" onclick="selectPayment('wechat', event)">
+                <img src="images/WeChat.webp" alt="微信支付" class="payment-icon">
+                <div class="payment-name">微信支付</div>
+            </div>
+        </div>
+    </div>
+
+    <button class="confirm-btn" id="confirmBtn" onclick="confirmRecharge()" disabled>
+        确认充值
+    </button>
+
+    <script src="js/app.js"></script>
+    <script>
+        let selectedPackage = null;
+        let selectedPayment = '';
+        let customAmount = '';
+        let rechargePackages = [];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadBalance();
+            loadPackages();
+        });
+
+        async function loadBalance() {
+            try {
+                const response = await fetchWithAuth('/api/wallet/balance');
+                const result = await response.json();
+                if (result.success && result.data) {
+                    document.getElementById('currentBalance').textContent = '¥' + formatMoney(result.data.balance);
+                }
+            } catch (e) {
+                console.error('加载余额失败', e);
+            }
+        }
+
+        async function loadPackages() {
+            try {
+                const response = await fetchWithAuth('/api/wallet/recharge-packages');
+                const result = await response.json();
+                if (result.success && result.data) {
+                    rechargePackages = result.data;
+                    renderPackages();
+                }
+            } catch (e) {
+                console.error('加载充值套餐失败', e);
+                // 使用默认套餐
+                rechargePackages = [
+                    { id: 1, name: '充值 ¥50', amount: 50, bonusAmount: 0 },
+                    { id: 2, name: '充值 ¥100', amount: 100, bonusAmount: 5 },
+                    { id: 3, name: '充值 ¥200', amount: 200, bonusAmount: 15 },
+                    { id: 4, name: '充值 ¥500', amount: 500, bonusAmount: 50 }
+                ];
+                renderPackages();
+            }
+        }
+
+        function renderPackages() {
+            const grid = document.getElementById('packageGrid');
+            grid.innerHTML = rechargePackages.map(pkg => {
+                const bonusText = pkg.bonusAmount > 0 ? `送¥${pkg.bonusAmount}` : '';
+                return `
+                    <div class="package-card" onclick="selectPackage(${pkg.id}, ${pkg.amount}, '${bonusText}', event)">
+                        <div class="package-amount">¥${pkg.amount}</div>
+                        <div class="package-bonus">${bonusText}</div>
+                        <div class="package-badge">已选择</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectPackage(id, amount, bonusText, evt) {
+            selectedPackage = { id, amount, bonusText };
+            customAmount = '';
+            document.getElementById('customAmount').value = '';
+
+            document.querySelectorAll('.package-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            if (evt && evt.currentTarget) {
+                evt.currentTarget.classList.add('selected');
+            }
+            updateConfirmButton();
+        }
+
+        document.getElementById('customAmount').addEventListener('input', function(e) {
+            customAmount = e.target.value;
+            selectedPackage = null;
+            document.querySelectorAll('.package-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            updateConfirmButton();
+        });
+
+        function selectPayment(payment, evt) {
+            selectedPayment = payment;
+            document.querySelectorAll('.payment-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            if (evt && evt.currentTarget) {
+                evt.currentTarget.classList.add('selected');
+            }
+            updateConfirmButton();
+        }
+
+        function updateConfirmButton() {
+            const hasAmount = selectedPackage !== null || (customAmount && parseFloat(customAmount) > 0);
+            const btn = document.getElementById('confirmBtn');
+            btn.disabled = !(hasAmount && selectedPayment);
+        }
+
+        function confirmRecharge() {
+            if (!selectedPayment) {
+                showToast('请选择支付方式');
+                return;
+            }
+
+            let amount, packageCode, packageName;
+            if (selectedPackage) {
+                amount = selectedPackage.amount;
+                packageCode = 'wallet_' + amount;
+                packageName = '钱包充值 ¥' + amount;
+            } else if (customAmount && parseFloat(customAmount) > 0) {
+                amount = parseFloat(customAmount);
+                packageCode = 'wallet_' + amount;
+                packageName = '钱包充值 ¥' + amount;
+            } else {
+                showToast('请选择或输入充值金额');
+                return;
+            }
+
+            // 跳转到支付页面
+            const params = new URLSearchParams({
+                amount: amount,
+                desc: packageName,
+                productName: packageName,
+                planId: packageCode,
+                orderNumber: generateOrderNumber(),
+                paymentMethod: selectedPayment
+            });
+
+            const payUrl = `payment.html?${params.toString()}`;
+            if (window.Android && Android.openWebPage) {
+                Android.openWebPage(payUrl);
+            } else {
+                window.location.href = payUrl;
+            }
+        }
+
+        function generateOrderNumber() {
+            const timestamp = Date.now();
+            const random = Math.floor(Math.random() * 10000);
+            return `TYY${timestamp}${random}`;
+        }
+
+        function formatMoney(amount) {
+            const num = parseFloat(amount) || 0;
+            return num.toFixed(2);
+        }
+    </script>
+</body>
+</html>

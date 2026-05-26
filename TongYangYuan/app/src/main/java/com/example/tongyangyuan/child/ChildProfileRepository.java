@@ -54,27 +54,36 @@ public class ChildProfileRepository {
                 @Override
                 public void onSuccess() {
                     // 同步完成后从本地读取（因为syncFromServer已经更新了本地数据库）
-                    // 实际应该直接解析服务器返回的数据，这里为了兼容旧逻辑先这样
-                    loadFromLocal(userPhone, callback);
+                    loadFromLocal(callback);
                 }
 
                 @Override
                 public void onError(Exception e) {
                     // 失败则降级到本地
-                    loadFromLocal(userPhone, callback);
+                    loadFromLocal(callback);
                 }
             });
         } else {
-            loadFromLocal(userPhone, callback);
+            loadFromLocal(callback);
         }
     }
 
-    private void loadFromLocal(String userPhone, ProfilesCallback callback) {
+    private void loadFromLocal(ProfilesCallback callback) {
         executorService.execute(() -> {
             try {
                 AppDatabase db = AppDatabase.getInstance(context);
                 ChildProfileDao dao = db.childProfileDao();
-                List<ChildProfileEntity> entities = dao.getChildProfilesByUser(userPhone);
+                // 使用 userId 作为 key 查询
+                long userId = com.example.tongyangyuan.data.PreferenceStore.getInstance(context).getUserId();
+                String userKey = userId != -1 ? "uid-" + userId : null;
+                List<ChildProfileEntity> entities = userKey != null ? dao.getChildProfilesByUser(userKey) : new ArrayList<>();
+                // 如果没有数据，尝试用旧方式查询（兼容旧数据）
+                if (entities.isEmpty() && userKey != null) {
+                    String userPhone = com.example.tongyangyuan.data.PreferenceStore.getInstance(context).getLastLoginPhone();
+                    if (userPhone != null && !userPhone.isEmpty()) {
+                        entities = dao.getChildProfilesByUser(userPhone);
+                    }
+                }
 
                 List<ChildProfile> profiles = new ArrayList<>();
                 for (ChildProfileEntity entity : entities) {
@@ -93,7 +102,14 @@ public class ChildProfileRepository {
         try {
             AppDatabase db = AppDatabase.getInstance(context);
             ChildProfileDao dao = db.childProfileDao();
-            List<ChildProfileEntity> entities = dao.getChildProfilesByUser(userPhone);
+            // 优先使用 userId 作为 key
+            long userId = com.example.tongyangyuan.data.PreferenceStore.getInstance(context).getUserId();
+            String userKey = userId != -1 ? "uid-" + userId : userPhone;
+            List<ChildProfileEntity> entities = dao.getChildProfilesByUser(userKey);
+            // 如果没有数据，尝试用旧方式查询
+            if (entities.isEmpty() && !userKey.equals(userPhone)) {
+                entities = dao.getChildProfilesByUser(userPhone);
+            }
 
             List<ChildProfile> profiles = new ArrayList<>();
             for (ChildProfileEntity entity : entities) {
@@ -166,7 +182,9 @@ public class ChildProfileRepository {
                         JSONArray data = json.getJSONArray("data");
                         AppDatabase db = AppDatabase.getInstance(context);
                         ChildProfileDao dao = db.childProfileDao();
-                        dao.deleteByUser(userPhone);
+                        // 使用 userId 作为 key 删除旧数据，避免临时手机号变化导致数据丢失
+                        String userKey = "uid-" + userId;
+                        dao.deleteByUser(userKey);
                         for (int i = 0; i < data.length(); i++) {
                             org.json.JSONObject item = data.getJSONObject(i);
                             ChildProfile profile = new ChildProfile();
@@ -209,7 +227,8 @@ public class ChildProfileRepository {
                             if (historyList.isEmpty()) historyList.add("无");
                             profile.setMedicalHistory(historyList);
 
-                            dao.insert(profileToEntity(profile, userPhone));
+                            // 使用 userId 作为 key，避免临时手机号变化导致数据丢失
+                            dao.insert(profileToEntity(profile, userKey));
                         }
                         com.example.tongyangyuan.data.PreferenceStore
                                 .getInstance(context)
@@ -230,15 +249,22 @@ public class ChildProfileRepository {
                 AppDatabase db = AppDatabase.getInstance(context);
                 ChildProfileDao dao = db.childProfileDao();
                 
+                // 使用 userId 作为 key，避免临时手机号变化导致数据丢失
+                long userId = com.example.tongyangyuan.data.PreferenceStore.getInstance(context).getUserId();
+                String userKey = userId != -1 ? "uid-" + userId : userPhone;
+                
                 // 删除该用户的所有旧数据，实现全量同步
-                dao.deleteByUser(userPhone);
+                dao.deleteByUser(userKey);
+                // 同时清理旧格式的数据
+                if (!userKey.equals(userPhone) && userPhone != null && !userPhone.isEmpty()) {
+                    dao.deleteByUser(userPhone);
+                }
                 
                 for (ChildProfile profile : profiles) {
-                    dao.insert(profileToEntity(profile, userPhone));
+                    dao.insert(profileToEntity(profile, userKey));
                 }
 
                 // 2. 上传到服务器 (Batch)
-                long userId = com.example.tongyangyuan.data.PreferenceStore.getInstance(context).getUserId();
                 if (userId != -1) {
                     String baseUrl = com.example.tongyangyuan.database.NetworkConfig.getBaseUrl();
                     String token = com.example.tongyangyuan.data.PreferenceStore.getInstance(context).getAuthToken();

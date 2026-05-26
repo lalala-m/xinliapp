@@ -153,7 +153,14 @@ public class AppointmentStore {
                 // 正确使用后端返回的 consultantName，不再使用硬编码的"咨询师"
                 String cName = obj.optString("consultantName", "咨询师");
                 consultant = new Consultant(cName, "心理咨询师", "儿童心理", 5.0, "0+", "#6FA6F8", new ArrayList<>(), "简介", new ArrayList<>());
-                consultant.setUserId(obj.optLong("consultantId", 0));
+                // 优先使用 consultantUserId（= users.id，用于WebSocket信令路由）
+                // 其次使用 consultantId（= consultants.id，用于业务关联）
+                long consultantUserId = obj.optLong("consultantUserId", 0);
+                if (consultantUserId <= 0) {
+                    consultantUserId = obj.optLong("consultantId", 0);
+                }
+                consultant.setUserId(consultantUserId);
+                consultant.setServerId(obj.optLong("consultantId", 0));
             }
 
             AppointmentRecord record = new AppointmentRecord(
@@ -450,6 +457,12 @@ public class AppointmentStore {
                     (local.getId().equals(serverRecord.getId()))) {
                     local.setServerId(serverRecord.getServerId());
                     local.setStatus(serverRecord.getStatus());
+                    // 更新咨询师信息（包括 userId，用于通话信令路由）
+                    if (serverRecord.getConsultant() != null) {
+                        // 由于 AppointmentRecord.consultant 是 final，需要重新创建记录
+                        // 这里通过反射或重建来更新 consultant
+                        localRecords.set(i, serverRecord);
+                    }
                     exists = true;
                     changed = true;
                     break;
@@ -462,10 +475,18 @@ public class AppointmentStore {
         }
 
         // 清理孤儿：本地有、后端没有、且 serverId = -1（从未成功入库）
+        // 【修复】仅清理创建时间超过5分钟的未同步记录，避免刚创建的数据被误删
         java.util.Iterator<AppointmentRecord> it = localRecords.iterator();
+        long now = System.currentTimeMillis();
+        long orphanGracePeriodMs = 5 * 60 * 1000; // 5分钟宽限期
         while (it.hasNext()) {
             AppointmentRecord local = it.next();
             if (local.getServerId() <= 0 && !serverAptNos.contains(local.getId())) {
+                // 给新创建的本地记录一个宽限期，避免启动同步时误删刚创建的数据
+                if (now - local.getCreateTime() < orphanGracePeriodMs) {
+                    Log.d("AppointmentStore", "保留新创建记录（宽限期内）: " + local.getId());
+                    continue;
+                }
                 orphanIds.add(local.getId());
                 it.remove();
                 changed = true;
@@ -598,10 +619,14 @@ public class AppointmentStore {
         obj.put("serverId", record.getServerId());
         obj.put("status", record.getStatus());
         obj.put("domain", record.getDomain());
+        obj.put("hasSignature", record.hasSignature());
+        obj.put("signatureRequired", record.isSignatureRequired());
         
         // 存储Consultant信息
         Consultant c = record.getConsultant();
         JSONObject consultantObj = new JSONObject();
+        consultantObj.put("userId", c.getUserId());
+        consultantObj.put("serverId", c.getServerId());
         consultantObj.put("name", c.getName());
         consultantObj.put("title", c.getTitle());
         consultantObj.put("specialty", c.getSpecialty());
@@ -666,7 +691,7 @@ public class AppointmentStore {
                         consultantObj.optLong("userId", 0),
                         name, title, specialty, rating,
                         servedCount, avatarColor, identityTags, intro, reviews);
-                consultant.setServerId(consultantObj.optLong("id", 0));
+                consultant.setServerId(consultantObj.optLong("serverId", 0));
             }
 
             if (consultant == null) {
@@ -683,6 +708,8 @@ public class AppointmentStore {
             record.setServerId(obj.optLong("serverId", -1));
             record.setStatus(obj.optString("status", "PENDING"));
             record.setDomain(obj.optString("domain", ""));
+            record.setHasSignature(obj.optBoolean("hasSignature", false));
+            record.setSignatureRequired(obj.optBoolean("signatureRequired", false));
             return record;
         } catch (JSONException e) {
             e.printStackTrace();
@@ -710,5 +737,72 @@ public class AppointmentStore {
             phone = "guest";
         }
         return KEY_APPOINTMENTS_PREFIX + phone;
+    }
+
+    /**
+     * 设置签字请求状态（咨询师已发送签字请求）
+     */
+    public void setSignatureRequired(String appointmentId, boolean required) {
+        if (TextUtils.isEmpty(appointmentId)) return;
+        List<AppointmentRecord> records = getAllAppointments();
+        boolean changed = false;
+        for (AppointmentRecord record : records) {
+            if (appointmentId.equals(record.getId()) || record.getServerId() == Long.parseLong(appointmentId)) {
+                record.setSignatureRequired(required);
+                changed = true;
+                break;
+            }
+        }
+        if (changed) {
+            saveAppointments(records);
+        }
+    }
+
+    /**
+     * 标记签字已完成
+     */
+    public void markSignatureCompleted(String appointmentId) {
+        if (TextUtils.isEmpty(appointmentId)) return;
+        List<AppointmentRecord> records = getAllAppointments();
+        boolean changed = false;
+        for (AppointmentRecord record : records) {
+            if (appointmentId.equals(record.getId()) || record.getServerId() == Long.parseLong(appointmentId)) {
+                record.setHasSignature(true);
+                record.setSignatureRequired(false);
+                changed = true;
+                break;
+            }
+        }
+        if (changed) {
+            saveAppointments(records);
+        }
+    }
+
+    /**
+     * 检查是否需要签字
+     */
+    public boolean isSignatureRequired(String appointmentId) {
+        if (TextUtils.isEmpty(appointmentId)) return false;
+        AppointmentRecord record = getAppointmentById(appointmentId);
+        if (record == null) {
+            try {
+                record = getAppointmentByServerId(Long.parseLong(appointmentId));
+            } catch (NumberFormatException ignored) {}
+        }
+        return record != null && record.isSignatureRequired() && !record.hasSignature();
+    }
+
+    /**
+     * 检查签字是否已完成
+     */
+    public boolean isSignatureCompleted(String appointmentId) {
+        if (TextUtils.isEmpty(appointmentId)) return false;
+        AppointmentRecord record = getAppointmentById(appointmentId);
+        if (record == null) {
+            try {
+                record = getAppointmentByServerId(Long.parseLong(appointmentId));
+            } catch (NumberFormatException ignored) {}
+        }
+        return record != null && record.hasSignature();
     }
 }

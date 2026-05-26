@@ -179,18 +179,25 @@
 
     // 页面导航
     window.navigateTo = function(page) {
-        if (window.Android) {
-            switch(page) {
-                case 'consult':
-                    // 直接跳转到咨询师列表，跳过问题选择页面
-                    Android.navigateToConsultantList();
-                    break;
-                case 'chat':
-                    // 需要传递appointmentId
-                    break;
-                default:
-                    console.log('Navigate to:', page);
-            }
+        switch(page) {
+            case 'consult':
+                // 先跳转到分类选择页面
+                if (window.Android && Android.openWebPage) {
+                    try {
+                        Android.openWebPage('consult.html');
+                    } catch (e) {
+                        console.warn('Android.openWebPage failed', e);
+                        window.location.href = 'consult.html';
+                    }
+                } else {
+                    window.location.href = 'consult.html';
+                }
+                break;
+            case 'chat':
+                // 需要传递appointmentId
+                break;
+            default:
+                console.log('Navigate to:', page);
         }
     };
 

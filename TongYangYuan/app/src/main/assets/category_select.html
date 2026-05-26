@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>选择人生阶段</title>
+    <style>
+        /* ===== CSS Variables ===== */
+        :root {
+            --primary: #4A90D9;
+            --primary-light: #E8F1FA;
+            --primary-gradient: linear-gradient(135deg, #4A90D9 0%, #6BA3E0 100%);
+            --bg: #F5F7FA;
+            --surface: #FFFFFF;
+            --text-main: #1A1A2E;
+            --text-secondary: #5A5A7A;
+            --text-muted: #9CA3AF;
+            --border: #E5E7EB;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 16px rgba(74,144,217,0.15);
+            --shadow-lg: 0 8px 32px rgba(74,144,217,0.2);
+            --radius-sm: 12px;
+            --radius-md: 16px;
+            --radius-lg: 20px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text-main);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            max-width: 520px;
+            margin: 0 auto;
+            overflow-x: hidden;
+            min-height: 100vh;
+            padding-bottom: 100px;
+        }
+
+        /* ===== Header ===== */
+        .header {
+            background: var(--surface);
+            padding: 16px 20px;
+            padding-top: calc(16px + env(safe-area-inset-top));
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .back-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: var(--bg);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .back-btn:active {
+            transform: scale(0.92);
+            background: var(--primary-light);
+        }
+
+        .back-btn svg {
+            width: 20px;
+            height: 20px;
+            color: var(--text-main);
+        }
+
+        .header-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        /* ===== Hero Section ===== */
+        .hero {
+            background: var(--primary-gradient);
+            margin: 16px 16px 0;
+            border-radius: var(--radius-lg);
+            padding: 24px 20px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -30px;
+            right: -30px;
+            width: 120px;
+            height: 120px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: -20px;
+            left: 40%;
+            width: 80px;
+            height: 80px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 50%;
+        }
+
+        .hero-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-subtitle {
+            font-size: 13px;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ===== Section Title ===== */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 16px 12px;
+        }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 16px;
+            background: var(--primary-gradient);
+            border-radius: 2px;
+        }
+
+        .section-hint {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* ===== Category Grid ===== */
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            padding: 0 16px;
+        }
+
+        .category-card {
+            background: var(--surface);
+            border-radius: var(--radius-md);
+            padding: 16px 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--shadow-sm);
+            border: 2px solid transparent;
+            position: relative;
+        }
+
+        .category-card:active {
+            transform: scale(0.95);
+        }
+
+        .category-card.active {
+            border-color: var(--primary);
+            background: var(--primary-light);
+            box-shadow: var(--shadow-md);
+        }
+
+        .category-card.active .category-icon-wrap {
+            background: var(--primary-gradient);
+            box-shadow: var(--shadow-md);
+        }
+
+        .category-card.active .category-icon-wrap .category-icon {
+            filter: grayscale(0);
+        }
+
+        .category-icon-wrap {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            background: var(--bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.25s;
+        }
+
+        .category-icon {
+            font-size: 24px;
+            line-height: 1;
+            filter: grayscale(0.3);
+            transition: all 0.25s;
+        }
+
+        .category-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-main);
+            text-align: center;
+        }
+
+        .category-count {
+            font-size: 11px;
+            color: var(--text-muted);
+            background: var(--bg);
+            padding: 2px 8px;
+            border-radius: 999px;
+        }
+
+        .category-card.active .category-count {
+            background: rgba(74,144,217,0.15);
+            color: var(--primary);
+        }
+
+        /* ===== Tags Section ===== */
+        .tags-panel {
+            background: var(--surface);
+            margin: 12px 16px 0;
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            box-shadow: var(--shadow-sm);
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .tags-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+
+        .tags-panel-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .tags-panel-close {
+            width: 28px;
+            height: 28px;
+            border: none;
+            background: var(--bg);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .tags-panel-close:active {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .tags-cloud {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .tag-chip {
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: var(--bg);
+            border: 1.5px solid transparent;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-height: 36px;
+            display: flex;
+            align-items: center;
+            touch-action: manipulation;
+        }
+
+        .tag-chip:active {
+            transform: scale(0.95);
+        }
+
+        .tag-chip.selected {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 3px 10px rgba(74,144,217,0.35);
+            border-color: transparent;
+        }
+
+        .empty-tags {
+            text-align: center;
+            padding: 32px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        /* ===== Selected Tags Bar ===== */
+        .selected-bar {
+            background: var(--surface);
+            margin: 12px 16px 0;
+            border-radius: var(--radius-lg);
+            padding: 14px 16px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .selected-bar-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+
+        .selected-tags-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .selected-tag-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 12px;
+            background: var(--primary-light);
+            color: var(--primary);
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 500;
+            animation: popIn 0.2s ease;
+        }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .selected-tag-remove {
+            width: 16px;
+            height: 16px;
+            border: none;
+            background: rgba(74,144,217,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 11px;
+            color: var(--primary);
+            padding: 0;
+            line-height: 1;
+        }
+
+        .selected-tag-remove:active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .selected-empty {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* ===== Loading ===== */
+        .loading-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 16px;
+            gap: 16px;
+        }
+
+        .loading-spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        /* ===== Error ===== */
+        .error-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 16px;
+            gap: 16px;
+            text-align: center;
+        }
+
+        .error-icon {
+            font-size: 48px;
+            opacity: 0.5;
+        }
+
+        .error-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .retry-btn {
+            padding: 10px 24px;
+            border-radius: 999px;
+            border: 1.5px solid var(--primary);
+            background: transparent;
+            color: var(--primary);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .retry-btn:active {
+            background: var(--primary-light);
+        }
+
+        /* ===== Bottom Action Bar ===== */
+        .bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 520px;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            padding: 12px 16px;
+            padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
+        }
+
+        .bottom-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .bottom-count {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .bottom-hint {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .action-btn {
+            padding: 12px 20px;
+            border-radius: 12px;
+            border: none;
+            background: var(--primary-gradient);
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-height: 46px;
+            white-space: nowrap;
+            box-shadow: var(--shadow-md);
+            touch-action: manipulation;
+        }
+
+        .action-btn:active {
+            transform: scale(0.96);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none;
+            background: var(--border);
+            color: var(--text-muted);
+        }
+
+        .action-btn .btn-badge {
+            display: inline-block;
+            margin-left: 4px;
+            padding: 1px 6px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 999px;
+            font-size: 11px;
+        }
+
+        /* ===== Hidden ===== */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <button class="back-btn" onclick="goBack()" aria-label="返回">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 18l-6-6 6-6"/>
+            </svg>
+        </button>
+        <h1 class="header-title">选择人生阶段</h1>
+    </header>
+
+    <!-- Hero -->
+    <div class="hero">
+        <div class="hero-title">您想咨询什么问题？</div>
+        <div class="hero-subtitle">选择相关标签，为您推荐合适的咨询师</div>
+    </div>
+
+    <!-- Main Content -->
+    <main id="mainContent">
+        <!-- Loading -->
+        <div id="loadingState" class="loading-wrap">
+            <div class="loading-spinner"></div>
+            <p class="loading-text">正在加载分类...</p>
+        </div>
+
+        <!-- Error -->
+        <div id="errorState" class="error-wrap hidden">
+            <div class="error-icon">📡</div>
+            <p class="error-text" id="errorText">加载失败，请检查网络</p>
+            <button class="retry-btn" onclick="loadCategories()">重新加载</button>
+        </div>
+
+        <!-- Categories -->
+        <div id="categorySection" class="hidden">
+            <div class="section-header">
+                <span class="section-title">问题分类</span>
+                <span class="section-hint">点击展开标签</span>
+            </div>
+            <div class="category-grid" id="categoryGrid"></div>
+        </div>
+
+        <!-- Tags Panel -->
+        <div id="tagsPanel" class="tags-panel hidden"></div>
+
+        <!-- Selected Tags -->
+        <div id="selectedBar" class="selected-bar hidden">
+            <div class="selected-bar-title">已选标签</div>
+            <div class="selected-tags-list" id="selectedTagsList"></div>
+        </div>
+    </main>
+
+    <!-- Bottom Bar -->
+    <div class="bottom-bar" id="bottomBar">
+        <div class="bottom-info">
+            <div class="bottom-count" id="bottomCount">已选择 0 个人生阶段</div>
+            <div class="bottom-hint" id="bottomHint">请选择人生阶段</div>
+        </div>
+        <button class="action-btn" id="actionBtn" onclick="goToConsultantList()" disabled>
+            查看咨询师
+        </button>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        (function() {
+            'use strict';
+
+            // ===== Fallback Data =====
+            const FALLBACK_CATEGORIES = [
+                { id: 1, code: 'newborn', name: '0-1岁新生儿', icon: '👶', tags: [{ id: 1, name: '0-1岁新生儿' }] },
+                { id: 2, code: 'infant', name: '1-2岁婴幼儿', icon: '🍼', tags: [{ id: 2, name: '1-2岁婴幼儿' }] },
+                { id: 3, code: 'kindergarten', name: '3-6岁幼儿园', icon: '🧸', tags: [{ id: 3, name: '3-6岁幼儿园' }] },
+                { id: 4, code: 'primary_school', name: '7-12岁小学', icon: '📚', tags: [{ id: 4, name: '7-12岁小学' }] },
+                { id: 5, code: 'middle_high_school', name: '13-18岁初高中', icon: '🎓', tags: [{ id: 5, name: '13-18岁初高中' }] },
+                { id: 6, code: 'college', name: '19-22+岁大学生', icon: '🏫', tags: [{ id: 6, name: '19-22+岁大学生' }] },
+                { id: 7, code: 'society', name: '步入社会', icon: '💼', tags: [{ id: 7, name: '步入社会' }] },
+                { id: 8, code: 'marriage', name: '婚前婚后', icon: '💑', tags: [{ id: 8, name: '婚前婚后' }] },
+                { id: 9, code: 'property_division', name: '分家|财产分割', icon: '⚖️', tags: [{ id: 9, name: '分家|财产分割' }] },
+                { id: 10, code: 'elderly_care', name: '养老|赡养', icon: '👴', tags: [{ id: 10, name: '养老|赡养' }] }
+            ];
+
+            // ===== State =====
+            let categories = [];
+            let selectedTags = new Map(); // tagId -> { id, name, categoryCode, categoryName }
+            let activeCategoryCode = null;
+
+            // ===== DOM =====
+            const els = {
+                loading: document.getElementById('loadingState'),
+                error: document.getElementById('errorState'),
+                errorText: document.getElementById('errorText'),
+                categorySection: document.getElementById('categorySection'),
+                categoryGrid: document.getElementById('categoryGrid'),
+                tagsPanel: document.getElementById('tagsPanel'),
+                selectedBar: document.getElementById('selectedBar'),
+                selectedTagsList: document.getElementById('selectedTagsList'),
+                bottomCount: document.getElementById('bottomCount'),
+                bottomHint: document.getElementById('bottomHint'),
+                actionBtn: document.getElementById('actionBtn')
+            };
+
+            // ===== API =====
+            async function fetchCategories() {
+                const response = await window.fetchWithAuth('/life-stages');
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                const result = await response.json();
+                if (result.code !== 200) throw new Error(result.message || '加载失败');
+                return result.data || [];
+            }
+
+            // ===== Load =====
+            window.loadCategories = async function() {
+                showLoading();
+                try {
+                    const data = await fetchCategories();
+                    // 将 life-stages 数据转换为分类格式
+                    categories = (Array.isArray(data) && data.length > 0) ? data.map(stage => ({
+                        id: stage.id,
+                        code: stage.code,
+                        name: stage.name,
+                        icon: stage.icon,
+                        tags: [{ id: stage.id, name: stage.name }] // 每个阶段作为一个可选标签
+                    })) : FALLBACK_CATEGORIES;
+                    renderCategories();
+                    showContent();
+                } catch (err) {
+                    console.error('加载人生阶段失败:', err);
+                    categories = FALLBACK_CATEGORIES;
+                    renderCategories();
+                    showContent();
+                    if (window.showToast) window.showToast('网络异常，使用默认数据');
+                }
+            };
+
+            // ===== Render Categories =====
+            function renderCategories() {
+                els.categoryGrid.innerHTML = categories.map(cat => `
+                    <div class="category-card ${activeCategoryCode === cat.code ? 'active' : ''}"
+                         data-code="${escapeHtml(cat.code)}"
+                         onclick="toggleCategory('${escapeHtml(cat.code)}')">
+                        <div class="category-icon-wrap">
+                            <span class="category-icon">${cat.icon || '📋'}</span>
+                        </div>
+                        <span class="category-name">${escapeHtml(cat.name)}</span>
+                        <span class="category-count">点击选择</span>
+                    </div>
+                `).join('');
+            }
+
+            // ===== Toggle Category =====
+            window.toggleCategory = function(code) {
+                if (activeCategoryCode === code) {
+                    activeCategoryCode = null;
+                    hideTags();
+                } else {
+                    activeCategoryCode = code;
+                    showTags(code);
+                }
+                renderCategories();
+            };
+
+            function showTags(code) {
+                const cat = categories.find(c => c.code === code);
+                if (!cat) return;
+                const tags = cat.tags || [];
+                els.tagsPanel.innerHTML = `
+                    <div class="tags-panel-header">
+                        <span class="tags-panel-title">${escapeHtml(cat.icon || '')} ${escapeHtml(cat.name)}</span>
+                        <button class="tags-panel-close" onclick="toggleCategory('${escapeHtml(code)}')" aria-label="关闭">&times;</button>
+                    </div>
+                    <div class="tags-cloud">
+                        ${tags.length > 0 ? tags.map(tag => {
+                            const isSelected = selectedTags.has(String(tag.id));
+                            return `<button class="tag-chip ${isSelected ? 'selected' : ''}"
+                                    data-tag-id="${tag.id}"
+                                    onclick="toggleTag('${escapeHtml(code)}', ${tag.id}, '${escapeHtml(tag.name)}')">
+                                ${escapeHtml(tag.name)}
+                            </button>`;
+                        }).join('') : '<div class="empty-tags">暂无标签</div>'}
+                    </div>
+                `;
+                els.tagsPanel.classList.remove('hidden');
+                setTimeout(() => els.tagsPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+            }
+
+            function hideTags() {
+                els.tagsPanel.classList.add('hidden');
+                els.tagsPanel.innerHTML = '';
+            }
+
+            // ===== Toggle Tag =====
+            window.toggleTag = function(categoryCode, tagId, tagName) {
+                const key = String(tagId);
+                if (selectedTags.has(key)) {
+                    selectedTags.delete(key);
+                } else {
+                    const cat = categories.find(c => c.code === categoryCode);
+                    selectedTags.set(key, {
+                        id: tagId,
+                        name: tagName,
+                        categoryCode: categoryCode,
+                        categoryName: cat ? cat.name : ''
+                    });
+                }
+                updateTagVisuals(tagId);
+                updateSelectedBar();
+                updateBottomBar();
+            };
+
+            window.removeTag = function(tagId) {
+                const key = String(tagId);
+                selectedTags.delete(key);
+                updateTagVisuals(tagId);
+                updateSelectedBar();
+                updateBottomBar();
+            };
+
+            function updateTagVisuals(tagId) {
+                const chip = els.tagsPanel.querySelector(`[data-tag-id="${tagId}"]`);
+                if (chip) chip.classList.toggle('selected', selectedTags.has(String(tagId)));
+            }
+
+            // ===== Selected Bar =====
+            function updateSelectedBar() {
+                if (selectedTags.size === 0) {
+                    els.selectedBar.classList.add('hidden');
+                    return;
+                }
+                els.selectedBar.classList.remove('hidden');
+                els.selectedTagsList.innerHTML = Array.from(selectedTags.values()).map(tag => `
+                    <span class="selected-tag-item">
+                        ${escapeHtml(tag.name)}
+                        <button class="selected-tag-remove" onclick="removeTag(${tag.id})" aria-label="移除">&times;</button>
+                    </span>
+                `).join('');
+            }
+
+            // ===== Bottom Bar =====
+            function updateBottomBar() {
+                const count = selectedTags.size;
+                els.bottomCount.textContent = `已选择 ${count} 个人生阶段`;
+                if (count === 0) {
+                    els.bottomHint.textContent = '请选择人生阶段';
+                    els.actionBtn.disabled = true;
+                    els.actionBtn.innerHTML = '查看咨询师';
+                } else {
+                    els.bottomHint.textContent = '咨询师只要有任意一个人生阶段即可匹配';
+                    els.actionBtn.disabled = false;
+                    els.actionBtn.innerHTML = `查看咨询师<span class="btn-badge">${count}</span>`;
+                }
+            }
+
+            // ===== Navigation =====
+            window.goToConsultantList = function() {
+                if (selectedTags.size === 0) {
+                    if (window.showToast) window.showToast('请至少选择一个人生阶段');
+                    return;
+                }
+                const tagIds = Array.from(selectedTags.keys()).join(',');
+                const categoryCodes = Array.from(new Set(
+                    Array.from(selectedTags.values()).map(t => t.categoryCode)
+                )).join(',');
+                const url = `consultant_list.html?tags=${encodeURIComponent(tagIds)}&category=${encodeURIComponent(categoryCodes)}`;
+                if (window.Android && typeof Android.openWebPage === 'function') {
+                    try { Android.openWebPage(url); }
+                    catch (e) { window.location.href = url; }
+                } else {
+                    window.location.href = url;
+                }
+            };
+
+            // ===== UI Helpers =====
+            function showLoading() {
+                els.loading.classList.remove('hidden');
+                els.error.classList.add('hidden');
+                els.categorySection.classList.add('hidden');
+                hideTags();
+            }
+
+            function showContent() {
+                els.loading.classList.add('hidden');
+                els.error.classList.add('hidden');
+                els.categorySection.classList.remove('hidden');
+            }
+
+            function showError(message) {
+                els.loading.classList.add('hidden');
+                els.error.classList.remove('hidden');
+                els.categorySection.classList.add('hidden');
+                els.errorText.textContent = message || '加载失败';
+            }
+
+            function escapeHtml(str) {
+                if (typeof str !== 'string') return str;
+                return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+            }
+
+            // ===== Init =====
+            document.addEventListener('DOMContentLoaded', loadCategories);
+        })();
+    </script>
+</body>
+</html>

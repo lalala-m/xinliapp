@@ -55,7 +55,8 @@ input, textarea, [contenteditable] {
 /* 默认值作为后备 */
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    background: linear-gradient(180deg, #F4F7FF 0%, #FFFFFF 60%);
+    /* 移除渐变背景，改用纯色减少GPU overdraw */
+    background: #F4F7FF;
     color: var(--text-primary);
     line-height: 1.55;
     -webkit-font-smoothing: antialiased;
@@ -64,11 +65,11 @@ body {
     overflow-x: hidden;
 }
 
-/* 毛玻璃效果 */
+/* 毛玻璃效果 - 移动端优化：降低blur半径减少GPU压力 */
 .glass {
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 }
 
 /* 顶部导航栏 */
@@ -81,8 +82,42 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 16px;
+    gap: 8px;
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    flex-direction: column;
+}
+
+/* 🔧 新增：对方在线状态 */
+.peer-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.peer-status.online {
+    color: #27ae60;
+}
+
+.peer-status.offline {
+    color: #e74c3c;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.status-dot.online {
+    background: #27ae60;
+    box-shadow: 0 0 4px #27ae60;
+}
+
+.status-dot.offline {
+    background: #e74c3c;
 }
 
 .top-app-bar .back-btn {
@@ -620,11 +655,16 @@ body {
         .message {
             display: flex;
             margin-bottom: 16px;
-            animation: fadeIn 0.3s;
+            /* 移除默认fadeIn动画，减少GPU合成压力 */
+        }
+
+        /* 仅对新添加的最后一条消息应用淡入动画 */
+        .message:last-child {
+            animation: fadeIn 0.2s ease-out;
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
+            from { opacity: 0; transform: translateY(6px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
@@ -689,10 +729,56 @@ body {
             font-weight: 500;
         }
 
+        /* 🔧 新增：已取消通话记录用红色 */
+        .message.system-message .call-ended-bubble.cancelled {
+            background: linear-gradient(135deg, #FFEBEE, #FCE4EC);
+            color: #C62828;
+            border: 1px solid #EF9A9A;
+        }
+
         .call-ended-icon {
             display: inline-flex;
             align-items: center;
             opacity: 0.8;
+        }
+
+        /* 🔧 新增：签字确认消息样式 */
+        .message.system-message .signature-required-bubble {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #E3F2FD, #BBDEFB);
+            border: 2px solid #64B5F6;
+            border-radius: 16px;
+            padding: 16px 20px;
+            max-width: 280px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 12px rgba(100, 181, 246, 0.3);
+        }
+        .message.system-message .signature-required-bubble:active {
+            transform: scale(0.98);
+            box-shadow: 0 2px 8px rgba(100, 181, 246, 0.2);
+        }
+        .message.system-message .signature-required-bubble .signature-icon {
+            font-size: 32px;
+        }
+        .message.system-message .signature-required-bubble .signature-text {
+            color: #1565C0;
+            font-size: 14px;
+            font-weight: 500;
+            text-align: center;
+            line-height: 1.5;
+        }
+        .message.system-message .signature-required-bubble .signature-btn {
+            background: #1565C0;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 8px 24px;
+            border-radius: 20px;
+            margin-top: 4px;
         }
 
         /* 底部输入栏 - 适配iPhone底部安全区域 */
@@ -704,8 +790,6 @@ body {
             width: 100%;
             max-width: 520px;
             background: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
             border-top: 1px solid rgba(0, 0, 0, 0.08);
             /* 关键：添加底部安全区域padding和额外间距 */
             padding: 12px 16px;
@@ -912,50 +996,25 @@ body {
             stroke: #666666;
         }
 
-        /* 音频播放动画样式 */
+        /* 音频播放动画样式 - 移除无限动画，改用静态高亮 */
         .audio-bubble.playing .audio-icon {
-            animation: audio-wave 1s ease-in-out infinite;
+            opacity: 0.8;
         }
 
-        @keyframes audio-wave {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.15); opacity: 0.8; }
-        }
-
-        .audio-bubble.playing .audio-icon path:first-child {
-            animation: audio-icon-pulse 0.5s ease-in-out infinite;
-        }
-
-        @keyframes audio-icon-pulse {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-2px); }
-        }
-
-        /* 正在播放状态的文字样式 */
+        /* 正在播放状态的文字样式 - 移除脉冲动画，改用静态高亮 */
         .audio-hint-playing {
             color: #4CAF50 !important;
             font-weight: 600;
             opacity: 1 !important;
-            animation: playing-text-pulse 1s ease-in-out infinite;
         }
 
         .message.user .audio-hint-playing {
             color: rgba(255, 255, 255, 0.95) !important;
         }
 
-        @keyframes playing-text-pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
-
-        /* 播放图标的动画效果 */
+        /* 播放图标 - 移除持续bounce动画 */
         .audio-playing-icon {
-            animation: playing-icon-bounce 0.6s ease-in-out infinite;
-        }
-
-        @keyframes playing-icon-bounce {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
+            /* animation removed for performance */
         }
 
         .media-sheet {
@@ -1085,7 +1144,6 @@ body {
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
             animation: callNotifSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
             pointer-events: auto;
-            backdrop-filter: blur(10px);
         }
 
         @keyframes callNotifSlideIn {
@@ -1118,7 +1176,7 @@ body {
 
         .call-notif-icon.calling {
             background: linear-gradient(135deg, #4CAF50, #66BB6A);
-            animation: callNotifPulse 1.5s ease-in-out infinite;
+            /* 移除无限pulse动画，减少GPU负载 */
         }
 
         .call-notif-icon.connected {
@@ -1133,10 +1191,7 @@ body {
             background: linear-gradient(135deg, #F44336, #EF5350);
         }
 
-        @keyframes callNotifPulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.08); }
-        }
+        /* callNotifPulse removed for performance */
 
         .call-notif-content {
             flex: 1;
@@ -1168,16 +1223,11 @@ body {
             height: 5px;
             background: #4CAF50;
             border-radius: 50%;
-            animation: ringDot 1.2s ease-in-out infinite;
+            /* 移除ringDot无限动画 */
         }
 
-        .call-ringing-dots span:nth-child(2) { animation-delay: 0.2s; }
-        .call-ringing-dots span:nth-child(3) { animation-delay: 0.4s; }
-
-        @keyframes ringDot {
-            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-            30% { transform: translateY(-5px); opacity: 1; }
-        }
+        .call-ringing-dots span:nth-child(2) { opacity: 0.6; }
+        .call-ringing-dots span:nth-child(3) { opacity: 0.3; }
 
         .call-notif-actions {
             display: flex;
@@ -1274,17 +1324,12 @@ body {
         .voice-hint-icon {
             width: 80px;
             height: 80px;
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.2);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            animation: voiceHintPulse 1s ease-in-out infinite;
-        }
-
-        @keyframes voiceHintPulse {
-            0%, 100% { transform: scale(1); background: rgba(255, 255, 255, 0.15); }
-            50% { transform: scale(1.1); background: rgba(255, 255, 255, 0.25); }
+            /* 移除持续pulse动画，减少GPU负载 */
         }
 
         .voice-hint-icon svg {
@@ -1314,19 +1359,14 @@ body {
             width: 4px;
             background: white;
             border-radius: 2px;
-            animation: voiceWave 0.6s ease-in-out infinite;
+            /* 移除无限动画，静态显示波形 */
         }
 
-        .voice-wave span:nth-child(1) { animation-delay: 0s; height: 20px; }
-        .voice-wave span:nth-child(2) { animation-delay: 0.1s; height: 30px; }
-        .voice-wave span:nth-child(3) { animation-delay: 0.2s; height: 25px; }
-        .voice-wave span:nth-child(4) { animation-delay: 0.3s; height: 35px; }
-        .voice-wave span:nth-child(5) { animation-delay: 0.4s; height: 28px; }
-
-        @keyframes voiceWave {
-            0%, 100% { transform: scaleY(0.5); }
-            50% { transform: scaleY(1); }
-        }
+        .voice-wave span:nth-child(1) { height: 20px; opacity: 0.6; }
+        .voice-wave span:nth-child(2) { height: 30px; opacity: 0.9; }
+        .voice-wave span:nth-child(3) { height: 25px; opacity: 0.7; }
+        .voice-wave span:nth-child(4) { height: 35px; opacity: 1; }
+        .voice-wave span:nth-child(5) { height: 28px; opacity: 0.8; }
 
         /* 取消录音提示 */
         .voice-hint-cancel {
@@ -1417,6 +1457,7 @@ body {
     <div class="chat-container">
     <div class="top-app-bar glass">
         <div class="title" id="toolbarTitle">咨询聊天</div>
+        <div class="peer-status" id="peerStatus"><span class="status-dot offline"></span>咨询师未在线</div>
     </div>
 
         <div class="chat-header">
@@ -1966,8 +2007,7 @@ body {
             }
 
             // 保存appointmentId供后续使用
-            window.appointmentId = appointmentId;
-            currentAppointmentId = appointmentId;
+            window.appointmentId = currentAppointmentId;
 
             // 加载历史消息
             loadHistoryMessages();
@@ -2074,6 +2114,9 @@ body {
                     });
 
                     stompClient.send("/app/chat.online", {}, JSON.stringify(currentUserId));
+                    
+                    // 🔧 新增：连接视频通话信令服务器，让电脑端知道手机端在线
+                    connectVideoSignaling();
                 }, function (error) {
                     clearTimeout(connectTimeout);
                     console.error('STOMP error:', error);
@@ -2083,6 +2126,76 @@ body {
             );
         }
 
+        // 🔧 新增：连接视频通话信令服务器（仅用于报告在线状态）
+        let videoSignalingWs = null;
+        function connectVideoSignaling() {
+            try {
+                if (videoSignalingWs && videoSignalingWs.readyState === WebSocket.OPEN) {
+                    return; // 已连接
+                }
+                
+                let baseUrl = Android.getBaseUrl();
+                const appointmentId = serverAppointmentId > 0 ? serverAppointmentId : currentAppointmentId;
+                const userId = currentUserId || 0;
+                
+                // 转换为 ws:// 或 wss://
+                let wsUrl = baseUrl.replace('http://', 'ws://').replace('https://', 'wss://');
+                // 去掉末尾的 /api，添加视频信令路径
+                wsUrl = wsUrl.replace(/\/api$/, '') + '/api/video-signaling?roomId=' + appointmentId + '&userId=' + userId;
+                
+                console.log('[VideoSignaling] Connecting:', wsUrl);
+                videoSignalingWs = new WebSocket(wsUrl);
+                
+                videoSignalingWs.onopen = function() {
+                    console.log('[VideoSignaling] Connected');
+                };
+                
+                videoSignalingWs.onmessage = function(event) {
+                    try {
+                        const signal = JSON.parse(event.data);
+                        // 🔧 处理 userCount 消息，更新对方在线状态
+                        if (signal.type === 'userCount') {
+                            const isPeerOnline = signal.count >= 2;
+                            const statusEl = document.getElementById('peerStatus');
+                            if (statusEl) {
+                                if (isPeerOnline) {
+                                    statusEl.innerHTML = '<span class="status-dot online"></span>咨询师在线';
+                                    statusEl.className = 'peer-status online';
+                                } else {
+                                    statusEl.innerHTML = '<span class="status-dot offline"></span>咨询师未在线';
+                                    statusEl.className = 'peer-status offline';
+                                }
+                            }
+                            return;
+                        }
+                        // 🔧 修复：原生 WebSocket 只处理 offer（直接跳转接听），
+                        // call 消息由 STOMP /user/queue/webrtc 处理，避免重复弹窗
+                        if (signal.type === 'call') {
+                            // 忽略来自原生 WebSocket 的 call 消息，防止与 STOMP 重复
+                            console.log('[VideoSignaling] Ignoring call from WebSocket, STOMP will handle it');
+                        } else if (signal.type === 'offer') {
+                            console.log('[VideoSignaling] Received offer');
+                        }
+                    } catch (e) {
+                        console.error('[VideoSignaling] Failed to parse message:', e);
+                    }
+                };
+                
+                videoSignalingWs.onerror = function(e) {
+                    console.error('[VideoSignaling] Error:', e);
+                };
+                
+                videoSignalingWs.onclose = function() {
+                    console.log('[VideoSignaling] Closed');
+                    videoSignalingWs = null;
+                    // 3秒后重连
+                    setTimeout(connectVideoSignaling, 3000);
+                };
+            } catch (e) {
+                console.error('[VideoSignaling] Failed to connect:', e);
+            }
+        }
+        
         // WebSocket 断连监听（STOMP.js 用 webSocket.onclose）
         function setupWsHeartbeat() {
             if (!stompClient || !stompClient.ws) return;
@@ -2115,13 +2228,24 @@ body {
                 return;
             }
             if (signal.type === 'call') {
-                const incomingCallType = signal.data && signal.data.callType ? signal.data.callType : 'video';
+                // 🔧 修复：支持两种格式的 callType（顶层字段或 data 内嵌字段）
+                const incomingCallType = signal.callType || (signal.data && signal.data.callType) || 'video';
                 startIncomingCallNotification(signal, targetAppointmentId, incomingCallType);
             }
         }
 
         // 显示通话通知（像微信那样）
+        let _currentCallSessionId = null; // 🔧 新增：防止重复弹窗
+        
         function startIncomingCallNotification(signal, fallbackAppointmentId, incomingCallType) {
+            // 🔧 修复：防止 STOMP 和 WebSocket 两个通道同时触发导致重复弹窗
+            const sessionId = signal.data && signal.data.sessionId ? signal.data.sessionId : (signal.fromUserId + '_' + Date.now());
+            if (_currentCallSessionId === sessionId && document.getElementById('callNotif')) {
+                console.log('[Call] Ignoring duplicate call notification, sessionId=' + sessionId);
+                return;
+            }
+            _currentCallSessionId = sessionId;
+            
             callType = incomingCallType;
             callState = 'calling';
 
@@ -2179,7 +2303,10 @@ body {
             callState = 'connected';
             callStartTime = Date.now();
 
-            if (typeof Android.startVideoCallWithType === 'function') {
+            // 🔧 修复：接听来电应该使用 startIncomingCall（被叫角色），不是 startVideoCallWithType（主叫角色）
+            if (typeof Android.startIncomingCall === 'function') {
+                Android.startIncomingCall(appointmentId, consultantName, targetUserId, incomingCallType);
+            } else if (typeof Android.startVideoCallWithType === 'function') {
                 Android.startVideoCallWithType(appointmentId, consultantName, targetUserId, incomingCallType);
             } else if (typeof Android.startVideoCall === 'function') {
                 Android.startVideoCall(appointmentId, consultantName, targetUserId);
@@ -2189,7 +2316,20 @@ body {
         function rejectIncomingCall() {
             dismissCallNotification();
             callState = 'rejected';
-            // 发送拒绝信号
+            
+            // 🔧 修复：同时通过原生 WebSocket 发送 reject，确保视频通话页面能收到
+            if (videoSignalingWs && videoSignalingWs.readyState === WebSocket.OPEN) {
+                const wsPayload = {
+                    type: 'reject',
+                    fromUserId: currentUserId,
+                    toUserId: consultantUserId,
+                    appointmentId: serverAppointmentId > 0 ? serverAppointmentId : currentAppointmentId
+                };
+                videoSignalingWs.send(JSON.stringify(wsPayload));
+                console.log('[VideoSignaling] Sent reject via WebSocket');
+            }
+            
+            // 同时通过 STOMP 发送（兼容旧版咨询师页面）
             if (stompClient && stompClient.connected) {
                 const payload = {
                     type: 'reject',
@@ -2267,7 +2407,8 @@ body {
             const consultantName = document.getElementById('consultantName').textContent.replace(' 咨询师', '') || '咨询师';
             const appointmentId = signal.appointmentId ? String(signal.appointmentId) : String(fallbackAppointmentId || '');
             const targetUserId = signal.fromUserId || 0;
-            const incomingCallType = signal.data && signal.data.callType ? signal.data.callType : 'video';
+            // 🔧 修复：支持两种格式的 callType
+            const incomingCallType = signal.callType || (signal.data && signal.data.callType) || 'video';
 
             if (typeof Android.startVideoCallWithType === 'function') {
                 Android.startVideoCallWithType(appointmentId, consultantName, targetUserId, incomingCallType);
@@ -2480,8 +2621,25 @@ body {
             }
         }
 
+        /* 消息渲染优化：使用DocumentFragment批量DOM操作 */
+        let _messageFragment = null;
+        let _renderTimeout = null;
+
+        function flushMessages() {
+            if (_messageFragment && _messageFragment.childNodes.length > 0) {
+                const container = document.getElementById('messagesContainer');
+                if (container) {
+                    container.appendChild(_messageFragment);
+                }
+                _messageFragment = null;
+                scrollToBottom();
+            }
+        }
+
         function renderMessage(message) {
-            const container = document.getElementById('messagesContainer');
+            if (!_messageFragment) {
+                _messageFragment = document.createDocumentFragment();
+            }
             const messageDiv = document.createElement('div');
 
             // 系统消息（通话结束等）
@@ -2492,20 +2650,38 @@ body {
                 if (message.content && message.content.startsWith('CALL_ENDED:')) {
                     const parts = message.content.split(':');
                     const callType = parts[1] === 'audio' ? '语音' : '视频';
+                    const durationSec = parseInt(parts[2]) || 0;
                     const durationStr = parts[3] || (parts[2] ? parts[2] + '秒' : '0秒');
+                    const isCancelled = durationSec === 0 || parts[3] === '已取消';
                     const icon = parts[1] === 'audio'
                         ? `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 9a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 0h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 7.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`
                         : `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`;
+                    const bubbleClass = isCancelled ? 'call-ended-bubble cancelled' : 'call-ended-bubble';
+                    const labelText = isCancelled ? '已取消' : `时长 ${durationStr}`;
                     messageDiv.innerHTML = `
-                        <div class="call-ended-bubble">
+                        <div class="${bubbleClass}">
                             <span class="call-ended-icon">${icon}</span>
-                            <span>${callType}通话已结束，时长 ${durationStr}</span>
+                            <span>${callType}通话${labelText}</span>
+                        </div>
+                    `;
+                } else if (message.content && message.content.startsWith('SIGNATURE_REQUIRED:')) {
+                    // 🔧 修复：签字确认消息，显示可点击的按钮
+                    const parts = message.content.split(':');
+                    const recordId = parts[1] || '';
+                    const notifyText = parts.slice(2).join(':') || '请点击进行签字确认';
+                    const appointmentId = window.appointmentId || getUrlParam('appointmentId') || getUrlParam('appointment_id') || '';
+                    messageDiv.innerHTML = `
+                        <div class="signature-required-bubble" onclick="goToSignatureConfirm('${recordId}', '${appointmentId}')">
+                            <div class="signature-icon">✍️</div>
+                            <div class="signature-text">${escapeHtml(notifyText)}</div>
+                            <div class="signature-btn">点击签字</div>
                         </div>
                     `;
                 } else {
                     messageDiv.innerHTML = `<div class="system-bubble">${escapeHtml(message.content)}</div>`;
                 }
-                container.appendChild(messageDiv);
+                _messageFragment.appendChild(messageDiv);
+                flushMessages(); // 系统消息立即刷新
                 return;
             }
 
@@ -2519,16 +2695,26 @@ body {
                     <div class="message-bubble">
                         <div>${escapeHtml(message.content)}</div>
                         <div class="media-preview">
-                            <img src="${message.mediaUrl || ''}" alt="图片">
+                            <img src="${message.mediaUrl || ''}" alt="图片" loading="lazy">
                         </div>
                     </div>
                     <div class="message-time">${message.time || ''}</div>
                 `;
             } else if (message.type === 'video') {
+                // 🔧 修复：拼接完整URL（相对路径转绝对路径）
+                let fullMediaUrl = message.mediaUrl || '';
+                if (fullMediaUrl && !fullMediaUrl.startsWith('http')) {
+                    // 因为 server.servlet.context-path=/api，静态资源路径需要加 /api 前缀
+                    if (!fullMediaUrl.startsWith('/api')) {
+                        fullMediaUrl = '/api' + fullMediaUrl;
+                    }
+                    const baseUrl = Android.getBaseUrl ? Android.getBaseUrl() : '';
+                    fullMediaUrl = baseUrl.replace(/\/api$/, '') + fullMediaUrl;
+                }
                 contentHtml = `
                     <div class="message-bubble">
                         <div>${escapeHtml(message.content)}</div>
-                        <button class="media-button" onclick="playMedia('video','${escapeAttr(message.mediaUrl || '')}')">
+                        <button class="media-button" onclick="playMedia('video','${escapeAttr(fullMediaUrl)}')">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polygon points="5 3 19 12 5 21 5 3"/>
                             </svg>
@@ -2570,7 +2756,11 @@ body {
             }
 
             messageDiv.innerHTML = contentHtml;
-            container.appendChild(messageDiv);
+            _messageFragment.appendChild(messageDiv);
+
+            // 批量刷新：延迟50ms合并多次renderMessage调用
+            clearTimeout(_renderTimeout);
+            _renderTimeout = setTimeout(flushMessages, 50);
         }
 
         function escapeHtml(text) {
@@ -2584,9 +2774,18 @@ body {
             return String(value).replace(/'/g, '&#39;').replace(/"/g, '&quot;');
         }
 
+        /* 滚动到底部 - 使用requestAnimationFrame避免强制同步布局 */
+        let _scrollPending = false;
         function scrollToBottom() {
-            const container = document.getElementById('messagesContainer');
-            container.scrollTop = container.scrollHeight;
+            if (_scrollPending) return;
+            _scrollPending = true;
+            requestAnimationFrame(() => {
+                const container = document.getElementById('messagesContainer');
+                if (container) {
+                    container.scrollTop = container.scrollHeight;
+                }
+                _scrollPending = false;
+            });
         }
 
         /* ── 下拉刷新 ── */
@@ -3187,23 +3386,34 @@ body {
             showToast('当前版本暂不支持发起通话');
         }
 
+        // 🔧 新增：跳转到签字确认页面
+        function goToSignatureConfirm(recordId, appointmentId) {
+            const sigUrl = `signature-confirm.html?recordId=${encodeURIComponent(recordId)}&appointmentId=${encodeURIComponent(appointmentId)}`;
+            if (window.Android && typeof Android.navigateToPage === 'function') {
+                Android.navigateToPage(sigUrl);
+            } else {
+                window.location.href = sigUrl;
+            }
+        }
+
         function endConsultation() {
-            const confirmEnd = confirm('确认结束本次咨询吗？结束后将进入服务评价页面。');
+            const confirmEnd = confirm('确认结束本次咨询吗？');
             if (!confirmEnd) return;
 
             const appointmentId = window.appointmentId || getUrlParam('appointmentId') || getUrlParam('appointment_id') || '';
             const consultantName = document.getElementById('consultantName').textContent.replace(' 咨询师', '');
 
+            // 标记咨询结束
             if (window.Android && typeof Android.endConsultation === 'function') {
                 Android.endConsultation(appointmentId);
             }
 
-            // 跳转到评价页面
-            const ratingUrl = `rating.html?appointmentId=${encodeURIComponent(appointmentId)}&consultantName=${encodeURIComponent(consultantName)}`;
-            if (window.Android && typeof Android.navigateToRating === 'function') {
-                Android.navigateToRating(ratingUrl);
+            // 🔧 修复：先跳转到签字确认页面，签字完成后再去评价页面
+            const signatureUrl = `signature-confirm.html?appointmentId=${encodeURIComponent(appointmentId)}&consultantName=${encodeURIComponent(consultantName)}`;
+            if (window.Android && typeof Android.navigateToPage === 'function') {
+                Android.navigateToPage(signatureUrl);
             } else {
-                window.location.href = ratingUrl;
+                window.location.href = signatureUrl;
             }
         }
 

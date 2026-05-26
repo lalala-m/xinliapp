@@ -17,6 +17,15 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("tongyangyuan.keystore")
+            storePassword = "tongyangyuan2024"
+            keyAlias = "tongyangyuan"
+            keyPassword = "tongyangyuan2024"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -24,6 +33,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
+        }
+        debug {
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
@@ -61,9 +74,6 @@ dependencies {
     implementation("io.openim:android-sdk:3.8.3.2@aar") {
         isTransitive = true
     }
-    // LiveKit Android SDK - 音视频通话
-    implementation(libs.livekit)
-
     // AgentWeb for WebView
     implementation("com.github.Justson.AgentWeb:agentweb-core:v5.0.0-alpha.1-androidx")
 
@@ -74,6 +84,9 @@ dependencies {
     // XXPermissions for permission handling
     implementation("com.github.getActivity:XXPermissions:18.6")
 
-    // OkHttp for WebSocket (STOMP信令)
+    // OkHttp for WebSocket (STOMP信令 + 视频通话信令)
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // WebRTC for video call (from task project)
+    implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.aar", "*.jar"))))
 }

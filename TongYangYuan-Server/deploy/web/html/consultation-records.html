@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>咨询记录管理 - 同阳缘管理后台</title>
+    <link rel="stylesheet" href="admin/css/admin.css">
+    <style>
+        .page-title { font-size: 20px; font-weight: 600; margin-bottom: 20px; }
+        .filter-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+        .filter-bar select, .filter-bar input { padding: 8px 12px; border: 1px solid #E0E0E0; border-radius: 8px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+        .btn-primary { background: #4A90D9; color: white; }
+        .btn-outline { background: white; color: #4A90D9; border: 1px solid #4A90D9; }
+        
+        .table-container { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #F8FAFC; padding: 12px 16px; text-align: left; font-weight: 600; font-size: 14px; color: #333; }
+        td { padding: 12px 16px; border-top: 1px solid #F0F0F0; font-size: 14px; }
+        tr:hover { background: #F8FAFC; }
+        
+        .status-badge { padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+        .status-pending { background: #FFF3E0; color: #E65100; }
+        .status-completed { background: #E8F5E9; color: #2E7D32; }
+        .status-signed { background: #E3F2FD; color: #1565C0; }
+        
+        .pdf-actions { display: flex; gap: 8px; align-items: center; }
+        .pdf-actions .btn { padding: 4px 10px; font-size: 12px; }
+        
+        /* PDF Modal */
+        .pdf-modal-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000;
+            align-items: center; justify-content: center; padding: 20px;
+        }
+        .pdf-modal-overlay.show { display: flex; }
+        .pdf-modal {
+            background: white; border-radius: 12px; width: 100%; max-width: 900px;
+            max-height: 90vh; display: flex; flex-direction: column;
+            box-shadow: 0 24px 48px rgba(0,0,0,0.3);
+        }
+        .pdf-modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 16px 20px; border-bottom: 1px solid #F0F0F0;
+        }
+        .pdf-modal-header h3 { margin: 0; font-size: 16px; }
+        .pdf-modal-body { flex: 1; overflow: hidden; position: relative; }
+        .pdf-loading {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100%; min-height: 400px; color: #666;
+        }
+        .loading-spinner {
+            width: 40px; height: 40px; border: 3px solid #E0E0E0; border-top-color: #4A90D9;
+            border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .pdf-iframe { width: 100%; height: 100%; border: none; min-height: 600px; }
+        .close-btn {
+            background: none; border: none; font-size: 24px; cursor: pointer;
+            color: #666; padding: 8px; border-radius: 8px;
+        }
+        .close-btn:hover { background: #F5F5F5; }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- 侧边栏 -->
+        <aside class="sidebar" id="sidebar"></aside>
+        
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">咨询记录管理</h1>
+            </div>
+            
+            <!-- 筛选栏 -->
+            <div class="filter-bar">
+                <select id="statusFilter" onchange="loadRecords()">
+                    <option value="">全部状态</option>
+                    <option value="COMPLETED">已完成</option>
+                    <option value="SIGNED">已双签</option>
+                    <option value="PENDING">待处理</option>
+                </select>
+                <input type="date" id="startDate" placeholder="开始日期">
+                <input type="date" id="endDate" placeholder="结束日期">
+                <button class="btn btn-primary" onclick="loadRecords()">筛选</button>
+                <button class="btn btn-outline" onclick="exportRecords()">导出</button>
+            </div>
+            
+            <!-- 记录列表 -->
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>预约编号</th>
+                            <th>咨询师</th>
+                            <th>家长</th>
+                            <th>咨询类型</th>
+                            <th>状态</th>
+                            <th>咨询日期</th>
+                            <th>PDF</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recordsTableBody">
+                        <tr><td colspan="9" style="text-align:center;padding:40px;color:#888;">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- 分页 -->
+            <div class="pagination" id="pagination"></div>
+        </main>
+    </div>
+    
+    <!-- PDF预览弹窗 -->
+    <div class="pdf-modal-overlay" id="pdfModal">
+        <div class="pdf-modal">
+            <div class="pdf-modal-header">
+                <h3>咨询记录PDF报告</h3>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <button class="btn btn-outline" id="downloadPdfBtn" onclick="downloadCurrentPdf()">⬇️ 下载</button>
+                    <button class="close-btn" onclick="closePdfModal()">×</button>
+                </div>
+            </div>
+            <div class="pdf-modal-body">
+                <div class="pdf-loading" id="pdfLoading">
+                    <div class="loading-spinner"></div>
+                    <span>正在加载PDF...</span>
+                </div>
+                <iframe id="pdfIframe" class="pdf-iframe" style="display:none;"></iframe>
+            </div>
+        </div>
+    </div>
+    
+    <script src="admin/js/admin-common.js"></script>
+    <script>
+        let currentRecordId = null;
+        let recordsData = [];
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            initSidebar('consultation-records');
+            loadRecords();
+        });
+        
+        // 加载记录列表
+        async function loadRecords() {
+            const status = document.getElementById('statusFilter').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            try {
+                let url = '/api/consultation-records?';
+                if (status) url += `status=${status}&`;
+                if (startDate) url += `startDate=${startDate}&`;
+                if (endDate) url += `endDate=${endDate}&`;
+                
+                const response = await fetch(url, {
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('adminToken') }
+                });
+                const result = await response.json();
+                
+                if (result.code === 200 && result.data) {
+                    recordsData = result.data.list || result.data || [];
+                    renderRecords(recordsData);
+                } else {
+                    showError('加载失败: ' + (result.message || '未知错误'));
+                }
+            } catch (e) {
+                console.error('加载记录失败:', e);
+                showError('网络错误');
+            }
+        }
+        
+        // 渲染记录列表
+        function renderRecords(records) {
+            const tbody = document.getElementById('recordsTableBody');
+            
+            if (!records || records.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:#888;">暂无记录</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = records.map(record => {
+                const statusClass = getStatusClass(record.status);
+                const statusText = getStatusText(record.status);
+                const hasPdf = record.pdfFilePath ? true : false;
+                
+                return `
+                    <tr>
+                        <td>${record.id}</td>
+                        <td>${record.appointmentNo || record.appointmentId || '-'}</td>
+                        <td>${record.consultantName || '-'}</td>
+                        <td>${record.parentNickname || '-'}</td>
+                        <td>${record.consultationType || '-'}</td>
+                        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                        <td>${formatDate(record.createdAt)}</td>
+                        <td>
+                            ${hasPdf 
+                                ? '<span style="color:#2E7D32;">✓ 已生成</span>' 
+                                : '<span style="color:#999;">未生成</span>'}
+                        </td>
+                        <td>
+                            <div class="pdf-actions">
+                                ${hasPdf 
+                                    ? `<button class="btn btn-primary" onclick="previewPdf(${record.id})">📄 预览</button>
+                                       <button class="btn btn-outline" onclick="downloadPdf(${record.id})">⬇️</button>`
+                                    : `<button class="btn btn-outline" onclick="generatePdf(${record.id})">📄 生成</button>`
+                                }
+                                <button class="btn btn-outline" onclick="viewDetail(${record.id})">详情</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        // 状态样式
+        function getStatusClass(status) {
+            switch(status) {
+                case 'SIGNED': return 'status-signed';
+                case 'COMPLETED': return 'status-completed';
+                default: return 'status-pending';
+            }
+        }
+        
+        function getStatusText(status) {
+            switch(status) {
+                case 'SIGNED': return '已双签';
+                case 'COMPLETED': return '已完成';
+                default: return '待处理';
+            }
+        }
+        
+        // 生成PDF
+        async function generatePdf(recordId) {
+            try {
+                const response = await fetch(`/api/consultation/pdf/generate/${recordId}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('adminToken') }
+                });
+                const result = await response.json();
+                
+                if (result.success || result.code === 200) {
+                    alert('PDF生成成功');
+                    loadRecords();
+                } else {
+                    alert('PDF生成失败: ' + (result.message || '未知错误'));
+                }
+            } catch (e) {
+                console.error('生成PDF失败:', e);
+                alert('生成PDF失败');
+            }
+        }
+        
+        // 预览PDF
+        function previewPdf(recordId) {
+            currentRecordId = recordId;
+            const modal = document.getElementById('pdfModal');
+            const loading = document.getElementById('pdfLoading');
+            const iframe = document.getElementById('pdfIframe');
+            
+            modal.classList.add('show');
+            loading.style.display = 'flex';
+            iframe.style.display = 'none';
+            
+            setTimeout(() => {
+                iframe.onload = () => {
+                    loading.style.display = 'none';
+                    iframe.style.display = 'block';
+                };
+                iframe.src = `/api/consultation/pdf/preview/${recordId}`;
+            }, 100);
+        }
+        
+        // 下载PDF
+        function downloadPdf(recordId) {
+            window.open(`/api/consultation/pdf/download/${recordId}`, '_blank');
+        }
+        
+        function downloadCurrentPdf() {
+            if (currentRecordId) {
+                downloadPdf(currentRecordId);
+            }
+        }
+        
+        // 关闭PDF弹窗
+        function closePdfModal() {
+            const modal = document.getElementById('pdfModal');
+            const iframe = document.getElementById('pdfIframe');
+            modal.classList.remove('show');
+            iframe.src = '';
+            currentRecordId = null;
+        }
+        
+        // 查看详情
+        function viewDetail(recordId) {
+            window.open(`consultation-record-detail.html?recordId=${recordId}`, '_blank');
+        }
+        
+        // 导出记录
+        function exportRecords() {
+            alert('导出功能开发中...');
+        }
+        
+        // 格式化日期
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('zh-CN');
+        }
+        
+        // 显示错误
+        function showError(msg) {
+            const tbody = document.getElementById('recordsTableBody');
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#E53935;">${msg}</td></tr>`;
+        }
+    </script>
+</body>
+</html>

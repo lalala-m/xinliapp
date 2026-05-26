@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>咨询师登录 - 童康源</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/login.css">
+    <link rel="stylesheet" href="css/anti-flicker.css">
+    <style>
+        :root {
+            --primary: #6FA6F8;
+            --primary-dark: #4A8AE8;
+            --primary-light: #EEF3FE;
+        }
+
+        body {
+            background: linear-gradient(135deg, #EEF3FE 0%, #F0F7FF 50%, #FFFFFF 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 420px;
+            padding: 20px;
+        }
+
+        .login-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(111, 166, 248, 0.15);
+            padding: 48px 40px;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .login-logo {
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            object-fit: cover;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 16px rgba(111, 166, 248, 0.3);
+        }
+
+        .login-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 6px;
+        }
+
+        .login-subtitle {
+            font-size: 14px;
+            color: #888;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 8px;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e8e8e8;
+            border-radius: 12px;
+            font-size: 15px;
+            transition: all 0.25s;
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        .input-field:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(111, 166, 248, 0.12);
+        }
+
+        .login-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            font-size: 13px;
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #666;
+            cursor: pointer;
+        }
+
+        .remember-me input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--primary);
+        }
+
+        .forgot-password {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .forgot-password:hover {
+            text-decoration: underline;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.25s;
+            margin-top: 8px;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(111, 166, 248, 0.4);
+        }
+
+        .btn-login:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .login-error {
+            background: #fff2f0;
+            color: #cf1322;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            margin-bottom: 20px;
+            display: none;
+            border: 1px solid #ffa39e;
+        }
+
+        .login-error.show { display: block; }
+
+        .login-footer {
+            text-align: center;
+            margin-top: 24px;
+        }
+
+        .login-footer-text {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 16px;
+        }
+
+        .login-footer-text a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .login-footer-text a:hover {
+            text-decoration: underline;
+        }
+
+        .admin-link {
+            font-size: 13px;
+            color: #999;
+        }
+
+        .admin-link a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        /* 登录加载遮罩 */
+        .login-spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid rgba(111, 166, 248, 0.2);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <img src="images/tongkangyuan.png" alt="Logo" class="login-logo">
+                <h1 class="login-title">童康源咨询师端</h1>
+                <p class="login-subtitle">专业儿童心理咨询服务平台</p>
+            </div>
+
+            <div id="loginError" class="login-error"></div>
+
+            <form id="loginForm">
+                <div class="input-group">
+                    <label class="input-label" for="phone">手机号</label>
+                    <input
+                        type="tel"
+                        id="phone"
+                        class="input-field"
+                        placeholder="请输入手机号"
+                        maxlength="11"
+                        autocomplete="off"
+                        inputmode="numeric"
+                    >
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label" for="password">密码</label>
+                    <input
+                        type="password"
+                        id="password"
+                        class="input-field"
+                        placeholder="请输入密码"
+                        autocomplete="current-password"
+                    >
+                </div>
+
+                <div class="login-options">
+                    <label class="remember-me">
+                        <input type="checkbox" id="rememberMe" checked>
+                        <span>记住我</span>
+                    </label>
+                    <a href="#" class="forgot-password" onclick="alert('请联系管理员找回密码'); return false;">忘记密码？</a>
+                </div>
+
+                <button type="submit" class="btn-login" id="loginBtn">登录</button>
+            </form>
+
+            <div class="login-footer">
+                <p class="login-footer-text">
+                    还没有账号？<a href="register.html">立即注册</a>
+                </p>
+                <p class="admin-link">
+                    <a href="admin/login.html">🔐 管理员入口</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script>
+        const API_BASE = CONFIG.API_BASE_URL.endsWith('/api')
+            ? CONFIG.API_BASE_URL.replace('/api', '') + '/api'
+            : CONFIG.API_BASE_URL;
+
+        // 页面加载时检查是否已登录
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('consultantToken');
+            if (token) {
+                // 已登录，直接跳转到工作台
+                window.location.replace('dashboard.html');
+                return;
+            }
+
+            // 手机号只允许数字
+            const phoneInput = document.getElementById('phone');
+            if (phoneInput) {
+                phoneInput.addEventListener('input', function() {
+                    this.value = this.value.replace(/\D/g, '');
+                });
+            }
+        });
+
+        // 登录表单提交
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await doConsultantLogin();
+        });
+
+        async function doConsultantLogin() {
+            const phone = document.getElementById('phone').value.trim();
+            const pwd = document.getElementById('password').value;
+            const errorEl = document.getElementById('loginError');
+            const btn = document.getElementById('loginBtn');
+
+            errorEl.classList.remove('show');
+
+            if (!phone || phone.length < 11) {
+                showLoginError('请输入正确的11位手机号');
+                return;
+            }
+            if (!pwd) {
+                showLoginError('请输入密码');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = '登录中...';
+
+            try {
+                const res = await fetch(API_BASE + '/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone, password: pwd })
+                });
+                const json = await res.json();
+
+                if (json.code === 200 && json.data) {
+                    const d = json.data;
+                    if (d.userType !== 'CONSULTANT') {
+                        showLoginError('该账号不是咨询师账号，请使用咨询师手机号登录');
+                        btn.disabled = false;
+                        btn.textContent = '登录';
+                        return;
+                    }
+
+                    // 检查账号状态
+                    if (d.status === 'INACTIVE') {
+                        showLoginError('账号正在审核中，请等待管理员审核通过后再登录');
+                        btn.disabled = false;
+                        btn.textContent = '登录';
+                        return;
+                    }
+
+                    const token = d.token || '';
+
+                    // 获取咨询师档案
+                    let consultantProfile = null;
+                    try {
+                        const profileRes = await fetch(API_BASE + '/consultants/user/' + d.userId, {
+                            headers: { 'Authorization': 'Bearer ' + token }
+                        });
+                        const profileJson = await profileRes.json();
+                        if (profileJson.code === 200 && profileJson.data) {
+                            consultantProfile = profileJson.data;
+                        }
+                    } catch (e) {
+                        console.warn('获取咨询师档案失败', e);
+                    }
+
+                    if (!consultantProfile || !consultantProfile.id) {
+                        showLoginError('无法获取咨询师档案数据，请联系管理员');
+                        btn.disabled = false;
+                        btn.textContent = '登录';
+                        return;
+                    }
+
+                    // 存入 localStorage（与 dashboard.html 使用相同的 key）
+                    localStorage.setItem('consultantToken', token);
+                    localStorage.setItem('consultantUser', JSON.stringify({
+                        id: consultantProfile.id,
+                        userId: d.userId,
+                        phone: d.phone,
+                        nickname: d.nickname || '',
+                        userType: d.userType,
+                        token: token
+                    }));
+
+                    // 同时写入 ConsultantStorage（兼容 auth.js）
+                    const loginData = {
+                        ...consultantProfile,
+                        token: token,
+                        loginTime: Date.now()
+                    };
+                    if (typeof ConsultantStorage !== 'undefined') {
+                        ConsultantStorage.setCurrentConsultant(loginData);
+                    }
+
+                    // 跳转到工作台
+                    window.location.replace('dashboard.html');
+                } else {
+                    showLoginError(json.message || '登录失败，请检查账号密码');
+                    btn.disabled = false;
+                    btn.textContent = '登录';
+                }
+            } catch (e) {
+                console.error('登录异常:', e);
+                showLoginError('无法连接登录接口，请确认后端已启动');
+                btn.disabled = false;
+                btn.textContent = '登录';
+            }
+        }
+
+        function showLoginError(msg) {
+            const el = document.getElementById('loginError');
+            el.textContent = msg;
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 5000);
+        }
+    </script>
+</body>
+</html>

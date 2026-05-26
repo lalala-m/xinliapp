@@ -35,6 +35,7 @@ public class Consultant implements Serializable {
     private final List<String> identityTags;
     private final IdentityTier identityTier;
     private final String displayIdentityTag;
+    private List<String> stages; // 擅长的人生阶段名称列表
     // serverId = 后端 consultants.id（咨询师档案主键，用于业务关联如提交预约）
     private long serverId;
     private long userId;
@@ -42,6 +43,12 @@ public class Consultant implements Serializable {
     public Consultant(long userId, String name, String title, String specialty, double rating,
                       String servedCount, String avatarColor, String avatarUrl, List<String> identityTags,
                       String intro, List<String> reviews) {
+        this(userId, name, title, specialty, rating, servedCount, avatarColor, avatarUrl, identityTags, intro, reviews, null);
+    }
+
+    public Consultant(long userId, String name, String title, String specialty, double rating,
+                      String servedCount, String avatarColor, String avatarUrl, List<String> identityTags,
+                      String intro, List<String> reviews, List<String> stages) {
         this.userId = userId;
         this.name = name;
         this.title = title;
@@ -57,6 +64,7 @@ public class Consultant implements Serializable {
         this.intro = intro;
         this.reviews = Collections.unmodifiableList(
                 reviews != null ? new ArrayList<>(reviews) : new ArrayList<>());
+        this.stages = stages != null ? new ArrayList<>(stages) : new ArrayList<>();
     }
 
     // 兼容旧的构造函数，avatarUrl 传 null
@@ -135,6 +143,14 @@ public class Consultant implements Serializable {
 
     public String getAvatarUrl() {
         return avatarUrl;
+    }
+
+    public List<String> getStages() {
+        return stages;
+    }
+
+    public void setStages(List<String> stages) {
+        this.stages = stages != null ? new ArrayList<>(stages) : new ArrayList<>();
     }
 
     private IdentityTier resolveTier(List<String> tags) {

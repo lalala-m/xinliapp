@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 支付配置 - 请填写实际的商户信息 -->
+    
+    <!-- 微信支付配置 -->
+    <string name="wechat_app_id">请填写微信开放平台应用APPID</string>
+    <string name="wechat_mch_id">请填写微信商户号</string>
+    <string name="wechat_api_key">请填写微信支付API密钥</string>
+    <string name="wechat_app_secret">请填写微信应用Secret</string>
+    
+    <!-- 支付宝配置 -->
+    <string name="alipay_app_id">请填写支付宝应用APPID</string>
+    <string name="alipay_private_key">请填写支付宝私钥</string>
+    <string name="alipay_public_key">请填写支付宝公钥</string>
+    
+    <!-- 支付环境配置 -->
+    <bool name="use_sandbox">true</bool>
+    
+</resources>

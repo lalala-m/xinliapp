@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>咨询确认 - 童康源</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #BDEBC8 0%, #A9C9FF 100%);
+            min-height: 100vh; 
+            padding: env(safe-area-inset-top, 20px) 16px calc(24px + env(safe-area-inset-bottom));
+        }
+        .container { max-width: 600px; margin: 0 auto; }
+        .card {
+            background: white; border-radius: 20px; padding: 20px; margin-bottom: 16px;
+            box-shadow: 0 12px 28px rgba(0,0,0,0.08);
+        }
+        h1 { font-size: 20px; color: #1E2A3B; margin-bottom: 4px; text-align: center; }
+        .subtitle { font-size: 13px; color: #666; text-align: center; margin-bottom: 20px; }
+        .section-title { font-size: 15px; font-weight: 600; color: #1E2A3B; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+        .section-title::before {
+            content: ''; width: 4px; height: 16px; background: linear-gradient(180deg, #6FA6F8, #A9C9FF); border-radius: 2px;
+        }
+        .summary-box {
+            background: #F8FAFF; border-radius: 12px; padding: 14px; font-size: 14px; color: #333; line-height: 1.6;
+        }
+        .summary-item { margin-bottom: 10px; }
+        .summary-item:last-child { margin-bottom: 0; }
+        .summary-label { font-size: 12px; color: #888; margin-bottom: 2px; }
+        .summary-value { color: #1E2A3B; }
+        .empty-summary { color: #999; font-style: italic; }
+        label { display: block; font-size: 14px; font-weight: 500; color: #333; margin: 16px 0 8px; }
+        label .required { color: #E53935; }
+        .signature-wrap {
+            border: 1px dashed #BDBDBD; border-radius: 12px; background: #FAFAFA; overflow: hidden;
+        }
+        #signatureCanvas { display: block; width: 100%; height: 160px; cursor: crosshair; background: #fff; }
+        .btn-row { display: flex; gap: 10px; margin-top: 12px; }
+        .btn {
+            flex: 1; padding: 14px; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer;
+        }
+        .btn-primary { background: #1E2A3B; color: white; }
+        .btn-primary:disabled { background: #BDBDBD; }
+        .btn-outline { background: white; color: #1E2A3B; border: 1px solid #E0E0E0; }
+        .loading { text-align: center; padding: 40px; color: #666; }
+        .error { text-align: center; padding: 40px; color: #E53935; }
+        
+        /* Custom Modal Styles */
+        .custom-modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
+            z-index: 9999; opacity: 0; visibility: hidden; transition: all 0.3s ease;
+        }
+        .custom-modal-overlay.show { opacity: 1; visibility: visible; }
+        .custom-modal {
+            background: white; border-radius: 20px; padding: 28px; margin: 20px;
+            max-width: 320px; width: calc(100% - 40px); text-align: center;
+            transform: scale(0.8); transition: transform 0.3s ease;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .custom-modal-overlay.show .custom-modal { transform: scale(1); }
+        .custom-modal-icon {
+            font-size: 56px; margin-bottom: 16px; display: block;
+        }
+        .custom-modal-title {
+            font-size: 20px; font-weight: 600; color: #1E2A3B; margin-bottom: 12px;
+        }
+        .custom-modal-message {
+            font-size: 15px; color: #666; line-height: 1.6; margin-bottom: 24px;
+        }
+        .custom-modal-btn {
+            background: linear-gradient(135deg, #6FA6F8, #A9C9FF);
+            color: white; border: none; padding: 14px 40px; border-radius: 25px;
+            font-size: 16px; font-weight: 600; cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(111, 166, 248, 0.4);
+        }
+        .custom-modal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(111, 166, 248, 0.5);
+        }
+        .custom-modal-btn.error-btn {
+            background: linear-gradient(135deg, #E53935, #FF7043);
+            box-shadow: 0 4px 15px rgba(229, 57, 53, 0.4);
+        }
+        .custom-modal-btn.loading-btn {
+            background: #BDBDBD; pointer-events: none;
+        }
+        .loading-spinner {
+            width: 60px; height: 60px; margin: 0 auto 16px;
+            border: 4px solid #f3f3f3; border-top: 4px solid #6FA6F8;
+            border-radius: 50%; animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Custom Modal -->
+    <div id="customModal" class="custom-modal-overlay">
+        <div class="custom-modal">
+            <span id="modalIcon" class="custom-modal-icon">✓</span>
+            <div id="modalTitle" class="custom-modal-title">提示</div>
+            <div id="modalMessage" class="custom-modal-message"></div>
+            <button id="modalBtn" class="custom-modal-btn" onclick="hideModal()">确定</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h1>📋 咨询确认</h1>
+            <p class="subtitle">请核对本次咨询内容并签字确认</p>
+
+            <div id="loadingState" class="loading">正在加载咨询记录...</div>
+            <div id="errorState" class="error" style="display:none;"></div>
+            <div id="contentState" style="display:none;">
+                <div class="section-title">咨询师总结</div>
+                <div class="summary-box" id="summaryBox">
+                    <div class="empty-summary">暂无总结内容</div>
+                </div>
+
+                <label>电子签名 <span class="required">*</span></label>
+                <div class="signature-wrap">
+                    <canvas id="signatureCanvas"></canvas>
+                </div>
+                <div class="btn-row">
+                    <button class="btn btn-outline" onclick="clearSignature()">清除签名</button>
+                </div>
+
+                <div class="btn-row" style="margin-top: 20px;">
+                    <button class="btn btn-outline" onclick="goBack()">返回</button>
+                    <button class="btn btn-primary" id="submitBtn" onclick="submitConfirmation()">确认签字</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const appointmentId = urlParams.get('appointmentId');
+        const recordId = urlParams.get('recordId');
+
+        let consultationRecord = null;
+
+        // Custom Modal Functions
+        function showModal(icon, title, message, btnText, isError, onClose) {
+            const overlay = document.getElementById('customModal');
+            const iconEl = document.getElementById('modalIcon');
+            const titleEl = document.getElementById('modalTitle');
+            const msgEl = document.getElementById('modalMessage');
+            const btnEl = document.getElementById('modalBtn');
+            
+            iconEl.textContent = icon;
+            titleEl.textContent = title;
+            msgEl.textContent = message;
+            btnEl.textContent = btnText || '确定';
+            
+            if (isError) {
+                btnEl.className = 'custom-modal-btn error-btn';
+            } else {
+                btnEl.className = 'custom-modal-btn';
+            }
+            
+            btnEl.onclick = function() {
+                hideModal();
+                if (onClose) onClose();
+            };
+            
+            overlay.classList.add('show');
+        }
+
+        function hideModal() {
+            document.getElementById('customModal').classList.remove('show');
+        }
+
+        function showLoadingModal(message) {
+            const overlay = document.getElementById('customModal');
+            overlay.innerHTML = `
+                <div class="custom-modal">
+                    <div class="loading-spinner"></div>
+                    <div class="custom-modal-message">${message}</div>
+                </div>
+            `;
+            overlay.classList.add('show');
+        }
+
+        function restoreModal() {
+            const overlay = document.getElementById('customModal');
+            overlay.innerHTML = `
+                <div class="custom-modal">
+                    <span id="modalIcon" class="custom-modal-icon">✓</span>
+                    <div id="modalTitle" class="custom-modal-title">提示</div>
+                    <div id="modalMessage" class="custom-modal-message"></div>
+                    <button id="modalBtn" class="custom-modal-btn" onclick="hideModal()">确定</button>
+                </div>
+            `;
+        }
+
+        function closeModalOnOverlay(e) {
+            if (e.target === document.getElementById('customModal')) {
+                hideModal();
+            }
+        }
+
+        // Initialize signature canvas
+        function initCanvas() {
+            const canvas = document.getElementById('signatureCanvas');
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            const ctx = canvas.getContext('2d');
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = '#1E2A3B';
+
+            let drawing = false;
+            const getPos = (e) => {
+                const r = canvas.getBoundingClientRect();
+                const cx = e.touches ? e.touches[0].clientX : e.clientX;
+                const cy = e.touches ? e.touches[0].clientY : e.clientY;
+                return { x: cx - r.left, y: cy - r.top };
+            };
+            const start = (e) => { drawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+            const move = (e) => { if (!drawing) return; e.preventDefault(); const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
+            const end = () => { drawing = false; };
+            canvas.addEventListener('mousedown', start);
+            canvas.addEventListener('mousemove', move);
+            canvas.addEventListener('mouseup', end);
+            canvas.addEventListener('mouseleave', end);
+            canvas.addEventListener('touchstart', start, { passive: false });
+            canvas.addEventListener('touchmove', move, { passive: false });
+            canvas.addEventListener('touchend', end);
+        }
+
+        function clearSignature() {
+            const canvas = document.getElementById('signatureCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function getSignatureBase64() {
+            const canvas = document.getElementById('signatureCanvas');
+            const ctx = canvas.getContext('2d');
+            const data = ctx.getImageData(0, 0, canvas.width / window.devicePixelRatio, canvas.height / window.devicePixelRatio).data;
+            const hasContent = Array.from(data).some((v, i) => i % 4 !== 3 && v < 255);
+            if (!hasContent) return null;
+            const tmpCanvas = document.createElement('canvas');
+            tmpCanvas.width = canvas.width / window.devicePixelRatio;
+            tmpCanvas.height = canvas.height / window.devicePixelRatio;
+            tmpCanvas.getContext('2d').drawImage(canvas, 0, 0, tmpCanvas.width, tmpCanvas.height);
+            return tmpCanvas.toDataURL('image/png');
+        }
+
+        async function loadRecord() {
+            if (recordId) {
+                console.log('[signature-confirm] Using recordId from URL:', recordId);
+                consultationRecord = { id: recordId };
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('contentState').style.display = 'block';
+                document.getElementById('summaryBox').innerHTML = '<div class="empty-summary">请核对咨询内容后签字确认</div>';
+                setTimeout(initCanvas, 50);
+                return;
+            }
+            
+            if (!appointmentId) {
+                showError('缺少预约ID参数');
+                return;
+            }
+            
+            try {
+                let token = '';
+                let baseUrl = 'http://172.17.81.135:8080/api';
+                
+                if (window.Android && typeof Android.getAuthToken === 'function') {
+                    token = Android.getAuthToken() || '';
+                }
+                if (window.Android && typeof Android.getBaseUrl === 'function') {
+                    const androidBase = Android.getBaseUrl() || '';
+                    if (androidBase && !androidBase.endsWith('/api')) {
+                        baseUrl = androidBase + '/api';
+                    } else {
+                        baseUrl = androidBase || baseUrl;
+                    }
+                }
+                
+                if (!token) {
+                    token = localStorage.getItem('token') || '';
+                }
+                
+                console.log('[signature-confirm] Loading record for appointmentId=' + appointmentId + ', base=' + baseUrl);
+                
+                const res = await fetch(`${baseUrl}/consultation-records/appointment/${appointmentId}`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const json = await res.json();
+                console.log('[signature-confirm] Record loaded:', json);
+                
+                if (json.code === 200 && json.data && json.data.record) {
+                    consultationRecord = json.data.record;
+                    renderSummary(consultationRecord);
+                    document.getElementById('loadingState').style.display = 'none';
+                    document.getElementById('contentState').style.display = 'block';
+                    setTimeout(initCanvas, 50);
+                } else {
+                    console.warn('[signature-confirm] Record not found, showing signature only');
+                    document.getElementById('loadingState').style.display = 'none';
+                    document.getElementById('contentState').style.display = 'block';
+                    document.getElementById('summaryBox').innerHTML = '<div class="empty-summary">暂无咨询总结</div>';
+                    setTimeout(initCanvas, 50);
+                }
+            } catch (e) {
+                console.error('[signature-confirm] Load error:', e);
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('contentState').style.display = 'block';
+                document.getElementById('summaryBox').innerHTML = '<div class="empty-summary">加载失败，请直接签字确认</div>';
+                setTimeout(initCanvas, 50);
+            }
+        }
+
+        function renderSummary(record) {
+            const box = document.getElementById('summaryBox');
+            if (!record) { box.innerHTML = '<div class="empty-summary">暂无总结内容</div>'; return; }
+            box.innerHTML = `
+                <div class="summary-item"><div class="summary-label">咨询主题/问题总结</div><div class="summary-value">${escapeHtml(record.consultantSummary || '未填写')}</div></div>
+                <div class="summary-item"><div class="summary-label">咨询师反馈/建议</div><div class="summary-value">${escapeHtml(record.consultantFeedback || '未填写')}</div></div>
+                <div class="summary-item"><div class="summary-label">核心困扰标签</div><div class="summary-value">${escapeHtml(record.coreIssueTags || '未填写')}</div></div>
+                <div class="summary-item"><div class="summary-label">咨询时长</div><div class="summary-value">${record.duration || 0} 分钟</div></div>
+            `;
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div'); div.textContent = text; return div.innerHTML;
+        }
+
+        async function submitConfirmation() {
+            const signatureBase64 = getSignatureBase64();
+            if (!signatureBase64) { 
+                showModal('⚠️', '请签名', '请先在签名区域手写签名', '知道了', true);
+                return; 
+            }
+
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true; 
+            btn.textContent = '提交中...';
+
+            try {
+                let token = '';
+                let baseUrl = 'http://172.17.81.135:8080/api';
+                
+                if (window.Android && typeof Android.getAuthToken === 'function') {
+                    token = Android.getAuthToken() || '';
+                }
+                if (window.Android && typeof Android.getBaseUrl === 'function') {
+                    const androidBase = Android.getBaseUrl() || '';
+                    if (androidBase && !androidBase.endsWith('/api')) {
+                        baseUrl = androidBase + '/api';
+                    } else {
+                        baseUrl = androidBase || baseUrl;
+                    }
+                }
+                
+                if (!token) {
+                    token = localStorage.getItem('token') || '';
+                }
+
+                // 确定 recordId
+                let recordIdToUse = null;
+                
+                // 1. 优先使用 URL 中的 recordId
+                if (recordId && recordId !== 'null' && recordId !== 'undefined') {
+                    recordIdToUse = recordId;
+                }
+                
+                // 2. 如果 URL 没有，从 consultationRecord 获取
+                if (!recordIdToUse && consultationRecord && consultationRecord.id) {
+                    recordIdToUse = consultationRecord.id;
+                }
+                
+                // 3. 如果还是没有，尝试通过 appointmentId 创建记录
+                if (!recordIdToUse && appointmentId) {
+                    console.log('[signature-confirm] No recordId, trying to create record...');
+                    try {
+                        const createRes = await fetch(`${baseUrl}/consultation-records/appointment/${appointmentId}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': 'Bearer ' + token
+                            },
+                            body: JSON.stringify({
+                                consultationType: 'ONLINE',
+                                status: 'PENDING_PARENT_SIGNATURE'
+                            })
+                        });
+                        const createJson = await createRes.json();
+                        console.log('[signature-confirm] Create record response:', createJson);
+                        
+                        if (createJson.code === 200 && createJson.data && createJson.data.id) {
+                            recordIdToUse = createJson.data.id;
+                            consultationRecord = createJson.data;
+                            console.log('[signature-confirm] Record created with id:', recordIdToUse);
+                        }
+                    } catch (e) {
+                        console.warn('[signature-confirm] Failed to create record:', e);
+                    }
+                }
+                
+                if (!recordIdToUse) {
+                    showModal('❌', '提交失败', '未找到咨询记录，请返回重试', '确定', true);
+                    btn.disabled = false; 
+                    btn.textContent = '确认签字';
+                    return;
+                }
+
+                // 获取用户ID
+                let signerId = null;
+                if (window.Android && typeof Android.getUserId === 'function') {
+                    signerId = Android.getUserId();
+                }
+                
+                console.log('[signature-confirm] Submitting signature: recordId=' + recordIdToUse + ', signerId=' + signerId);
+                
+                const requestBody = {
+                    recordId: Number(recordIdToUse),
+                    signerType: 'PARENT',
+                    signerId: signerId,
+                    signerName: '家长',
+                    signatureImage: signatureBase64
+                };
+                
+                showLoadingModal('正在提交签名...');
+                
+                const sigRes = await fetch(`${baseUrl}/consultation-signatures/submit`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+                const sigJson = await sigRes.json();
+                console.log('[signature-confirm] Signature response:', sigJson);
+                
+                restoreModal();
+                
+                // 🔧 修复：服务器返回 code=200 表示成功（ApiResponse 没有 success 字段）
+                if (sigJson.code !== 200) {
+                    showModal('❌', '提交失败', sigJson.message || '签名提交失败，请重试', '确定', true);
+                    btn.disabled = false; 
+                    btn.textContent = '确认签字';
+                    return;
+                }
+
+                // 提交成功后，显示成功提示
+                showModal('✅', '提交成功', '您的签字确认已提交成功！即将跳转到评价页面...', '确定', false, function() {
+                    // 签名完成后跳转到评价页面
+                    const ratingUrl = `rating.html?appointmentId=${encodeURIComponent(appointmentId || '')}`;
+                    if (window.Android && typeof Android.navigateToPage === 'function') {
+                        Android.navigateToPage(ratingUrl);
+                    } else {
+                        window.location.href = ratingUrl;
+                    }
+                });
+                
+            } catch (err) {
+                console.error('[signature-confirm] Submit error:', err);
+                restoreModal();
+                showModal('❌', '提交失败', err.message || '网络错误，请稍后重试', '确定', true);
+                btn.disabled = false; 
+                btn.textContent = '确认签字';
+            }
+        }
+
+        function goBack() {
+            if (window.Android && Android.goBack) {
+                Android.goBack();
+            } else {
+                history.back();
+            }
+        }
+
+        function showError(msg) {
+            document.getElementById('loadingState').style.display = 'none';
+            const el = document.getElementById('errorState');
+            el.textContent = msg; el.style.display = 'block';
+        }
+
+        document.addEventListener('DOMContentLoaded', loadRecord);
+    </script>
+</body>
+</html>

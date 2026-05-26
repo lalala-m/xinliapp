@@ -18,17 +18,17 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- 插入咨询师账户（用于电脑端登录）
 -- 账号：13800000001  密码：password123
 INSERT INTO users (id, phone, password, user_type, nickname, status) VALUES
-(1, '13800000001', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z2EHdHlALq.1eBzQxBfzMlvK', 'CONSULTANT', '张医生', 'ACTIVE');
+(1, '13800000001', '$2a$10$374rgbBw2weGtYEvTSzEEOTI8IEe6cgOqz6CrZe6YG5Z/wq2DVgfm', 'CONSULTANT', '张医生', 'ACTIVE');
 
 -- 插入家长账户（用于手机端登录）
 -- 账号：13900000001  密码：password123
 INSERT INTO users (id, phone, password, user_type, nickname, status) VALUES
-(2, '13900000001', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z2EHdHlALq.1eBzQxBfzMlvK', 'PARENT', '王女士', 'ACTIVE');
+(2, '13900000001', '$2a$10$374rgbBw2weGtYEvTSzEEOTI8IEe6cgOqz6CrZe6YG5Z/wq2DVgfm', 'PARENT', '王女士', 'ACTIVE');
 
 -- 插入管理员账户（用于后台管理）
 -- 账号：admin  密码：password123
 INSERT INTO users (id, phone, password, user_type, nickname, status) VALUES
-(3, 'admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z2EHdHlALq.1eBzQxBfzMlvK', 'ADMIN', '管理员', 'ACTIVE');
+(3, 'admin', '$2a$10$374rgbBw2weGtYEvTSzEEOTI8IEe6cgOqz6CrZe6YG5Z/wq2DVgfm', 'ADMIN', '管理员', 'ACTIVE');
 
 -- 插入咨询师详细信息
 INSERT INTO consultants (id, user_id, name, title, specialty, identity_tier, rating, served_count, intro) VALUES

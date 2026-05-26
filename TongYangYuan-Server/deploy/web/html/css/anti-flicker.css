@@ -1,0 +1,58 @@
+/* 防止页面闪烁的全局样式 */
+
+/* 页面加载时隐藏内容，加载完成后显示 */
+html {
+    background: #F9FAFB;
+}
+
+body {
+    visibility: visible;
+    animation: fadeIn 0.2s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* 防止FOUC (Flash of Unstyled Content) */
+.dashboard-container,
+.chat-container,
+.login-container {
+    opacity: 1;
+    animation: fadeIn 0.2s ease-in;
+}
+
+/* 平滑的页面过渡 */
+* {
+    -webkit-backface-visibility: hidden;
+    -moz-backface-visibility: hidden;
+    -ms-backface-visibility: hidden;
+    backface-visibility: hidden;
+
+    -webkit-perspective: 1000;
+    -moz-perspective: 1000;
+    -ms-perspective: 1000;
+    perspective: 1000;
+}
+
+/* 优化渲染性能 */
+.appointment-list,
+.messages-area,
+.stats-grid {
+    will-change: contents;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+}
+
+/* 禁用选择以减少重绘 */
+.btn,
+.tab-btn,
+.appointment-item {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+}

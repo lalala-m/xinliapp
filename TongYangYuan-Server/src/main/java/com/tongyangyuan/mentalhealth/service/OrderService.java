@@ -1,7 +1,9 @@
 package com.tongyangyuan.mentalhealth.service;
 
+import com.tongyangyuan.mentalhealth.entity.MembershipRecord;
 import com.tongyangyuan.mentalhealth.entity.Order;
 import com.tongyangyuan.mentalhealth.entity.User;
+import com.tongyangyuan.mentalhealth.repository.MembershipRecordRepository;
 import com.tongyangyuan.mentalhealth.repository.OrderRepository;
 import com.tongyangyuan.mentalhealth.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +27,9 @@ public class OrderService {
     
     @Autowired
     private UserRepository userRepository;
+    
+    @Autowired
+    private MembershipRecordRepository membershipRecordRepository;
     
     // 订单有效期（分钟）
     private static final int ORDER_EXPIRE_MINUTES = 30;
@@ -138,6 +143,7 @@ public class OrderService {
     
     /**
      * 激活用户VIP
+     * 同时更新 users 表和 membership_records 表，保持数据一致性
      */
     @Transactional
     public void activateVipForUser(Long userId, Integer validDays) {
@@ -145,20 +151,40 @@ public class OrderService {
                 .orElseThrow(() -> new RuntimeException("用户不存在: " + userId));
         
         LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startTime;
         LocalDateTime expireTime;
         
-        // 如果用户已有VIP且未过期，累加时间
-        if (Boolean.TRUE.equals(user.getIsVip()) && user.getVipExpireTime() != null 
-                && user.getVipExpireTime().isAfter(now)) {
-            expireTime = user.getVipExpireTime().plusDays(validDays);
+        // 检查是否已有活跃会员记录
+        Optional<MembershipRecord> existingOpt = membershipRecordRepository
+                .findTopByUserIdAndStatusOrderByEndTimeDesc(userId, MembershipRecord.STATUS_ACTIVE);
+        
+        if (existingOpt.isPresent() && existingOpt.get().isActive()) {
+            // 累加时间
+            MembershipRecord existing = existingOpt.get();
+            startTime = existing.getEndTime();
+            expireTime = startTime.plusDays(validDays);
         } else {
-            // 否则从现在开始计算
+            // 从当前时间开始
+            startTime = now;
             expireTime = now.plusDays(validDays);
         }
         
+        // 1. 更新 users 表
         user.setIsVip(true);
         user.setVipExpireTime(expireTime);
         userRepository.save(user);
+        
+        // 2. 创建 membership_records 记录（确保新系统也能读取）
+        MembershipRecord record = new MembershipRecord();
+        record.setUserId(userId);
+        record.setPackageCode("legacy_order");
+        record.setPackageName("会员套餐");
+        record.setStartTime(startTime);
+        record.setEndTime(expireTime);
+        record.setDays(validDays);
+        record.setSource(MembershipRecord.SOURCE_PURCHASE);
+        record.setStatus(MembershipRecord.STATUS_ACTIVE);
+        membershipRecordRepository.save(record);
     }
     
     /**

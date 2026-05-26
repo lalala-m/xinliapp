@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>咨询记录详情</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #F4F7FF; color: #2C3345; line-height: 1.6;
+            max-width: 520px; margin: 0 auto; padding-bottom: 24px;
+        }
+        .header {
+            position: sticky; top: 0; z-index: 10;
+            background: rgba(255,255,255,0.9); backdrop-filter: blur(10px);
+            padding: 16px; display: flex; align-items: center; gap: 12px;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        .back-btn { width: 40px; height: 40px; border: none; background: transparent; font-size: 20px; cursor: pointer; }
+        .header h1 { font-size: 18px; flex: 1; text-align: center; margin-right: 40px; }
+        .card {
+            background: white; border-radius: 16px; margin: 12px 16px; padding: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+        .card-title { font-size: 15px; font-weight: 600; color: #1E2A3B; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+        .card-title::before { content: ''; width: 4px; height: 16px; background: linear-gradient(180deg, #6FA6F8, #A9C9FF); border-radius: 2px; }
+        .btn { display: inline-block; padding: 8px 16px; background: #6FA6F8; color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; margin-top: 8px; }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-secondary { background: #fff; color: #6FA6F8; border: 1px solid #6FA6F8; }
+        .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #F5F5F5; }
+        .info-row:last-child { border-bottom: none; }
+        .info-label { font-size: 13px; color: #888; }
+        .info-value { font-size: 14px; color: #1E2A3B; font-weight: 500; max-width: 60%; text-align: right; word-break: break-all; }
+        .status-badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 12px; }
+        .status-yes { background: rgba(76,175,80,0.12); color: #2E7D32; }
+        .status-no { background: rgba(255,152,0,0.12); color: #E65100; }
+        .signature-img { max-width: 100%; border: 1px solid #E0E0E0; border-radius: 8px; margin-top: 8px; }
+        .photo-img { max-width: 100%; border-radius: 8px; margin-top: 8px; }
+        .empty { color: #999; font-size: 13px; font-style: italic; padding: 8px 0; }
+        .loading { text-align: center; padding: 40px; color: #888; }
+        .error { text-align: center; padding: 40px; color: #E53935; }
+        
+        /* PDF功能区域 */
+        .pdf-section { margin-top: 16px; padding-top: 16px; border-top: 1px solid #F0F0F0; }
+        .pdf-info { font-size: 12px; color: #666; margin-bottom: 8px; }
+        .pdf-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+        
+        /* PDF预览弹窗 */
+        .pdf-modal { 
+            display: none; 
+            position: fixed; 
+            inset: 0; 
+            background: rgba(0,0,0,0.8); 
+            z-index: 1000;
+            flex-direction: column;
+        }
+        .pdf-modal.show { display: flex; }
+        .pdf-modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 16px; background: white; border-bottom: 1px solid #eee;
+        }
+        .pdf-modal-header h3 { margin: 0; font-size: 16px; }
+        .pdf-modal-close { 
+            background: none; border: none; font-size: 24px; cursor: pointer; 
+            width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+        }
+        .pdf-modal-body { 
+            flex: 1; 
+            padding: 16px; 
+            overflow: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .pdf-loading { 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100%; color: #888;
+        }
+        .pdf-loading-spinner {
+            width: 40px; height: 40px; border: 3px solid #E0E0E0; 
+            border-top-color: #6FA6F8; border-radius: 50%; 
+            animation: spin 1s linear infinite; margin-bottom: 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .pdf-error { text-align: center; padding: 40px; color: #E53935; }
+        .pdf-iframe { width: 100%; height: 100%; border: none; min-height: 500px; }
+        
+        /* PDF生成按钮 */
+        .pdf-generate-btn {
+            background: linear-gradient(135deg, #6FA6F8 0%, #A9C9FF 100%);
+            color: white; border: none; border-radius: 8px;
+            padding: 12px 20px; font-size: 14px; font-weight: 600;
+            cursor: pointer; display: flex; align-items: center; gap: 8px;
+            width: 100%; justify-content: center;
+        }
+        .pdf-generate-btn:active { transform: scale(0.98); }
+        .pdf-generate-btn:disabled { background: #ccc; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <button class="back-btn" onclick="goBack()">←</button>
+        <h1>咨询记录详情</h1>
+    </div>
+
+    <div id="loadingState" class="loading">正在加载...</div>
+    <div id="errorState" class="error" style="display:none;"></div>
+    <div id="debugInfo" style="background:#ffeb3b;padding:8px;font-size:12px;display:none;"></div>
+    <div id="contentState" style="display:none;">
+        <div class="card">
+            <div class="card-title">咨询师总结</div>
+            <div id="summarySection"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">确认状态</div>
+            <div id="statusSection"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">双方签名</div>
+            <div id="signaturesSection"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">PDF报告</div>
+            <div id="pdfSection"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">聊天记录</div>
+            <div id="chatSection"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">视频录制</div>
+            <div id="videoSection"></div>
+        </div>
+    </div>
+
+    <!-- PDF预览弹窗 -->
+    <div class="pdf-modal" id="pdfModal">
+        <div class="pdf-modal-header">
+            <h3>PDF报告预览</h3>
+            <button class="pdf-modal-close" onclick="closePdfModal()">×</button>
+        </div>
+        <div class="pdf-modal-body">
+            <div class="pdf-loading" id="pdfLoading">
+                <div class="pdf-loading-spinner"></div>
+                <span id="pdfLoadingText">正在加载PDF...</span>
+            </div>
+            <iframe id="pdfIframe" class="pdf-iframe" style="display:none;"></iframe>
+            <div class="pdf-error" id="pdfError" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const appointmentId = urlParams.get('appointmentId');
+        let currentRecordId = null;
+
+        async function loadDetail() {
+            console.log('[record-detail] appointmentId from URL:', appointmentId, 'type:', typeof appointmentId);
+            if (!appointmentId) { showError('缺少预约ID'); return; }
+            try {
+                // 优先从 Android 接口获取 token 和 base URL
+                let token = '';
+                let baseUrl = 'http://172.17.81.135:8080/api';
+                
+                if (window.Android && typeof Android.getAuthToken === 'function') {
+                    token = Android.getAuthToken() || '';
+                }
+                if (window.Android && typeof Android.getBaseUrl === 'function') {
+                    baseUrl = Android.getBaseUrl() || baseUrl;
+                }
+                
+                // 回退到 localStorage
+                if (!token) {
+                    token = localStorage.getItem('token') || '';
+                }
+                
+                const base = baseUrl;
+                console.log('[record-detail] Fetching URL:', `${base}/consultation-records/appointment/${appointmentId}`);
+                const res = await fetch(`${base}/consultation-records/appointment/${appointmentId}`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                console.log('[record-detail] Response status:', res.status);
+                const json = await res.json();
+                console.log('[record-detail] Response JSON:', JSON.stringify({ code: json.code, hasData: !!json.data, message: json.message }));
+                if (json.code === 200 && json.data) {
+                    render(json.data);
+                    document.getElementById('loadingState').style.display = 'none';
+                    document.getElementById('contentState').style.display = 'block';
+                    currentRecordId = json.data.record?.id;
+                } else {
+                    showError(json.message || '加载失败');
+                }
+            } catch (e) {
+                console.error('[record-detail] 加载详情失败:', e);
+                showError('网络错误: ' + e.message);
+            }
+        }
+
+        function render(data) {
+            console.log('[record-detail] render data:', JSON.stringify(data));
+            const record = data.record || {};
+            const signatures = data.signatures || [];
+            console.log('[record-detail] signatures count:', signatures.length);
+            console.log('[record-detail] signatures:', JSON.stringify(signatures.map(s => ({ signerType: s.signerType, signerName: s.signerName, hasImage: !!(s.signatureImage || s.signatureData) }))));
+            const consultantSig = signatures.find(s => s.signerType === 'CONSULTANT');
+            const parentSig = signatures.find(s => s.signerType === 'PARENT');
+            console.log('[record-detail] consultantSig:', !!consultantSig, 'parentSig:', !!parentSig);
+            
+            // 显示调试信息
+            const debugEl = document.getElementById('debugInfo');
+            debugEl.style.display = 'block';
+            debugEl.textContent = '签名数:' + signatures.length + ' 咨询师:' + (consultantSig ? '有' : '无') + ' 家长:' + (parentSig ? '有' : '无');
+
+            document.getElementById('summarySection').innerHTML = `
+                <div class="info-row"><span class="info-label">咨询主题总结</span><span class="info-value">${escapeHtml(record.consultantSummary || '未填写')}</span></div>
+                <div class="info-row"><span class="info-label">咨询师反馈</span><span class="info-value">${escapeHtml(record.consultantFeedback || '未填写')}</span></div>
+                <div class="info-row"><span class="info-label">核心困扰标签</span><span class="info-value">${escapeHtml(record.coreIssueTags || '未填写')}</span></div>
+                <div class="info-row"><span class="info-label">咨询时长</span><span class="info-value">${record.duration || 0} 分钟</span></div>
+            `;
+
+            document.getElementById('statusSection').innerHTML = `
+                <div class="info-row"><span class="info-label">家长已确认</span><span class="info-value"><span class="status-badge ${record.parentAcknowledged ? 'status-yes' : 'status-no'}">${record.parentAcknowledged ? '已确认' : '待确认'}</span></span></div>
+                <div class="info-row"><span class="info-label">记录完整度</span><span class="info-value">${record.recordCompleteness === 'COMPLETE' ? '完整' : '部分'}</span></div>
+            `;
+
+            document.getElementById('signaturesSection').innerHTML = `
+                <div style="margin-bottom:16px;">
+                    <div class="info-label">咨询师签名</div>
+                    ${consultantSig ? `<img class="signature-img" src="${consultantSig.signatureImage || consultantSig.signatureData}" alt="咨询师签名">` : '<div class="empty">暂无签名</div>'}
+                </div>
+                <div>
+                    <div class="info-label">家长签名</div>
+                    ${parentSig ? `<img class="signature-img" src="${parentSig.signatureImage || parentSig.signatureData}" alt="家长签名">` : '<div class="empty">暂无签名</div>'}
+                    ${parentSig && parentSig.verificationMediaUrl ? `<div class="info-label" style="margin-top:12px;">验证照片</div><img class="photo-img" src="${parentSig.verificationMediaUrl}" alt="验证照片">` : ''}
+                </div>
+            `;
+
+            // PDF部分
+            renderPdfSection(record);
+            
+            // 聊天记录部分
+            renderChatSection(data);
+            
+            // 视频录制部分
+            renderVideoSection(data);
+        }
+
+        function renderPdfSection(record) {
+            const recordId = record.id;
+            const pdfFilePath = record.pdfFilePath;
+            
+            let html = '';
+            
+            if (pdfFilePath) {
+                // PDF已生成
+                html = `
+                    <div class="pdf-info">PDF报告已生成</div>
+                    <div class="pdf-actions">
+                        <button class="btn" onclick="previewPdf(${recordId})">📄 预览PDF</button>
+                        <button class="btn btn-secondary" onclick="downloadPdf(${recordId})">⬇️ 下载PDF</button>
+                    </div>
+                `;
+            } else {
+                // PDF未生成
+                html = `
+                    <div class="pdf-info">PDF报告尚未生成</div>
+                    <div class="pdf-actions">
+                        <button class="btn" onclick="generatePdf(${recordId})" id="generatePdfBtn">📄 生成PDF报告</button>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('pdfSection').innerHTML = html;
+        }
+
+        function renderChatSection(data) {
+            const container = document.getElementById('chatSection');
+            const messages = (data && data.chatMessages) ? data.chatMessages : [];
+            
+            // 过滤出文字和语音消息（排除视频和系统消息）
+            const textVoiceMessages = messages.filter(m => {
+                const type = m.messageType || '';
+                const content = m.content || '';
+                // 排除视频消息和系统消息
+                if (type === 'video' || content.includes('[视频录制]')) return false;
+                if (type === 'system' || content.includes('[系统消息]')) return false;
+                return true;
+            });
+            
+            if (textVoiceMessages.length === 0) {
+                container.innerHTML = '<div class="empty">暂无聊天记录</div>';
+                return;
+            }
+            
+            let html = '<div class="chat-list">';
+            textVoiceMessages.forEach((msg, index) => {
+                const isMe = msg.senderType === 'PARENT' || msg.senderType === 'parent';
+                const senderName = msg.senderName || (isMe ? '我' : '咨询师');
+                const time = formatTime(msg.createdAt || msg.timestamp);
+                const type = msg.messageType || 'text';
+                const content = msg.content || '';
+                
+                html += `
+                    <div class="chat-message ${isMe ? 'chat-me' : 'chat-other'}" style="margin-bottom: 12px;">
+                        <div style="display: flex; align-items: flex-start; gap: 8px; ${isMe ? 'flex-direction: row-reverse;' : ''}">
+                            <div class="chat-avatar" style="width: 36px; height: 36px; border-radius: 50%; background: ${isMe ? '#6FA6F8' : '#4CAF50'}; color: white; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0;">
+                                ${senderName.charAt(0)}
+                            </div>
+                            <div class="chat-bubble" style="max-width: 70%; padding: 10px 14px; border-radius: 12px; background: ${isMe ? '#6FA6F8' : '#f0f0f0'}; color: ${isMe ? 'white' : '#333'}; font-size: 14px; word-break: break-word;">
+                                ${type === 'audio' || type === 'voice' ? renderAudioMessage(msg, isMe) : escapeHtml(content)}
+                            </div>
+                        </div>
+                        <div style="font-size: 11px; color: #999; margin-top: 4px; ${isMe ? 'text-align: right; padding-right: 44px;' : 'padding-left: 44px;'}">${senderName} · ${time}</div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+        
+        function renderAudioMessage(msg, isMe) {
+            const duration = msg.duration || msg.audioDuration || 0;
+            const url = msg.mediaUrl || msg.audioUrl || msg.content;
+            const durationText = duration > 0 ? Math.round(duration) + '"' : '语音';
+            const width = Math.min(200, Math.max(80, duration * 4));
+            
+            return `
+                <div class="audio-message" style="display: flex; align-items: center; gap: 8px; cursor: pointer;" onclick="playAudio('${url}')">
+                    <span style="font-size: 14px;">${durationText}</span>
+                    <div style="width: ${width}px; height: 20px; display: flex; align-items: center; justify-content: ${isMe ? 'flex-end' : 'flex-start'}; gap: 3px;">
+                        <div style="width: 3px; height: 8px; background: currentColor; border-radius: 2px; opacity: 0.6;"></div>
+                        <div style="width: 3px; height: 14px; background: currentColor; border-radius: 2px; opacity: 0.8;"></div>
+                        <div style="width: 3px; height: 10px; background: currentColor; border-radius: 2px;"></div>
+                    </div>
+                    <span style="font-size: 16px;">🔊</span>
+                </div>
+            `;
+        }
+        
+        function playAudio(url) {
+            if (!url) {
+                showToast('音频地址无效', true);
+                return;
+            }
+            const audio = new Audio(url);
+            audio.play().catch(e => {
+                console.error('播放音频失败:', e);
+                showToast('播放失败: ' + e.message, true);
+            });
+        }
+
+        function renderVideoSection(data) {
+            const container = document.getElementById('videoSection');
+            
+            // 从聊天记录中查找视频录制
+            // 视频消息在聊天记录中以 [视频录制] 开头的消息形式存储
+            const videoMessages = (data && data.chatMessages) ? data.chatMessages.filter(m => 
+                (m.content && m.content.includes('[视频录制]')) || m.messageType === 'video'
+            ) : [];
+            
+            if (videoMessages.length === 0) {
+                container.innerHTML = '<div class="empty">暂无视频录制</div>';
+                return;
+            }
+            
+            let html = '<div class="video-list">';
+            videoMessages.forEach((msg, index) => {
+                const videoUrl = msg.mediaUrl;
+                if (videoUrl) {
+                    html += `
+                        <div class="video-item" style="margin-bottom: 16px; padding: 12px; background: #f5f5f5; border-radius: 8px;">
+                            <div style="font-size: 13px; color: #666; margin-bottom: 8px;">
+                                视频录制 ${index + 1} - ${formatTime(msg.createdAt || msg.timestamp)}
+                            </div>
+                            <video controls style="width: 100%; max-height: 300px; border-radius: 8px; background: #000;">
+                                <source src="${videoUrl}" type="video/mp4">
+                                您的浏览器不支持视频播放
+                            </video>
+                            <div style="margin-top: 8px;">
+                                <button class="btn" onclick="downloadVideo('${videoUrl}')">⬇️ 下载视频</button>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function formatTime(timestamp) {
+            if (!timestamp) return '';
+            const date = new Date(timestamp);
+            return date.toLocaleString('zh-CN');
+        }
+
+        function downloadVideo(url) {
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'video_recording_' + Date.now() + '.mp4';
+            link.target = '_blank';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('视频下载已开始');
+        }
+
+        async function generatePdf(recordId) {
+            const btn = document.getElementById('generatePdfBtn');
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = '生成中...';
+            }
+            
+            try {
+                const base = (window.API_BASE_URL || 'http://127.0.0.1:8080') + '/api';
+                const res = await fetch(`${base}/consultation/pdf/generate/${recordId}`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': 'Bearer ' + (localStorage.getItem('token') || ''),
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const json = await res.json();
+                
+                if (json.success || json.code === 200) {
+                    // 刷新页面或更新PDF部分
+                    showToast('PDF生成成功');
+                    setTimeout(() => loadDetail(), 500);
+                } else {
+                    showToast(json.message || 'PDF生成失败', true);
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = '📄 生成PDF报告';
+                    }
+                }
+            } catch (e) {
+                console.error('生成PDF失败:', e);
+                showToast('生成PDF失败', true);
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = '📄 生成PDF报告';
+                }
+            }
+        }
+
+        function previewPdf(recordId) {
+            const modal = document.getElementById('pdfModal');
+            const loading = document.getElementById('pdfLoading');
+            const iframe = document.getElementById('pdfIframe');
+            const error = document.getElementById('pdfError');
+            
+            if (loading) loading.style.display = 'flex';
+            if (iframe) iframe.style.display = 'none';
+            if (error) error.style.display = 'none';
+            
+            modal.classList.add('show');
+            
+            // 延迟显示iframe确保样式生效
+            setTimeout(() => {
+                const base = (window.API_BASE_URL || 'http://127.0.0.1:8080') + '/api';
+                const pdfUrl = `${base}/consultation/pdf/preview/${recordId}`;
+                
+                if (iframe) {
+                    iframe.onload = () => {
+                        if (loading) loading.style.display = 'none';
+                        iframe.style.display = 'block';
+                    };
+                    iframe.onerror = () => {
+                        if (loading) loading.style.display = 'none';
+                        if (error) {
+                            error.style.display = 'block';
+                            error.textContent = 'PDF加载失败，请稍后重试';
+                        }
+                    };
+                    iframe.src = pdfUrl;
+                }
+            }, 100);
+        }
+
+        function downloadPdf(recordId) {
+            const base = (window.API_BASE_URL || 'http://127.0.0.1:8080') + '/api';
+            const downloadUrl = `${base}/consultation/pdf/download/${recordId}`;
+            
+            // 创建隐藏的下载链接
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = `consultation_record_${recordId}.pdf`;
+            link.target = '_blank';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showToast('PDF下载已开始');
+        }
+
+        function closePdfModal() {
+            const modal = document.getElementById('pdfModal');
+            const iframe = document.getElementById('pdfIframe');
+            
+            modal.classList.remove('show');
+            if (iframe) iframe.src = '';
+        }
+
+        function showToast(message, isError = false) {
+            // 使用原生alert作为后备
+            if (typeof showAppToast === 'function') {
+                showAppToast(message, isError ? 'error' : 'info');
+            } else {
+                alert(message);
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div'); div.textContent = text; return div.innerHTML;
+        }
+
+        function showError(msg) {
+            document.getElementById('loadingState').style.display = 'none';
+            const el = document.getElementById('errorState');
+            el.textContent = msg; el.style.display = 'block';
+        }
+
+        function goBack() {
+            if (window.Android && Android.goBack) Android.goBack();
+            else history.back();
+        }
+
+        document.addEventListener('DOMContentLoaded', loadDetail);
+    </script>
+</body>
+</html>

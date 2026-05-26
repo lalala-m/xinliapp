@@ -45,18 +45,18 @@ public class WebSocketAuthInterceptor implements HandshakeInterceptor {
                         Long userId = jwtUtil.extractUserId(token);
                         if (userId != null) {
                             attributes.put("userId", userId);
-                            log.debug("WebSocket handshake: userId={} authenticated", userId);
+                            log.info("WebSocket handshake: userId={} authenticated", userId);
                             return true;
                         }
                     }
                 } catch (Exception e) {
-                    log.debug("WebSocket token validation failed: {}", e.getMessage());
+                    log.info("WebSocket token validation failed: {}", e.getMessage());
                 }
             }
         }
 
         // 无 Token 或验证失败，仍允许匿名连接（ STOMP 层会要求认证）
-        log.debug("WebSocket handshake: anonymous connection (no token)");
+        log.info("WebSocket handshake: anonymous connection (no token)");
         return true;
     }
 

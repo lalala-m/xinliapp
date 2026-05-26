@@ -90,6 +90,37 @@ public class AuthController {
         }
     }
 
+    /**
+     * 家长注册
+     */
+    @PostMapping("/register/parent")
+    public ApiResponse<Map<String, Object>> registerParent(@RequestBody RegisterRequest request) {
+        try {
+            Map<String, Object> result = authService.registerParent(request);
+            return ApiResponse.success("家长注册成功", result);
+        } catch (Exception e) {
+            return ApiResponse.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 咨询师注册（需管理员审核）
+     */
+    @PostMapping("/register/consultant")
+    public ApiResponse<Map<String, Object>> registerConsultant(@RequestBody RegisterRequest request) {
+        try {
+            Map<String, Object> result = authService.registerConsultant(request);
+            return ApiResponse.success("咨询师注册成功，请等待审核", result);
+        } catch (Exception e) {
+            return ApiResponse.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 【已废弃】旧版通用注册接口，请使用 /register/parent 或 /register/consultant
+     * 保留此接口以兼容旧客户端，但不再推荐使用
+     */
+    @Deprecated
     @PostMapping("/register")
     public ApiResponse<User> register(
             @RequestParam String phone,
@@ -105,30 +136,10 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/register/parent")
-    public ApiResponse<Map<String, Object>> registerParent(@RequestBody RegisterRequest request) {
-        try {
-            Map<String, Object> result = authService.registerParent(request);
-            return ApiResponse.success("家长注册成功", result);
-        } catch (Exception e) {
-            return ApiResponse.error(e.getMessage());
-        }
-    }
-
-    @PostMapping("/register/consultant")
-    public ApiResponse<Map<String, Object>> registerConsultant(@RequestBody RegisterRequest request) {
-        try {
-            Map<String, Object> result = authService.registerConsultant(request);
-            return ApiResponse.success("咨询师注册成功，请等待审核", result);
-        } catch (Exception e) {
-            return ApiResponse.error(e.getMessage());
-        }
-    }
-
     @PostMapping("/login/code")
-    public ApiResponse<Map<String, Object>> loginWithCode(@RequestParam String phone, @RequestParam String code) {
+    public ApiResponse<Map<String, Object>> loginWithCode(@RequestParam String target, @RequestParam String code) {
         try {
-            Map<String, Object> result = authService.loginWithCode(phone, code);
+            Map<String, Object> result = authService.loginWithCode(target, code);
             return ApiResponse.success("登录成功", result);
         } catch (Exception e) {
             return ApiResponse.error(e.getMessage());
@@ -136,9 +147,9 @@ public class AuthController {
     }
 
     @PostMapping("/sendCode")
-    public ApiResponse<Void> sendCode(@RequestParam String phone) {
+    public ApiResponse<Void> sendCode(@RequestParam String target) {
         try {
-            authService.sendVerificationCode(phone);
+            authService.sendVerificationCode(target);
             return ApiResponse.success("验证码已发送", null);
         } catch (Exception e) {
             return ApiResponse.error(e.getMessage());
@@ -169,7 +180,10 @@ public class AuthController {
         }
     }
 
-    // 临时端点：重置所有测试账号的密码为 "123456"
+    /**
+     * 【已废弃】重置测试账号密码端点，生产环境应移除
+     */
+    @Deprecated
     @PostMapping("/reset-passwords")
     public ApiResponse<String> resetPasswords() {
         try {

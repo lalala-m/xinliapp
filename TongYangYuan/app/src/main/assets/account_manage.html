@@ -378,6 +378,22 @@
 
         <div class="section-title" style="margin: 16px 16px 12px;">常用操作</div>
         <div class="action-card">
+            <div class="action-item" onclick="goToWallet()">
+                <div class="action-icon-wrapper blue" style="background: linear-gradient(135deg, #6FA6F8 0%, #A9C9FF 100%);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 4H3a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/>
+                        <path d="M1 10h22"/>
+                        <path d="M16 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/>
+                    </svg>
+                </div>
+                <div class="action-text">
+                    <strong>我的钱包</strong>
+                    <span>充值余额、查看交易记录</span>
+                </div>
+                <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 6l6 6-6 6"/>
+                </svg>
+            </div>
             <div class="action-item" onclick="switchAccount()">
                 <div class="action-icon-wrapper blue">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -642,6 +658,14 @@
             setTimeout(function() {
                 window.location.href = 'auth.html';
             }, 300);
+        }
+
+        function goToWallet() {
+            if (window.Android && Android.navigateToWallet) {
+                Android.navigateToWallet();
+            } else {
+                window.location.href = 'wallet.html';
+            }
         }
 
         function manageChildInfo() {

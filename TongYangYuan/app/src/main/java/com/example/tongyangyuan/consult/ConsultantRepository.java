@@ -152,7 +152,8 @@ public final class ConsultantRepository {
                 entity.getAvatarUrl(),
                 entity.getIdentityTags() != null ? entity.getIdentityTags() : new ArrayList<>(),
                 entity.getIntro(),
-                entity.getReviews() != null ? entity.getReviews() : new ArrayList<>()
+                entity.getReviews() != null ? entity.getReviews() : new ArrayList<>(),
+                entity.getStages() != null ? entity.getStages() : new ArrayList<>()
         );
         consultant.setServerId(entity.getServerId()); // 业务主键，用于提交预约
         return consultant;

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>签名查看 - 童康源管理后台</title>
+    <link rel="stylesheet" href="css/admin.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+        h1 {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .signature-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+            background: #fafafa;
+        }
+        .signature-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .signature-type {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+        .signature-type.consultant { color: #2196F3; }
+        .signature-type.parent { color: #4CAF50; }
+        .signature-info {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 12px;
+        }
+        .signature-image {
+            max-width: 100%;
+            border: 1px dashed #ccc;
+            border-radius: 4px;
+            background: white;
+        }
+        .no-signature {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 14px;
+        }
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #666;
+        }
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #E53935;
+        }
+        .back-btn {
+            display: inline-block;
+            padding: 10px 24px;
+            background: #f5f5f5;
+            color: #333;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        .back-btn:hover {
+            background: #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="back-btn" onclick="history.back()">← 返回</button>
+        <h1>📝 咨询签名查看</h1>
+        <div id="loadingState" class="loading">加载中...</div>
+        <div id="contentState" style="display:none;"></div>
+        <div id="errorState" class="error" style="display:none;"></div>
+    </div>
+
+    <script src="js/admin-common.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const recordId = urlParams.get('recordId');
+
+        async function loadSignatures() {
+            if (!recordId) {
+                showError('缺少记录ID参数');
+                return;
+            }
+
+            try {
+                const response = await AdminCommon.request(`/consultation-signatures/${recordId}`);
+                console.log('[SignatureView] Response:', response);
+
+                if (response && response.success && response.data) {
+                    renderSignatures(response.data);
+                } else if (response && response.code === 200 && response.data) {
+                    renderSignatures(response.data);
+                } else {
+                    showError('未找到签名记录');
+                }
+            } catch (error) {
+                console.error('[SignatureView] Error:', error);
+                showError('加载失败: ' + error.message);
+            }
+        }
+
+        function renderSignatures(signatures) {
+            const contentState = document.getElementById('contentState');
+            const loadingState = document.getElementById('loadingState');
+
+            if (!signatures || signatures.length === 0) {
+                contentState.innerHTML = '<div class="no-signature">暂无签名记录</div>';
+                loadingState.style.display = 'none';
+                contentState.style.display = 'block';
+                return;
+            }
+
+            contentState.innerHTML = signatures.map(sig => {
+                const isConsultant = sig.signerType === 'CONSULTANT';
+                const typeLabel = isConsultant ? '咨询师签名' : '家长签名';
+                const typeClass = isConsultant ? 'consultant' : 'parent';
+                const signerName = sig.signerName || (isConsultant ? '咨询师' : '家长');
+                const signedAt = sig.signedAt ? new Date(sig.signedAt).toLocaleString('zh-CN') : '未知时间';
+                
+                // 🔧 修复：使用 signatureData 或 signatureImage 字段
+                const imageData = sig.signatureData || sig.signatureImage || '';
+                
+                if (!imageData) {
+                    return `
+                        <div class="signature-card">
+                            <div class="signature-header">
+                                <span class="signature-type ${typeClass}">${typeLabel}</span>
+                            </div>
+                            <div class="signature-info">
+                                签署人: ${signerName} | 签署时间: ${signedAt}
+                            </div>
+                            <div class="no-signature">签名图片数据缺失</div>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="signature-card">
+                        <div class="signature-header">
+                            <span class="signature-type ${typeClass}">${typeLabel}</span>
+                        </div>
+                        <div class="signature-info">
+                            签署人: ${signerName} | 签署时间: ${signedAt}
+                        </div>
+                        <img class="signature-image" src="${imageData}" alt="${typeLabel}">
+                    </div>
+                `;
+            }).join('');
+
+            loadingState.style.display = 'none';
+            contentState.style.display = 'block';
+        }
+
+        function showError(msg) {
+            document.getElementById('loadingState').style.display = 'none';
+            const el = document.getElementById('errorState');
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+
+        document.addEventListener('DOMContentLoaded', loadSignatures);
+    </script>
+</body>
+</html>

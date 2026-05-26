@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "consultants")
@@ -69,6 +70,9 @@ public class Consultant implements Serializable {
     @Column(name = "is_certificate_verified")
     private Boolean isCertificateVerified = false; // 证书是否已审核通过
 
+    @Column(name = "consultation_fee", precision = 10, scale = 2)
+    private java.math.BigDecimal consultationFee = new java.math.BigDecimal("50.00"); // 单次咨询费用
+
     // --- 身份类型映射 ---
     // IDENTITY_TIER 映射:
     // PLATINUM -> 内部人员
@@ -88,7 +92,8 @@ public class Consultant implements Serializable {
     }
 
     public enum IdentityTier {
-        BRONZE, SILVER, GOLD, PLATINUM
+        BRONZE, SILVER, GOLD, PLATINUM,
+        YELLOW_V, BLUE_V, INTERNAL
     }
 
     // Getters and Setters
@@ -242,5 +247,26 @@ public class Consultant implements Serializable {
 
     public void setIsCertificateVerified(Boolean isCertificateVerified) {
         this.isCertificateVerified = isCertificateVerified;
+    }
+
+    public java.math.BigDecimal getConsultationFee() {
+        return consultationFee;
+    }
+
+    public void setConsultationFee(java.math.BigDecimal consultationFee) {
+        this.consultationFee = consultationFee;
+    }
+
+    // 添加人生阶段列表（非数据库字段，用于前端展示）
+    @Transient
+    private List<LifeStage> stages;
+
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"issues"})
+    public List<LifeStage> getStages() {
+        return stages;
+    }
+
+    public void setStages(List<LifeStage> stages) {
+        this.stages = stages;
     }
 }

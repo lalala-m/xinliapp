@@ -64,6 +64,7 @@ public class AppointmentController {
                     } catch (Exception ignored) {}
                 }
                 map.put("consultantName", c != null ? c.getName() : "未知咨询师");
+                map.put("consultantUserId", c != null ? c.getUserId() : null);
                 result.add(map);
             }
             return ApiResponse.success(result);

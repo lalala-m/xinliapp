@@ -6,888 +6,307 @@
     <title>我的</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        .profile-card {
-            margin-top: 16px;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #EDEDED;
+            min-height: 100vh;
+            padding-bottom: 80px;
         }
 
-        .profile-card .info-item {
-            cursor: default;
-        }
-
-        .info-item {
-            padding: 16px 0;
-            border-bottom: 1px solid #F0F0F0;
+        /* 顶部用户信息 */
+        .user-header {
+            background: #fff;
+            padding: 20px 16px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            gap: 16px;
+            margin-bottom: 10px;
+        }
+        .user-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 6px;
+            background: #6FA6F8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 28px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        .user-info {
+            flex: 1;
+        }
+        .user-name {
+            font-size: 20px;
+            font-weight: 600;
+            color: #000;
+            margin-bottom: 6px;
+        }
+        .user-phone {
+            font-size: 14px;
+            color: #999;
+        }
+        .user-arrow {
+            width: 20px;
+            height: 20px;
+            color: #C8C8C8;
         }
 
-        .info-item:last-child {
+        /* 列表分组 */
+        .list-group {
+            background: #fff;
+            margin-bottom: 10px;
+        }
+        .list-item {
+            display: flex;
+            align-items: center;
+            padding: 14px 16px;
+            border-bottom: 1px solid #F5F5F5;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .list-item:last-child {
             border-bottom: none;
         }
-
-        .info-label {
-            font-size: 16px;
-            color: #333333;
+        .list-item:active {
+            background: #F5F5F5;
         }
-
-        .info-value {
-            font-size: 16px;
-            color: #666666;
-        }
-
-        .management-card {
-            margin-top: 12px;
-            padding: 0;
-        }
-
-        .management-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 16px;
-            border-bottom: 1px solid #F0F0F0;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .management-icon {
+        .list-icon {
             width: 24px;
             height: 24px;
             margin-right: 12px;
             color: #6FA6F8;
             flex-shrink: 0;
         }
-
-        .management-item-content {
-            display: flex;
-            align-items: center;
+        .list-text {
             flex: 1;
-        }
-
-        .quick-stat-icon {
-            width: 32px;
-            height: 32px;
-            margin-bottom: 8px;
-            color: #6FA6F8;
-        }
-
-        .management-item:last-child {
-            border-bottom: none;
-        }
-
-        .management-item:active {
-            background: rgba(111, 166, 248, 0.06);
-        }
-
-        .management-info {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .management-title {
             font-size: 16px;
-            font-weight: 600;
-            color: #333333;
+            color: #333;
+        }
+        .list-extra {
+            font-size: 14px;
+            color: #999;
+            margin-right: 4px;
+        }
+        .list-arrow {
+            width: 16px;
+            height: 16px;
+            color: #C8C8C8;
+            flex-shrink: 0;
         }
 
-        .management-desc {
-            font-size: 13px;
-            color: #999999;
-        }
-
-        .chevron-icon {
-            width: 20px;
-            height: 20px;
-            stroke: #C0C0C0;
-            stroke-width: 2;
-            fill: none;
-        }
-
-        /* 头像编辑区域 */
-        .profile-avatar-container {
-            position: relative;
+        /* 状态标签 */
+        .status-tag {
             display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+        .status-tag.vip {
+            background: #FFF3E0;
+            color: #FF9800;
+        }
+        .status-tag.normal {
+            background: #F5F5F5;
+            color: #999;
         }
 
-        .profile-avatar-container .hero-avatar {
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-
-        .profile-avatar-container .hero-avatar:active {
-            transform: scale(0.95);
-        }
-
-        .profile-edit-badge {
-            position: absolute;
-            bottom: 2px;
-            right: 2px;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #6FA6F8 0%, #A9C9FF 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px solid white;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-        }
-
-        .profile-edit-badge svg {
-            width: 14px;
-            height: 14px;
-            color: white;
-        }
-
-        /* 模态框 */
-        .modal-overlay {
+        /* 底部导航 */
+        .bottom-nav {
             position: fixed;
-            top: 0;
+            bottom: 0;
             left: 0;
             right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
+            background: #F7F7F7;
+            border-top: 1px solid #E5E5E5;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-        }
-
-        .modal-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .modal-content {
-            background: white;
-            border-radius: 20px;
-            padding: 24px;
-            margin: 20px;
-            width: calc(100% - 40px);
-            max-width: 360px;
-            transform: scale(0.9);
-            transition: transform 0.3s ease;
-        }
-
-        .modal-overlay.active .modal-content {
-            transform: scale(1);
-        }
-
-        .modal-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: #1E2A3B;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .modal-input {
-            width: 100%;
-            padding: 14px 16px;
-            border: 2px solid #E0E0E0;
-            border-radius: 12px;
-            font-size: 16px;
-            outline: none;
-            transition: border-color 0.2s;
-            box-sizing: border-box;
-        }
-
-        .modal-input:focus {
-            border-color: #6FA6F8;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 12px;
-            margin-top: 20px;
-        }
-
-        .modal-btn {
-            flex: 1;
-            padding: 12px;
-            border-radius: 12px;
-            font-size: 15px;
-            font-weight: 600;
-            border: none;
-            cursor: pointer;
-        }
-
-        .modal-btn.cancel {
-            background: #F0F0F0;
-            color: #666;
-        }
-
-        .modal-btn.confirm {
-            background: linear-gradient(135deg, #BDEBC8 0%, #A9C9FF 100%);
-            color: #1E2A3B;
-        }
-
-        .modal-btn.confirm:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        /* 头像上传预览 */
-        .avatar-upload-preview {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            margin: 0 auto 16px;
-            overflow: hidden;
-            background: linear-gradient(135deg, #BDEBC8 0%, #A9C9FF 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .avatar-upload-preview img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .avatar-upload-btn {
-            display: block;
-            width: 120px;
-            margin: 0 auto 16px;
-            padding: 8px 16px;
-            background: rgba(111, 166, 248, 0.1);
-            color: #6FA6F8;
-            border: 1px dashed #6FA6F8;
-            border-radius: 8px;
-            font-size: 14px;
-            text-align: center;
-            cursor: pointer;
-        }
-
-        .avatar-upload-btn:active {
-            background: rgba(111, 166, 248, 0.2);
-        }
-
-        /* 刷新按钮 */
-        .refresh-btn {
-            position: fixed;
-            top: 60px;
-            right: 16px;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: white;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
+            justify-content: space-around;
+            padding: 6px 0;
             z-index: 100;
-            transition: transform 0.3s;
         }
-
-        .refresh-btn:active {
-            transform: rotate(180deg);
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            cursor: pointer;
+            padding: 4px 20px;
         }
-
-        .refresh-btn.loading {
-            animation: spin 1s linear infinite;
+        .nav-item.active .nav-icon { color: #07C160; }
+        .nav-item.active .nav-label { color: #07C160; }
+        .nav-icon {
+            width: 24px;
+            height: 24px;
+            color: #999;
         }
-
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        .refresh-btn svg {
-            width: 20px;
-            height: 20px;
-            color: #6FA6F8;
+        .nav-label {
+            font-size: 11px;
+            color: #999;
         }
     </style>
 </head>
 <body>
-    <!-- 刷新按钮 -->
-    <button class="refresh-btn" id="refreshBtn" onclick="refreshProfilePage()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M23 4v6h-6M1 20v-6h6"/>
-            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+    <!-- 用户信息 -->
+    <div class="user-header" onclick="openProfileEdit()">
+        <div class="user-avatar" id="userAvatar">访</div>
+        <div class="user-info">
+            <div class="user-name" id="userName">访客</div>
+            <div class="user-phone" id="userPhone">点击登录</div>
+        </div>
+        <svg class="user-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 6l6 6-6 6"/>
         </svg>
-    </button>
+    </div>
 
-    <div class="top-app-bar glass">
-        <button class="back-btn" onclick="goBack()" style="display:none;">
-            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M15 18l-6-6 6-6"/>
+    <!-- 会员状态 -->
+    <div class="list-group">
+        <div class="list-item" onclick="openRechargePage()">
+            <svg class="list-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/>
             </svg>
-        </button>
-        <div class="title">我的</div>
-        <div style="width: 40px;"></div>
-    </div>
-
-    <div class="content">
-        <div class="card profile-hero">
-            <div class="profile-avatar-container" id="avatarContainer" onclick="openProfileEdit()">
-                <div class="hero-avatar" id="heroAvatar">访</div>
-                <div class="profile-edit-badge" id="editBadge" style="display: none;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                    </svg>
-                </div>
-            </div>
-            <div class="hero-title" id="heroTitle">欢迎来到童康源</div>
-            <div class="hero-subtitle" id="heroSubtitle">登录后获取个性化成长方案</div>
-            <div class="status-pill" id="heroStatusPill">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/>
-                </svg>
-                <span id="pillText">未开通会员</span>
-            </div>
-            <button class="btn hero-action" id="heroActionBtn">立即登录</button>
-        </div>
-
-        <div class="section-title">账户总览</div>
-        <div class="card profile-card">
-            <div class="info-item">
-                <span class="info-label">手机号</span>
-                <span class="info-value" id="phone">未登录</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">登录状态</span>
-                <span class="info-value" id="loginStatus">未登录</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">会员权益</span>
-                <span class="info-value" id="memberStatus">未开通</span>
-            </div>
-            <!-- 当前操作孩子信息 -->
-            <div class="info-item" id="currentChildInfo" style="display: none;">
-                <span class="info-label">当前孩子</span>
-                <span class="info-value" id="currentChildDisplay">-</span>
-            </div>
-        </div>
-
-        <!-- 孩子成长档案卡片 -->
-        <div class="card" id="childGrowthCard" style="margin-top: 16px; display: none;">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-                <div class="child-avatar-lg" id="growthChildAvatar" style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, #6FA6F8 0%, #A9C9FF 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; font-weight: 600; flex-shrink: 0;"></div>
-                <div style="flex: 1;">
-                    <div style="font-size: 16px; font-weight: 600; color: var(--text-primary);" id="growthChildName">-</div>
-                    <div style="font-size: 13px; color: var(--text-secondary);" id="growthChildMeta">-</div>
-                </div>
-            </div>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
-                <div style="text-align: center; padding: 12px; background: rgba(111, 166, 248, 0.08); border-radius: 12px;">
-                    <div style="font-size: 18px; font-weight: 700; color: var(--primary-color);" id="growthConsultCount">0</div>
-                    <div style="font-size: 11px; color: var(--text-secondary);">咨询次数</div>
-                </div>
-                <div style="text-align: center; padding: 12px; background: rgba(255, 183, 197, 0.15); border-radius: 12px;">
-                    <div style="font-size: 18px; font-weight: 700; color: #FF8FAB;" id="growthBadgeCount">0</div>
-                    <div style="font-size: 11px; color: var(--text-secondary);">获得勋章</div>
-                </div>
-                <div style="text-align: center; padding: 12px; background: rgba(189, 235, 200, 0.2); border-radius: 12px;">
-                    <div style="font-size: 18px; font-weight: 700; color: #66BB6A;" id="growthDayCount">0</div>
-                    <div style="font-size: 11px; color: var(--text-secondary);">守护天数</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="section-title">快捷数据</div>
-        <div class="quick-stats">
-            <div class="quick-stat-card">
-                <img src="icons/membership-status.svg" alt="会员状态" class="quick-stat-icon">
-                <div class="quick-stat-label">会员状态</div>
-                <div class="quick-stat-value" id="statMember">未开通</div>
-                <div class="quick-stat-sub" id="statMemberHint">开通后解锁专属咨询</div>
-            </div>
-            <div class="quick-stat-card" onclick="openChildManagement()">
-                <img src="icons/child-profile.svg" alt="孩子档案" class="quick-stat-icon">
-                <div class="quick-stat-label">孩子档案</div>
-                <div class="quick-stat-value" id="statChild">未完善</div>
-                <div class="quick-stat-sub" id="statChildHint">完成后推荐更精准</div>
-            </div>
-            <div class="quick-stat-card" id="badgeCard" style="display:none;">
-                <img src="icons/certified-mentor.svg" alt="智慧妈妈徽章" class="quick-stat-icon">
-                <div class="quick-stat-label">成长勋章</div>
-                <div class="quick-stat-value" id="statBadge">未获得</div>
-                <div class="quick-stat-sub" id="statBadgeHint">通过指导师考试后解锁</div>
-            </div>
-        </div>
-
-        <div class="section-title">常用功能</div>
-        <div class="card management-card">
-            <div class="management-item" onclick="openAccountManagement()">
-                <div class="management-item-content">
-                    <img src="icons/account-management.svg" alt="账号管理" class="management-icon">
-                    <div class="management-info">
-                        <span class="management-title">账号管理</span>
-                        <span class="management-desc">调整登录方式、更新手机号</span>
-                    </div>
-                </div>
-                <svg class="chevron-icon" viewBox="0 0 24 24">
-                    <path d="M9 6l6 6-6 6" />
-                </svg>
-            </div>
-            <div class="management-item" onclick="openChildManagement()">
-                <div class="management-item-content">
-                    <img src="icons/child-management.svg" alt="孩子管理" class="management-icon">
-                    <div class="management-info">
-                        <span class="management-title">孩子管理</span>
-                        <span class="management-desc">完善或新增孩子信息</span>
-                    </div>
-                </div>
-                <svg class="chevron-icon" viewBox="0 0 24 24">
-                    <path d="M9 6l6 6-6 6" />
-                </svg>
-            </div>
-            <div class="management-item" onclick="openRechargePage()">
-                <div class="management-item-content">
-                    <img src="icons/membership-center.svg" alt="会员中心" class="management-icon">
-                    <div class="management-info">
-                        <span class="management-title">会员中心</span>
-                        <span class="management-desc">查看权益 / 立即开通</span>
-                    </div>
-                </div>
-                <svg class="chevron-icon" viewBox="0 0 24 24">
-                    <path d="M9 6l6 6-6 6" />
-                </svg>
-            </div>
-            <div class="management-item" onclick="navigateToPage('my_consultations.html')">
-                <div class="management-item-content">
-                    <img src="icons/consultation-plan.svg" alt="我的咨询" class="management-icon">
-                    <div class="management-info">
-                        <span class="management-title">我的咨询</span>
-                        <span class="management-desc">查看历史咨询记录</span>
-                    </div>
-                </div>
-                <svg class="chevron-icon" viewBox="0 0 24 24">
-                    <path d="M9 6l6 6-6 6" />
-                </svg>
-            </div>
-        </div>
-
-        <div class="section-title">咨询师中心</div>
-        <div class="card management-card">
-            <!-- 咨询师入口：登录后根据 userType 决定显示 -->
-            <div class="management-item" id="consultantLoginEntry" onclick="openConsultantLogin()">
-                <div class="management-item-content">
-                    <img src="icons/certified-mentor.svg" alt="咨询师" class="management-icon">
-                    <div class="management-info">
-                        <span class="management-title" id="consultantEntryTitle">咨询师入口</span>
-                        <span class="management-desc" id="consultantEntryDesc">登录管理咨询师账号</span>
-                    </div>
-                </div>
-                <svg class="chevron-icon" viewBox="0 0 24 24">
-                    <path d="M9 6l6 6-6 6" />
-                </svg>
-            </div>
-            <div class="management-item" onclick="navigateToPage('consultant_training.html')">
-                <div class="management-item-content">
-                    <img src="icons/certified-mentor.svg" alt="加入咨询师" class="management-icon">
-                    <div class="management-info">
-                        <span class="management-title">加入咨询师团队</span>
-                        <span class="management-desc">蓝V认证通道</span>
-                    </div>
-                </div>
-                <svg class="chevron-icon" viewBox="0 0 24 24">
-                    <path d="M9 6l6 6-6 6" />
-                </svg>
-            </div>
-            <div class="management-item" onclick="navigateToPage('consultant_certification.html')">
-                <div class="management-item-content">
-                    <img src="icons/satisfaction-rate.svg" alt="黄V认证" class="management-icon">
-                    <div class="management-info">
-                        <span class="management-title">黄V认证中心</span>
-                        <span class="management-desc">资质认证 / 保证金管理</span>
-                    </div>
-                </div>
-                <svg class="chevron-icon" viewBox="0 0 24 24">
-                    <path d="M9 6l6 6-6 6" />
-                </svg>
-            </div>
+            <span class="list-text">会员中心</span>
+            <span class="list-extra" id="memberExtra">未开通</span>
+            <svg class="list-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 6l6 6-6 6"/>
+            </svg>
         </div>
     </div>
 
-    <!-- 头像编辑模态框 -->
-    <div class="modal-overlay" id="profileEditModal" onclick="closeProfileEdit(event)">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <div class="modal-title">编辑资料</div>
-            
-            <div class="avatar-upload-preview" id="avatarPreview">
-                <span id="avatarPreviewInitial">访</span>
-            </div>
-            <input type="file" id="avatarFileInput" accept="image/*" style="display:none" onchange="handleAvatarPreview(this)">
-            <button class="avatar-upload-btn" onclick="document.getElementById('avatarFileInput').click()">
-                选择新头像
-            </button>
-            
-            <div style="margin-bottom: 16px;">
-                <label style="display: block; font-size: 14px; color: #666; margin-bottom: 8px;">昵称</label>
-                <input type="text" class="modal-input" id="editNicknameInput" placeholder="请输入昵称" maxlength="20">
-            </div>
-            
-            <div class="modal-actions">
-                <button class="modal-btn cancel" onclick="closeProfileEdit()">取消</button>
-                <button class="modal-btn confirm" id="saveProfileBtn" onclick="saveProfileData()">保存</button>
-            </div>
+    <!-- 孩子档案 -->
+    <div class="list-group">
+        <div class="list-item" onclick="openChildManagement()">
+            <svg class="list-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2a5 5 0 0 1 5 5v2a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5z"/>
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            </svg>
+            <span class="list-text">孩子档案</span>
+            <span class="list-extra" id="childExtra">未完善</span>
+            <svg class="list-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 6l6 6-6 6"/>
+            </svg>
+        </div>
+        <div class="list-item" onclick="navigateToPage('my_consultations.html')">
+            <svg class="list-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <span class="list-text">我的咨询</span>
+            <svg class="list-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 6l6 6-6 6"/>
+            </svg>
+        </div>
+    </div>
+
+    <!-- 账号相关 -->
+    <div class="list-group">
+        <div class="list-item" onclick="openAccountManagement()">
+            <svg class="list-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+            </svg>
+            <span class="list-text">账号管理</span>
+            <svg class="list-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 6l6 6-6 6"/>
+            </svg>
+        </div>
+        <div class="list-item" onclick="openConsultantLogin()" id="consultantEntry">
+            <svg class="list-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+            <span class="list-text">咨询师入口</span>
+            <svg class="list-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 6l6 6-6 6"/>
+            </svg>
+        </div>
+    </div>
+
+    <!-- 底部导航 -->
+    <div class="bottom-nav">
+        <div class="nav-item" onclick="goHome()">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+            <span class="nav-label">首页</span>
+        </div>
+        <div class="nav-item" onclick="goConsult()">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+            </svg>
+            <span class="nav-label">咨询</span>
+        </div>
+        <div class="nav-item active" onclick="goProfile()">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+            </svg>
+            <span class="nav-label">我的</span>
         </div>
     </div>
 
     <script src="js/app.js"></script>
     <script>
-        // ==================== 全局状态管理 ====================
-        // 监听登录状态变化（用于跨页面同步）
-        window.addEventListener('storage', function(e) {
-            if (e.key === 'user' || e.key === 'token') {
-                // 状态发生变化，刷新页面
-                console.log('Login state changed, refreshing profile page...');
-                hydrateProfile();
-                loadChildInfo();
-                updateConsultantEntry();
-            }
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUserProfile();
         });
 
-        // Android 端回调：通知刷新页面
-        window.onProfileUpdated = function() {
-            hydrateProfile();
-        };
+        function loadUserProfile() {
+            const profile = window.getUserProfile ? window.getUserProfile() : {};
+            
+            if (profile.isLoggedIn) {
+                document.getElementById('userName').textContent = profile.nickname || profile.phone || '用户';
+                document.getElementById('userPhone').textContent = profile.phone || '';
+                document.getElementById('userAvatar').textContent = (profile.nickname || profile.phone || '用').charAt(0);
+                
+                // 会员状态
+                const memberExtra = document.getElementById('memberExtra');
+                if (profile.isPaid) {
+                    memberExtra.textContent = '已开通';
+                    memberExtra.style.color = '#FF9800';
+                } else {
+                    memberExtra.textContent = '未开通';
+                }
+                
+                // 孩子状态
+                const childExtra = document.getElementById('childExtra');
+                if (profile.hasChildProfile) {
+                    childExtra.textContent = '已完善';
+                    childExtra.style.color = '#07C160';
+                } else {
+                    childExtra.textContent = '未完善';
+                }
+            } else {
+                document.getElementById('userName').textContent = '访客';
+                document.getElementById('userPhone').textContent = '点击登录';
+                document.getElementById('userAvatar').textContent = '访';
+            }
+        }
 
-        // ==================== 头像编辑功能 ====================
-        let currentAvatarUrl = '';
-        let currentNickname = '';
-
-        /**
-         * 打开头像编辑弹窗
-         */
         function openProfileEdit() {
-            const user = getUserProfile ? getUserProfile() : {};
-            if (!user.isLoggedIn) {
-                // 未登录，跳转到登录页
-                if (window.Android && Android.openAccountManagement) {
-                    Android.openAccountManagement();
-                } else {
-                    window.location.href = 'auth.html';
-                }
+            const profile = window.getUserProfile ? window.getUserProfile() : {};
+            if (!profile.isLoggedIn) {
+                window.location.href = 'auth.html';
                 return;
             }
-
-            // 获取当前用户信息
-            currentAvatarUrl = user.avatarUrl || '';
-            currentNickname = user.nickname || '';
-
-            // 设置模态框初始值
-            document.getElementById('editNicknameInput').value = currentNickname;
-
-            // 设置头像预览
-            const previewEl = document.getElementById('avatarPreview');
-            const previewInitial = document.getElementById('avatarPreviewInitial');
-
-            if (currentAvatarUrl) {
-                previewEl.innerHTML = `<img src="${currentAvatarUrl}" alt="头像预览" onerror="this.parentElement.innerHTML='<span id=\\'avatarPreviewInitial\\'>${currentNickname ? currentNickname.charAt(0) : '访'}</span>'">`;
-            } else {
-                previewEl.innerHTML = `<span id="avatarPreviewInitial">${currentNickname ? currentNickname.charAt(0) : '访'}</span>`;
-            }
-
-            // 显示模态框
-            const modal = document.getElementById('profileEditModal');
-            modal.classList.add('active');
-        }
-
-        /**
-         * 关闭头像编辑弹窗
-         */
-        function closeProfileEdit(e) {
-            if (e && e.target !== e.currentTarget) return;
-            document.getElementById('profileEditModal').classList.remove('active');
-        }
-
-        /**
-         * 预览选择的图片
-         */
-        function handleAvatarPreview(input) {
-            if (input.files && input.files[0]) {
-                const file = input.files[0];
-
-                // 验证文件类型
-                if (!file.type.startsWith('image/')) {
-                    window.showToast('请选择图片文件');
-                    return;
-                }
-
-                // 验证文件大小（最大5MB）
-                if (file.size > 5 * 1024 * 1024) {
-                    window.showToast('图片大小不能超过5MB');
-                    return;
-                }
-
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const previewEl = document.getElementById('avatarPreview');
-                    previewEl.innerHTML = `<img src="${e.target.result}" alt="头像预览">`;
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        /**
-         * 保存用户资料
-         */
-        async function saveProfileData() {
-            const nickname = document.getElementById('editNicknameInput').value.trim();
-            const fileInput = document.getElementById('avatarFileInput');
-            const saveBtn = document.getElementById('saveProfileBtn');
-
-            // 验证昵称
-            if (nickname && nickname.length > 20) {
-                window.showToast('昵称不能超过20个字符');
-                return;
-            }
-
-            saveBtn.disabled = true;
-            saveBtn.textContent = '保存中...';
-
-            try {
-                let newAvatarUrl = currentAvatarUrl;
-
-                // 如果选择了新头像，先上传
-                if (fileInput.files && fileInput.files[0]) {
-                    const formData = new FormData();
-                    formData.append('file', fileInput.files[0]);
-
-                    const uploadResponse = await window.fetchWithAuth('/upload/avatar', {
-                        method: 'POST',
-                        body: formData
-                    });
-
-                    if (uploadResponse.ok) {
-                        const uploadResult = await uploadResponse.json();
-                        if (uploadResult.code === 200 && uploadResult.data && uploadResult.data.url) {
-                            newAvatarUrl = uploadResult.data.url;
-                        } else {
-                            throw new Error(uploadResult.message || '头像上传失败');
-                        }
-                    } else {
-                        throw new Error('头像上传失败');
-                    }
-                }
-
-                // 更新用户资料
-                const updateResponse = await window.fetchWithAuth('/user/profile', {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ 
-                        nickname: nickname || currentNickname, 
-                        avatarUrl: newAvatarUrl 
-                    })
-                });
-
-                const updateResult = await updateResponse.json();
-
-                if (updateResult.code === 200) {
-                    // 更新成功，通知 Android 端
-                    if (window.Android && Android.onProfileUpdated) {
-                        Android.onProfileUpdated(
-                            updateResult.data.nickname || nickname,
-                            updateResult.data.avatarUrl || newAvatarUrl
-                        );
-                    }
-
-                    // 更新本地显示
-                    currentAvatarUrl = newAvatarUrl;
-                    currentNickname = updateResult.data.nickname || nickname;
-
-                    // 刷新页面显示
-                    hydrateProfile();
-                    loadChildInfo();
-
-                    closeProfileEdit();
-                    window.showToast('保存成功');
-                } else {
-                    throw new Error(updateResult.message || '保存失败');
-                }
-            } catch (error) {
-                console.error('保存失败:', error);
-                window.showToast(error.message || '保存失败，请重试');
-            } finally {
-                saveBtn.disabled = false;
-                saveBtn.textContent = '保存';
-            }
-        }
-
-        // ==================== 刷新功能 ====================
-        let isRefreshing = false;
-
-        /**
-         * 完整刷新用户资料页面
-         */
-        async function refreshProfilePage() {
-            if (isRefreshing) return;
-
-            const refreshBtn = document.getElementById('refreshBtn');
-            isRefreshing = true;
-            refreshBtn.classList.add('loading');
-
-            try {
-                // 1. 从服务器获取最新用户信息
-                const response = await window.fetchWithAuth('/user/info', {
-                    method: 'GET'
-                });
-
-                if (response.ok) {
-                    const result = await response.json();
-                    if (result.code === 200 && result.data) {
-                        // 更新 Android 端本地存储
-                        if (window.Android && Android.updateUserProfile) {
-                            Android.updateUserProfile(JSON.stringify(result.data));
-                        }
-
-                        // 刷新页面显示
-                        hydrateProfile();
-                        loadChildInfo();
-                        updateConsultantEntry();
-
-                        window.showToast('刷新成功');
-                    } else {
-                        throw new Error(result.message || '获取用户信息失败');
-                    }
-                } else if (response.status === 401) {
-                    // Token 过期，跳转到登录页
-                    window.showToast('登录已过期，请重新登录');
-                    if (window.Android && Android.openAccountManagement) {
-                        Android.openAccountManagement();
-                    }
-                } else {
-                    throw new Error('获取用户信息失败');
-                }
-            } catch (error) {
-                console.error('刷新失败:', error);
-                window.showToast('刷新失败，请重试');
-            } finally {
-                isRefreshing = false;
-                refreshBtn.classList.remove('loading');
-            }
-        }
-
-        // ==================== 页面导航函数 ====================
-        function navigateToPage(pageName) {
-            if (window.Android && Android.openWebPage) {
-                Android.openWebPage(pageName);
-            } else {
-                window.location.href = pageName;
-            }
-        }
-
-        // 孩子数据
-        let childProfiles = [];
-        let currentChildId = -1;
-
-        // 获取用户配置
-        function getUserProfile() {
-            if (window.Android && Android.getUserProfile) {
-                try {
-                    return JSON.parse(Android.getUserProfile());
-                } catch (e) {
-                    return {};
-                }
-            }
-            return {};
-        }
-
-        // 加载孩子信息
-        function loadChildInfo() {
-            if (window.Android && typeof Android.getChildProfiles === 'function') {
-                try {
-                    const json = Android.getChildProfiles();
-                    const parsed = JSON.parse(json || '[]');
-                    if (Array.isArray(parsed)) {
-                        childProfiles = parsed;
-                    }
-                } catch (e) {
-                    childProfiles = [];
-                }
-            }
-
-            if (window.Android && typeof Android.getCurrentChildId === 'function') {
-                try {
-                    currentChildId = parseInt(Android.getCurrentChildId());
-                } catch (e) {
-                    currentChildId = -1;
-                }
-            }
-
-            // 更新UI
-            updateChildInfoUI();
-        }
-
-        // 计算年龄
-        function calculateAge(birthDate) {
-            if (!birthDate) return 0;
-            try {
-                const birth = new Date(birthDate);
-                const today = new Date();
-                let age = today.getFullYear() - birth.getFullYear();
-                const monthDiff = today.getMonth() - birth.getMonth();
-                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-                    age--;
-                }
-                return age;
-            } catch (e) {
-                return 0;
-            }
-        }
-
-        // 更新孩子信息UI
-        function updateChildInfoUI() {
-            const currentChildInfo = document.getElementById('currentChildInfo');
-            const currentChildDisplay = document.getElementById('currentChildDisplay');
-            const childGrowthCard = document.getElementById('childGrowthCard');
-
-            // 查找当前孩子
-            const currentChild = childProfiles.find(c => {
-                const cid = typeof c.id === 'string' ? parseInt(c.id) : c.id;
-                return cid === currentChildId;
-            });
-
-            if (currentChild) {
-                currentChildInfo.style.display = 'flex';
-                const age = calculateAge(currentChild.birthDate);
-                currentChildDisplay.textContent = `${currentChild.name || '未命名'} · ${age > 0 ? age + '岁' : '年龄未知'}`;
-
-                // 显示成长档案卡片
-                childGrowthCard.style.display = 'block';
-                document.getElementById('growthChildName').textContent = currentChild.name || '未命名';
-                document.getElementById('growthChildMeta').textContent = 
-                    `${currentChild.gender === 'GIRL' ? '女孩' : '男孩'} · ${currentChild.birthDate || '生日未填'}`;
-                document.getElementById('growthChildAvatar').textContent = (currentChild.name || '子').charAt(0);
-
-                // TODO: 从服务器获取真实数据
-                // 暂时使用模拟数据
-                document.getElementById('growthConsultCount').textContent = '0';
-                document.getElementById('growthBadgeCount').textContent = '0';
-                document.getElementById('growthDayCount').textContent = '0';
-            } else if (childProfiles.length > 0) {
-                currentChildInfo.style.display = 'flex';
-                const first = childProfiles[0];
-                const age = calculateAge(first.birthDate);
-                currentChildDisplay.textContent = `${first.name || '未命名'} · ${age > 0 ? age + '岁' : '年龄未知'}`;
-                childGrowthCard.style.display = 'block';
-                document.getElementById('growthChildName').textContent = first.name || '未命名';
-            } else {
-                currentChildInfo.style.display = 'none';
-                childGrowthCard.style.display = 'none';
-            }
+            // 已登录，可以编辑资料
+            showToast('资料编辑功能开发中');
         }
 
         function openAccountManagement() {
-            if (window.Android && Android.openAccountManagement) {
-                Android.openAccountManagement();
-            } else {
-                navigateToPage('account_manage.html');
-            }
+            navigateToPage('account_management.html');
+        }
+
+        function openChildManagement() {
+            navigateToPage('child_management.html');
+        }
+
+        function openRechargePage() {
+            navigateToPage('wallet_recharge.html');
         }
 
         function openConsultantLogin() {
@@ -898,100 +317,36 @@
             }
         }
 
-        function openChildManagement() {
-            if (window.Android && Android.openChildManagement) {
-                Android.openChildManagement();
+        function goHome() {
+            navigateToPage('home.html');
+        }
+
+        function goConsult() {
+            navigateToPage('consult.html');
+        }
+
+        function goProfile() {
+            // 已在当前页
+        }
+
+        function navigateToPage(page) {
+            if (window.Android && Android.openWebPage) {
+                Android.openWebPage(page);
             } else {
-                navigateToPage('child_info.html');
+                window.location.href = page;
             }
         }
 
-        function maskPhone(phone) {
-            if (!phone || phone.length < 7) {
-                return phone || '未登录';
-            }
-            return phone.slice(0, 3) + '****' + phone.slice(-4);
-        }
-
-        function hydrateProfile() {
-            const user = getUserProfile ? getUserProfile() : {};
-            const isLoggedIn = !!user.isLoggedIn;
-            const phone = user.phone || '';
-            const isPaid = !!user.isPaid;
-            const hasChildProfile = !!user.hasChildProfile;
-
-            document.getElementById('phone').textContent = isLoggedIn ? maskPhone(phone) : '未登录';
-            document.getElementById('loginStatus').textContent = isLoggedIn ? '已登录' : '未登录';
-            document.getElementById('memberStatus').textContent = isPaid ? '会员已开通' : '未开通';
-            document.getElementById('statMember').textContent = isPaid ? '已激活' : '未开通';
-            document.getElementById('statMemberHint').textContent = isPaid ? '可随时预约咨询师' : '开通后可预约专属咨询';
-            document.getElementById('statChild').textContent = hasChildProfile ? '已完善' : '未完善';
-            document.getElementById('statChildHint').textContent = hasChildProfile ? '已生成成长档案' : '完善后推荐更精准';
-
-            let hasWisdomMomBadge = false;
-            if (window.Android && Android.hasBadge) {
-                try {
-                    hasWisdomMomBadge = Android.hasBadge('wisdom_mom');
-                } catch (e) {
-                    hasWisdomMomBadge = false;
-                }
+        function showToast(message) {
+            if (window.Android && Android.showToast) {
+                Android.showToast(message);
             } else {
-                hasWisdomMomBadge = localStorage.getItem('hasWisdomMomBadge') === 'true';
-            }
-            const badgeCard = document.getElementById('badgeCard');
-            if (hasWisdomMomBadge) {
-                badgeCard.style.display = 'block';
-                document.getElementById('statBadge').textContent = '智慧妈妈';
-                document.getElementById('statBadgeHint').textContent = '已通过指导师考试，获得成长勋章';
-            } else {
-                badgeCard.style.display = 'none';
-            }
-
-            const heroAvatar = document.getElementById('heroAvatar');
-            const heroTitle = document.getElementById('heroTitle');
-            const heroSubtitle = document.getElementById('heroSubtitle');
-            const pillText = document.getElementById('pillText');
-            const heroActionBtn = document.getElementById('heroActionBtn');
-
-            heroAvatar.textContent = isLoggedIn && phone ? phone.slice(-2) : '访';
-            heroTitle.textContent = isLoggedIn ? `Hi, ${maskPhone(phone)}` : '欢迎来到童康源';
-            heroSubtitle.textContent = isPaid ? '感谢加入会员，享受专属守护' : '登录并开通会员，获得孩子成长方案';
-            pillText.textContent = isPaid ? '童康源会员 · 有效' : '未开通会员';
-
-            if (!isLoggedIn) {
-                heroActionBtn.textContent = '立即登录';
-                heroActionBtn.onclick = openAccountManagement;
-            } else if (!isPaid) {
-                heroActionBtn.textContent = '开通会员';
-                heroActionBtn.onclick = openRechargePage;
-            } else {
-                heroActionBtn.textContent = '管理账号';
-                heroActionBtn.onclick = openAccountManagement;
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            loadChildInfo();
-            hydrateProfile();
-            updateConsultantEntry();
-        });
-
-        function updateConsultantEntry() {
-            // 检查是否为咨询师账号
-            var userType = '';
-            if (window.Android && Android.getUserType) {
-                try { userType = Android.getUserType() || ''; } catch(e) {}
-            }
-            var entryTitle = document.getElementById('consultantEntryTitle');
-            var entryDesc = document.getElementById('consultantEntryDesc');
-            if (entryTitle && entryDesc) {
-                if (userType === 'CONSULTANT') {
-                    entryTitle.textContent = '我的主页（咨询师）';
-                    entryDesc.textContent = '查看和编辑咨询师资料';
-                } else {
-                    entryTitle.textContent = '咨询师入口';
-                    entryDesc.textContent = '登录管理咨询师账号';
-                }
+                // 简单的 toast 实现
+                const toast = document.createElement('div');
+                toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.7);color:#fff;padding:10px 20px;border-radius:4px;font-size:14px;z-index:9999;';
+                toast.textContent = message;
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 2000);
             }
         }
     </script>

@@ -2,6 +2,7 @@ package com.tongyangyuan.mentalhealth.dto;
 
 public class RegisterRequest {
     private String phone;
+    private String email;
     private String password;
     private String confirmPassword;
     private String userType; // PARENT, CONSULTANT
@@ -13,6 +14,7 @@ public class RegisterRequest {
     private String specialization;
     private String introduction;
     private String verificationCode; // 可选的验证码
+    private java.util.List<Long> tagIds; // 擅长人生阶段ID列表（对应 life_stages.id）
 
     // Getters and Setters
     public String getPhone() {
@@ -21,6 +23,14 @@ public class RegisterRequest {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getPassword() {
@@ -93,5 +103,13 @@ public class RegisterRequest {
 
     public void setVerificationCode(String verificationCode) {
         this.verificationCode = verificationCode;
+    }
+
+    public java.util.List<Long> getTagIds() {
+        return tagIds;
+    }
+
+    public void setTagIds(java.util.List<Long> tagIds) {
+        this.tagIds = tagIds;
     }
 }

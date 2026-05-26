@@ -2,7 +2,6 @@ package com.tongyangyuan.mentalhealth.service;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
-import com.tongyangyuan.mentalhealth.dto.UpdateUserProfileRequest;
 import com.tongyangyuan.mentalhealth.entity.*;
 import com.tongyangyuan.mentalhealth.repository.*;
 import org.springframework.data.domain.PageRequest;
@@ -25,17 +24,26 @@ public class AdminService {
     private final AppointmentRepository appointmentRepository;
     private final AdminLogRepository adminLogRepository;
     private final ChildRepository childRepository;
+    private final ConsultantSpecialtyRepository consultantSpecialtyRepository;
+    private final LifeStageRepository lifeStageRepository;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     public AdminService(UserRepository userRepository, 
                        ConsultantRepository consultantRepository,
                        AppointmentRepository appointmentRepository,
                        AdminLogRepository adminLogRepository,
-                       ChildRepository childRepository) {
+                       ChildRepository childRepository,
+                       ConsultantSpecialtyRepository consultantSpecialtyRepository,
+                       LifeStageRepository lifeStageRepository,
+                       org.springframework.security.crypto.password.PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.consultantRepository = consultantRepository;
         this.appointmentRepository = appointmentRepository;
         this.adminLogRepository = adminLogRepository;
         this.childRepository = childRepository;
+        this.consultantSpecialtyRepository = consultantSpecialtyRepository;
+        this.lifeStageRepository = lifeStageRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     // ==================== 用户管理 ====================
@@ -185,58 +193,6 @@ public class AdminService {
         userRepository.deleteById(id);
     }
 
-    /**
-     * 更新用户资料（昵称和头像）
-     * @param userId 用户ID
-     * @param request 更新请求
-     * @return 更新后的用户
-     */
-    @Transactional
-    public User updateUserProfile(Long userId, UpdateUserProfileRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("用户不存在"));
-        
-        // 更新昵称
-        if (request.getNickname() != null && !request.getNickname().trim().isEmpty()) {
-            if (request.getNickname().length() > 50) {
-                throw new RuntimeException("昵称不能超过50个字符");
-            }
-            user.setNickname(request.getNickname().trim());
-        }
-        
-        // 更新头像
-        if (request.getAvatarUrl() != null) {
-            // 空字符串或有效URL都可以
-            if (request.getAvatarUrl().isEmpty() || isValidUrl(request.getAvatarUrl())) {
-                user.setAvatarUrl(request.getAvatarUrl());
-            } else {
-                throw new RuntimeException("头像URL格式不正确");
-            }
-        }
-        
-        User saved = userRepository.save(user);
-        
-        // 如果是咨询师，同时同步到咨询师档案
-        if (saved.getUserType() == User.UserType.CONSULTANT) {
-            consultantRepository.findByUserId(saved.getId()).ifPresent(c -> {
-                if (request.getNickname() != null && !request.getNickname().trim().isEmpty()) {
-                    c.setName(request.getNickname().trim());
-                }
-                if (saved.getAvatarUrl() != null && !saved.getAvatarUrl().isEmpty()) {
-                    c.setAvatarUrl(saved.getAvatarUrl());
-                }
-                consultantRepository.save(c);
-            });
-        }
-        
-        return saved;
-    }
-
-    private boolean isValidUrl(String url) {
-        if (url == null || url.isEmpty()) return true;
-        return url.matches("^(https?://|/).*");
-    }
-
     // ==================== 咨询师管理 ====================
 
     public List<Consultant> getAllConsultants() {
@@ -271,13 +227,21 @@ public class AdminService {
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = "consultants", allEntries = true)
     public Consultant createConsultant(com.tongyangyuan.mentalhealth.dto.CreateConsultantRequest request) {
+        // 验证人生阶段ID是否存在
+        if (request.getTagIds() != null && !request.getTagIds().isEmpty()) {
+            for (Long stageId : request.getTagIds()) {
+                if (!lifeStageRepository.existsById(stageId)) {
+                    throw new RuntimeException("无效的人生阶段ID: " + stageId);
+                }
+            }
+        }
         // 1. Check if user exists or create new user
         User user = userRepository.findByPhone(request.getPhone())
                 .orElseGet(() -> {
                     User newUser = new User();
                     newUser.setPhone(request.getPhone());
                     newUser.setNickname(request.getName());
-                    newUser.setPassword("123456"); // Default password
+                    newUser.setPassword(passwordEncoder.encode("123456")); // Default password
                     newUser.setUserType(User.UserType.CONSULTANT);
                     newUser.setStatus(User.UserStatus.ACTIVE);
                     return userRepository.save(newUser);
@@ -306,7 +270,31 @@ public class AdminService {
             consultant.setAvatarUrl(request.getAvatarUrl());
         }
 
-        return consultantRepository.save(consultant);
+        Consultant saved = consultantRepository.save(consultant);
+        
+        // 4. 保存专长标签关联
+        if (request.getTagIds() != null && !request.getTagIds().isEmpty()) {
+            saveConsultantTags(saved.getId(), request.getTagIds());
+        }
+        
+        return saved;
+    }
+
+    /**
+     * 保存咨询师的人生阶段标签
+     */
+    private void saveConsultantTags(Long consultantId, List<Long> tagIds) {
+        // 删除旧关联
+        consultantSpecialtyRepository.deleteByConsultantId(consultantId);
+        // 添加新关联
+        for (Long tagId : tagIds) {
+            if (!consultantSpecialtyRepository.existsByConsultantIdAndTagId(consultantId, tagId)) {
+                ConsultantSpecialty cs = new ConsultantSpecialty();
+                cs.setConsultantId(consultantId);
+                cs.setTagId(tagId);
+                consultantSpecialtyRepository.save(cs);
+            }
+        }
     }
 
     @Transactional
@@ -362,6 +350,44 @@ public class AdminService {
         return consultantRepository.save(existing);
     }
 
+    /**
+     * 获取咨询师的擅长人生阶段
+     */
+    public List<Map<String, Object>> getConsultantTags(Long consultantId) {
+        List<ConsultantSpecialty> csList = consultantSpecialtyRepository.findByConsultantId(consultantId);
+        List<Long> stageIds = csList.stream().map(ConsultantSpecialty::getTagId).collect(Collectors.toList());
+        if (stageIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<LifeStage> stages = lifeStageRepository.findAllById(stageIds);
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (LifeStage stage : stages) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", stage.getId());
+            map.put("name", stage.getName());
+            map.put("code", stage.getCode());
+            map.put("icon", stage.getIcon());
+            result.add(map);
+        }
+        return result;
+    }
+
+    /**
+     * 更新咨询师的人生阶段标签
+     */
+    @Transactional
+    public void updateConsultantTags(Long consultantId, List<Long> tagIds) {
+        // 验证人生阶段ID是否存在
+        if (tagIds != null && !tagIds.isEmpty()) {
+            for (Long stageId : tagIds) {
+                if (!lifeStageRepository.existsById(stageId)) {
+                    throw new RuntimeException("无效的人生阶段ID: " + stageId);
+                }
+            }
+        }
+        saveConsultantTags(consultantId, tagIds);
+    }
+
     private void createConsultantForUser(User user) {
         consultantRepository.findByUserId(user.getId())
                 .orElseGet(() -> {
@@ -385,8 +411,17 @@ public class AdminService {
         Consultant consultant = consultantRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("咨询师不存在"));
         
+        // 审核通过：设置咨询师可预约，同时激活关联用户账号
         consultant.setAvailable(true);
-        return consultantRepository.save(consultant);
+        Consultant saved = consultantRepository.save(consultant);
+        
+        // 激活用户账号
+        userRepository.findById(consultant.getUserId()).ifPresent(user -> {
+            user.setStatus(User.UserStatus.ACTIVE);
+            userRepository.save(user);
+        });
+        
+        return saved;
     }
 
     @Transactional
@@ -395,8 +430,17 @@ public class AdminService {
         Consultant consultant = consultantRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("咨询师不存在"));
         
+        // 审核拒绝：设置咨询师不可预约，同时禁用关联用户账号
         consultant.setAvailable(false);
-        return consultantRepository.save(consultant);
+        Consultant saved = consultantRepository.save(consultant);
+        
+        // 禁用用户账号
+        userRepository.findById(consultant.getUserId()).ifPresent(user -> {
+            user.setStatus(User.UserStatus.INACTIVE);
+            userRepository.save(user);
+        });
+        
+        return saved;
     }
 
     // ==================== 预约管理 ====================

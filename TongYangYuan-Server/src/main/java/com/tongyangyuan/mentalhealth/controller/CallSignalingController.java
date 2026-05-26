@@ -1,14 +1,8 @@
 package com.tongyangyuan.mentalhealth.controller;
 
-import com.tongyangyuan.mentalhealth.config.LiveKitProperties;
 import com.tongyangyuan.mentalhealth.dto.ApiResponse;
 import com.tongyangyuan.mentalhealth.entity.Appointment;
 import com.tongyangyuan.mentalhealth.repository.AppointmentRepository;
-import io.livekit.server.AccessToken;
-import io.livekit.server.CanPublish;
-import io.livekit.server.CanSubscribe;
-import io.livekit.server.RoomJoin;
-import io.livekit.server.RoomName;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,17 +12,11 @@ import java.util.UUID;
 
 /**
  * 音视频通话信令服务
- * 
- * 支持两种模式：
- * 1. LiveKit 模式 - 需要配置 LiveKit 服务器
- * 2. 模拟模式 - 用于测试，不实际连接媒体服务器
+ * 使用 WebRTC 原生通话模式
  */
 @RestController
 @RequestMapping("/api/call")
 public class CallSignalingController {
-
-    @Autowired(required = false)
-    private LiveKitProperties liveKitProperties;
 
     @Autowired
     private AppointmentRepository appointmentRepository;
@@ -178,16 +166,9 @@ public class CallSignalingController {
         session.setStatus("CONNECTED");
         session.setConnectTime(System.currentTimeMillis());
 
-        // 获取 LiveKit Token
-        Map<String, Object> livekitInfo = getLiveKitToken(session.getAppointmentId(), session.getCalleeId());
-
-
         Map<String, Object> result = new HashMap<>();
         result.put("sessionId", sessionId);
         result.put("status", "CONNECTED");
-        result.put("livekitToken", livekitInfo.get("token"));
-        result.put("livekitServerUrl", livekitInfo.get("serverUrl"));
-        result.put("roomName", livekitInfo.get("roomName"));
 
         return ApiResponse.success("已接听通话", result);
     }
@@ -240,61 +221,14 @@ public class CallSignalingController {
     }
 
     /**
-     * 获取 LiveKit Token
-     */
-    private Map<String, Object> getLiveKitToken(Long appointmentId, Long identity) {
-        Map<String, Object> result = new HashMap<>();
-        String roomName = "apt_" + appointmentId;
-        String identityStr = String.valueOf(identity);
-
-        if (liveKitProperties != null && 
-            liveKitProperties.getUrl() != null && 
-            !liveKitProperties.getUrl().contains("your-livekit")) {
-            try {
-                AccessToken token = new AccessToken(liveKitProperties.getApiKey(), liveKitProperties.getApiSecret());
-                token.setName(identityStr);
-                token.setIdentity(identityStr);
-                token.addGrants(
-                        new RoomJoin(true),
-                        new RoomName(roomName),
-                        new CanPublish(true),
-                        new CanSubscribe(true)
-                );
-                result.put("token", token.toJwt());
-                result.put("serverUrl", liveKitProperties.getUrl());
-            } catch (Exception e) {
-                result.put("token", null);
-                result.put("serverUrl", null);
-                result.put("error", e.getMessage());
-            }
-        } else {
-            result.put("token", null);
-            result.put("serverUrl", null);
-            result.put("simulate", true);
-        }
-
-        result.put("roomName", roomName);
-        return result;
-    }
-
-    /**
-     * 获取 LiveKit 配置
+     * 获取通话配置
      * GET /api/call/config
      */
     @GetMapping("/config")
     public ApiResponse<Map<String, Object>> getConfig() {
         Map<String, Object> result = new HashMap<>();
-
-        if (liveKitProperties != null && 
-            liveKitProperties.getUrl() != null && 
-            !liveKitProperties.getUrl().contains("your-livekit")) {
-            result.put("livekitConfigured", true);
-            result.put("serverUrl", liveKitProperties.getUrl());
-        } else {
-            result.put("livekitConfigured", false);
-            result.put("message", "LiveKit 未配置，将使用模拟通话模式");
-        }
-
+        result.put("mode", "webrtc");
+        result.put("message", "使用 WebRTC 原生通话模式");
         return ApiResponse.success(result);
     }
 

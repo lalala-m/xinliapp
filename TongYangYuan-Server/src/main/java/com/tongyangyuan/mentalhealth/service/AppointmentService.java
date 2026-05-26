@@ -19,15 +19,18 @@ public class AppointmentService {
     private final com.tongyangyuan.mentalhealth.repository.ConsultantRepository consultantRepository;
     private final org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
     private final ChatMessageService chatMessageService;
+    private final WalletService walletService;
 
     public AppointmentService(AppointmentRepository appointmentRepository,
                               com.tongyangyuan.mentalhealth.repository.ConsultantRepository consultantRepository,
                               org.springframework.data.redis.core.StringRedisTemplate redisTemplate,
-                              ChatMessageService chatMessageService) {
+                              ChatMessageService chatMessageService,
+                              WalletService walletService) {
         this.appointmentRepository = appointmentRepository;
         this.consultantRepository = consultantRepository;
         this.redisTemplate = redisTemplate;
         this.chatMessageService = chatMessageService;
+        this.walletService = walletService;
     }
 
     public List<Appointment> getAppointmentsByConsultantId(Long consultantId) {
@@ -110,17 +113,45 @@ public class AppointmentService {
                 throw new RuntimeException("该时段已被预约");
             }
 
-            // 5. 生成预约编号并保存
+            // 5. 设置咨询费用（从咨询师配置获取）
+            java.math.BigDecimal fee = consultant.getConsultationFee() != null ? 
+                    consultant.getConsultationFee() : new java.math.BigDecimal("50.00");
+            appointment.setPaymentAmount(fee);
+            
+            // 6. 检查用户是否是会员，会员免预约费
+            boolean isMember = false; // 简化处理，实际应查询membership_records
+            if (!isMember && appointment.getParentUserId() != null) {
+                // 非会员：尝试用钱包支付
+                if (walletService.hasEnoughBalance(appointment.getParentUserId(), fee)) {
+                    appointment.setPaymentStatus("PAID");
+                    appointment.setPaidByWallet(true);
+                } else {
+                    appointment.setPaymentStatus("UNPAID");
+                    appointment.setPaidByWallet(false);
+                }
+            } else {
+                appointment.setPaymentStatus("PAID"); // 会员免费
+            }
+            
+            // 7. 生成预约编号并保存
             appointment.setAppointmentNo(generateAppointmentNo());
             Appointment saved = appointmentRepository.save(appointment);
-            log.info("预约创建成功: id={}, no={}", saved.getId(), saved.getAppointmentNo());
+            log.info("预约创建成功: id={}, no={}, fee={}, paymentStatus={}", 
+                    saved.getId(), saved.getAppointmentNo(), fee, saved.getPaymentStatus());
             
-            // 清除该用户的预约缓存，确保下次查询是新的
+            // 8. 如果已标记为PAID且是钱包支付，执行扣款
+            if ("PAID".equals(saved.getPaymentStatus()) && Boolean.TRUE.equals(saved.getPaidByWallet()) 
+                    && appointment.getParentUserId() != null) {
+                walletService.consume(appointment.getParentUserId(), fee, saved.getId(), 
+                        "预约支付 - " + saved.getAppointmentNo());
+            }
+            
+            // 9. 清除该用户的预约缓存，确保下次查询是新的
             String cacheKey = "parent_appointments::" + appointment.getParentUserId();
             redisTemplate.delete(cacheKey);
             log.info("清除用户预约缓存: {}", cacheKey);
 
-            // 通过 WebSocket 通知咨询师有新预约
+            // 10. 通过 WebSocket 通知咨询师有新预约
             chatMessageService.notifyConsultantNewAppointment(saved);
             log.info("已通知咨询师有新预约: consultantUserId={}", consultant.getUserId());
 

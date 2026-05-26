@@ -15,6 +15,7 @@ public class HomeController {
 
     private static final String REDIS_KEY_BANNERS = "home:banners";
     private static final String REDIS_KEY_AD_CARD = "home:adCard";
+    private static final String REDIS_KEY_SPLASH_AD = "home:splashAd";
 
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -32,6 +33,8 @@ public class HomeController {
             config.put("banners", banners);
             Map<String, String> adCard = getAdCard();
             config.put("adCard", adCard);
+            Map<String, Object> splashAd = getSplashAd();
+            config.put("splashAd", splashAd);
             return ApiResponse.success(config);
         } catch (Exception e) {
             return ApiResponse.error(e.getMessage());
@@ -111,6 +114,40 @@ public class HomeController {
                 new TypeReference<Map<String, String>>() {});
             String json = objectMapper.writeValueAsString(adCard);
             redisTemplate.opsForValue().set(REDIS_KEY_AD_CARD, json);
+            return ApiResponse.success("更新成功", null);
+        } catch (Exception e) {
+            return ApiResponse.error(e.getMessage());
+        }
+    }
+
+    private Map<String, Object> getSplashAd() {
+        try {
+            String json = redisTemplate.opsForValue().get(REDIS_KEY_SPLASH_AD);
+            if (json != null && !json.isEmpty()) {
+                return objectMapper.readValue(json, new TypeReference<Map<String, Object>>() {});
+            }
+        } catch (Exception ignored) {}
+
+        Map<String, Object> defaultSplashAd = new HashMap<>();
+        defaultSplashAd.put("image", "");
+        defaultSplashAd.put("title", "童康源");
+        defaultSplashAd.put("subtitle", "专业儿童心理咨询平台");
+        defaultSplashAd.put("duration", 3);
+        defaultSplashAd.put("skippable", true);
+        defaultSplashAd.put("link", "");
+        return defaultSplashAd;
+    }
+
+    @RequestMapping(value = "/admin/splashAd", method = {RequestMethod.POST, RequestMethod.PUT})
+    public ApiResponse<String> updateSplashAd(@RequestBody String body) {
+        try {
+            if (body == null || body.trim().isEmpty()) {
+                return ApiResponse.error("请求体为空");
+            }
+            Map<String, Object> splashAd = objectMapper.readValue(body, 
+                new TypeReference<Map<String, Object>>() {});
+            String json = objectMapper.writeValueAsString(splashAd);
+            redisTemplate.opsForValue().set(REDIS_KEY_SPLASH_AD, json);
             return ApiResponse.success("更新成功", null);
         } catch (Exception e) {
             return ApiResponse.error(e.getMessage());

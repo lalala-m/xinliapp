@@ -15,4 +15,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findByUserType(User.UserType userType);
     Optional<User> findByWxOpenId(String wxOpenId);
     Optional<User> findByWxUnionId(String wxUnionId);
+    Optional<User> findByEmail(String email);
+    boolean existsByEmail(String email);
+    Optional<User> findByNickname(String nickname);
 }

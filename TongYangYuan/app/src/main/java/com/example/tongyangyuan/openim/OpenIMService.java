@@ -30,7 +30,7 @@ import okhttp3.WebSocketListener;
 
 /**
  * OpenIM 服务类 - 替代网易云信 NIM
- * 支持即时通讯、语音/视频通话信令（信令走 OpenIM，媒体流走 LiveKit）
+ * 支持即时通讯、语音/视频通话信令（信令走 OpenIM，媒体流走 WebRTC）
  */
 public class OpenIMService {
 
@@ -151,10 +151,10 @@ public class OpenIMService {
                     apiUrl = NetworkConfig.resolveHost(data.optString("apiUrl", ""));
                     String backendWsUrl = data.optString("wsUrl", "");
                     wsUrl = NetworkConfig.resolveHost(backendWsUrl);
-                    // 确保 wsUrl 包含 /api 前缀（因为后端 context-path=/api）
-                    if (wsUrl != null && !wsUrl.contains("/api")) {
-                        wsUrl = wsUrl.replaceFirst("^(ws://[^/]+)", "$1/api");
-                    }
+                    // 后端 context-path=/api，但 /stomp 端点已在 /api 下注册（WebSocketConfig 注册了 /api/stomp）
+                    // 所以 wsUrl 应该已经是 ws://host:port/api/stomp 或 ws://host:port/stomp
+                    // 不要重复添加 /api，让 connectWebSocket() 统一处理 /stomp 后缀
+                    Log.d(TAG, "OpenIM config raw wsUrl=" + backendWsUrl + ", resolved=" + wsUrl);
                     boolean available = data.optBoolean("available", false);
 
                     config.setApiUrl(apiUrl);
@@ -195,7 +195,7 @@ public class OpenIMService {
             return;
         }
 
-        // 将 HTTP URL 转为 WS/WSS URL
+        // 将 HTTP URL 转为 WS/WSS URL（wsUrl 可能已经是 ws:// 开头）
         String wsTarget;
         if (url.startsWith("http://")) {
             wsTarget = url.replaceFirst("http://", "ws://");
@@ -205,16 +205,24 @@ public class OpenIMService {
             wsTarget = url.startsWith("ws") ? url : "ws://" + url;
         }
         
-        // 检查 baseUrl 是否包含 /api，如果是则直接使用当前 URL 作为 wsTarget
-        // 因为 baseUrl 已经是 http://127.0.0.1:8080/api，只需要把 http 替换为 ws
-        // 如果 wsUrl 已经是完整的 ws://127.0.0.1:8080/api/stomp，直接使用
+        // 确保包含 /stomp 路径
+        // 后端 WebSocketConfig 注册了 /stomp 和 /api/stomp 两个端点
+        // 由于 context-path=/api，/stomp 的实际路径是 /api/stomp
+        // 后端返回的 wsUrl 应该已经是 ws://host:port/api/stomp（包含 /api）
+        // 如果后端返回的是 ws://host:port/stomp（不含 /api），则需要加上 /api/stomp
         if (!wsTarget.contains("/stomp")) {
-            // 如果不包含 /stomp，加上 /stomp
-            wsTarget = wsTarget.replaceFirst("/+$", "") + "/stomp";
+            // 检查是否已有 /api 路径
+            if (wsTarget.contains("/api")) {
+                wsTarget = wsTarget.replaceFirst("/+$", "") + "/stomp";
+            } else {
+                wsTarget = wsTarget.replaceFirst("/+$", "") + "/api/stomp";
+            }
         }
         
         // 去掉末尾可能的斜杠
         wsTarget = wsTarget.replaceAll("/+$", "");
+        
+        Log.d(TAG, "WebSocket target URL: " + wsTarget);
 
         Log.d(TAG, "Connecting WebSocket to: " + wsTarget);
 
@@ -307,7 +315,7 @@ public class OpenIMService {
             JSONObject json = new JSONObject(body);
             String type = json.optString("type", "");
             long fromUserId = json.optLong("fromUserId", 0);
-            String fromUserIdStr = fromUserId > 0 ? String.valueOf(fromUserId) : null;
+            String fromUserIdStr = fromUserId > 0 ? String.valueOf(fromUserId) : json.optString("fromUserId", null);
             JSONObject data = json.optJSONObject("data");
             String callType = data != null ? data.optString("callType", "video") : "video";
             String sessionId = data != null ? data.optString("sessionId", "") : "";
@@ -416,11 +424,10 @@ public class OpenIMService {
                             JSONObject data = json.getJSONObject("data");
                             effectiveToken = data.optString("token", "");
                             String backendWsUrl = data.optString("wsUrl", "");
-                            // 确保 wsUrl 包含 /api 前缀（因为后端 context-path=/api）
+                            // 后端 context-path=/api，/stomp 端点已在 /api 下注册
+                            // 不要重复添加 /api，让 connectWebSocket() 统一处理 /stomp 后缀
                             effectiveWsUrl = NetworkConfig.resolveHost(backendWsUrl);
-                            if (effectiveWsUrl != null && !effectiveWsUrl.contains("/api")) {
-                                effectiveWsUrl = effectiveWsUrl.replaceFirst("^(ws://[^/]+)", "$1/api");
-                            }
+                            Log.d(TAG, "OpenIM init raw wsUrl=" + backendWsUrl + ", resolved=" + effectiveWsUrl);
                             String resolvedApiUrl = NetworkConfig.resolveHost(data.optString("apiUrl", apiUrl));
                             config.saveFromResponse(userId, effectiveToken, effectiveWsUrl, resolvedApiUrl);
                             Log.i(TAG, "OpenIM token obtained from backend, wsUrl=" + effectiveWsUrl);
@@ -440,10 +447,12 @@ public class OpenIMService {
                         effectiveToken = jwtToken;
                         Log.i(TAG, "OpenIM server unavailable, using App JWT for Spring STOMP");
                     } else {
-                        // 既无 OpenIM Token 又无 JWT，进入 Mock 模式（仅本地模拟，无信令）
-                        Log.w(TAG, "OpenIM server not available, using mock login");
+                        // 既无 OpenIM Token 又无 JWT，无法建立 WebSocket 连接
+                        // 但 HTTP 信令仍然可以工作（通过 resolveSenderUserIdForHttp 使用 PreferenceStore 中的用户ID）
+                        Log.w(TAG, "OpenIM server not available, no JWT token. HTTP signaling only.");
                         currentUserId = userId;
                         isLoggedIn = true;
+                        // 不建立 WebSocket，但标记为 HTTP-only 模式
                         mainHandler.post(this::flushPendingCalls);
                         mainHandler.post(() -> {
                             if (callback != null) callback.onSuccess();

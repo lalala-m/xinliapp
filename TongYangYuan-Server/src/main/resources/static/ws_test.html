@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a2e; color: #eee; }
+        #log { white-space: pre-wrap; background: #16213e; padding: 15px; border-radius: 8px; max-height: 80vh; overflow-y: auto; }
+        .ok { color: #4ecca3; }
+        .err { color: #e74c3c; }
+        .warn { color: #f39c12; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; background: #4ecca3; border: none; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h2>WebSocket Connection Test</h2>
+    <button onclick="test1()">Test ws://127.0.0.1:8080/api/stomp</button>
+    <button onclick="test2()">Test ws://10.0.2.2:8080/api/stomp</button>
+    <button onclick="clearLog()">Clear</button>
+    <div id="log"></div>
+
+    <script>
+        function log(msg, cls) {
+            const el = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            el.innerHTML += `<div class="${cls||''}">[${time}] ${msg}</div>`;
+            el.scrollTop = el.scrollHeight;
+        }
+        function clearLog() { document.getElementById('log').innerHTML = ''; }
+
+        function testWebSocket(url) {
+            log('Creating WebSocket: ' + url, 'warn');
+            const ws = new WebSocket(url);
+            const startTime = Date.now();
+            
+            ws.onopen = function() {
+                log('✓ WebSocket OPEN (took ' + (Date.now()-startTime) + 'ms)', 'ok');
+                // Send STOMP CONNECT
+                ws.send('CONNECT\naccept-version:1.1,1.2\nheart-beat:10000,10000\n\n\x00');
+                log('→ Sent STOMP CONNECT frame');
+            };
+            
+            ws.onmessage = function(e) {
+                log('← Received: ' + e.data.substring(0, 100).replace(/\n/g, '\\n'), 'ok');
+                if (e.data.includes('CONNECTED')) {
+                    log('✓ STOMP authentication SUCCESS!', 'ok');
+                    ws.send('DISCONNECT\n\n\x00');
+                    ws.close();
+                }
+            };
+            
+            ws.onerror = function(e) {
+                log('✗ WebSocket ERROR (took ' + (Date.now()-startTime) + 'ms)', 'err');
+            };
+            
+            ws.onclose = function(e) {
+                log('✗ WebSocket CLOSE code=' + e.code + ' reason=' + e.reason + ' (took ' + (Date.now()-startTime) + 'ms)', e.wasClean ? 'ok' : 'err');
+            };
+            
+            // Check readyState after creation
+            setTimeout(() => {
+                log('readyState after 100ms: ' + ws.readyState + ' (0=CONNECTING,1=OPEN,2=CLOSING,3=CLOSED)', ws.readyState === 1 ? 'ok' : 'warn');
+            }, 100);
+            
+            // Timeout
+            setTimeout(() => {
+                if (ws.readyState === 0) {
+                    log('✗ TIMEOUT: Still CONNECTING after 10s', 'err');
+                    ws.close();
+                }
+            }, 10000);
+        }
+
+        function test1() { testWebSocket('ws://127.0.0.1:8080/api/stomp'); }
+        function test2() { testWebSocket('ws://10.0.2.2:8080/api/stomp'); }
+        
+        log('Page loaded. Click buttons to test WebSocket connections.');
+        log('Current URL: ' + location.href);
+    </script>
+</body>
+</html>

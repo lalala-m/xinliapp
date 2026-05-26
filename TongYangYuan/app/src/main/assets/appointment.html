@@ -222,13 +222,22 @@
                 <!-- 领域标签将动态生成 -->
             </div>
             <div class="domain-empty" id="domainEmpty" style="display: none; padding: 12px; color: #999; font-size: 14px;">
-                该咨询师暂未设置特定擅长领域，请直接填写描述。
+                该咨询师暂未设置特定擅长人生阶段，请直接填写描述。
             </div>
         </div>
 
         <div class="input-group">
             <label class="input-label">问题描述</label>
             <textarea class="description-input" id="description" placeholder="请描述孩子的具体情况..."></textarea>
+        </div>
+
+        <div class="input-group" id="feeSection" style="display: none;">
+            <label class="input-label">咨询费用</label>
+            <div style="display: flex; align-items: center; gap: 12px; padding: 16px; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                <div style="font-size: 24px; font-weight: 800; color: #E53935;" id="feeAmount">¥50.00</div>
+                <div style="font-size: 13px; color: #999; flex: 1;" id="feeHint">将从钱包余额扣除</div>
+                <div style="font-size: 13px; color: #667eea; font-weight: 600;" id="walletBalanceHint"></div>
+            </div>
         </div>
 
         <button class="btn btn-primary submit-btn" onclick="submitAppointment()">
@@ -245,6 +254,9 @@
         let selectedChild = null;
         let consultant = null;
         let selectedDomain = '';
+        let consultationFee = 50;
+        let walletBalance = 0;
+        let isPaidUser = false;
 
         document.addEventListener('DOMContentLoaded', function() {
             const today = new Date();
@@ -253,28 +265,88 @@
             initTimeSlots();
             loadChildren();
             loadConsultantInfo();
+            loadFeeInfo();
         });
 
-        function loadConsultantInfo() {
-            // 从URL获取咨询师姓名
+        async function loadFeeInfo() {
+            // 检查是否会员
+            if (window.Android && Android.isPaidUser) {
+                isPaidUser = Android.isPaidUser();
+            }
+            if (isPaidUser) {
+                document.getElementById('feeSection').style.display = 'block';
+                document.getElementById('feeAmount').textContent = '¥0.00';
+                document.getElementById('feeAmount').style.color = '#2E7D32';
+                document.getElementById('feeHint').textContent = '会员免费';
+                document.getElementById('walletBalanceHint').textContent = '';
+                return;
+            }
+            // 获取钱包余额
+            try {
+                const response = await fetchWithAuth('/api/wallet/balance');
+                const result = await response.json();
+                if (result.success && result.data) {
+                    walletBalance = parseFloat(result.data.balance) || 0;
+                }
+            } catch (e) {}
+            // 获取咨询师费用
+            if (consultant && consultant.consultationFee) {
+                consultationFee = parseFloat(consultant.consultationFee) || 50;
+            }
+            // 显示费用信息
+            document.getElementById('feeSection').style.display = 'block';
+            document.getElementById('feeAmount').textContent = '¥' + consultationFee.toFixed(2);
+            if (walletBalance >= consultationFee) {
+                document.getElementById('walletBalanceHint').textContent = '余额充足 ¥' + walletBalance.toFixed(2);
+                document.getElementById('walletBalanceHint').style.color = '#2E7D32';
+            } else {
+                document.getElementById('walletBalanceHint').textContent = '余额不足 ¥' + walletBalance.toFixed(2);
+                document.getElementById('walletBalanceHint').style.color = '#E53935';
+            }
+        }
+
+        async function loadConsultantInfo() {
+            console.log("[Appointment] loadConsultantInfo started");
             const urlParams = new URLSearchParams(window.location.search);
             const consultantName = urlParams.get('consultant_name');
             
-            if (consultantName && window.Android && Android.getConsultantDetail) {
+            if (!consultantName) {
+                document.getElementById('domainEmpty').style.display = 'block';
+                return;
+            }
+            
+            // 优先从后端API获取咨询师详情（包含stages字段）
+            try {
+                const apiBase = (typeof window.API_BASE_URL !== 'undefined') ? window.API_BASE_URL : 'http://127.0.0.1:8080/api';
+                console.log('[Appointment] Fetching from:', apiBase + '/consultants');
+                const listRes = await fetch(apiBase + '/consultants');
+                const listJson = await listRes.json();
+                console.log("[Appointment] Response:", listJson);
+                if (listJson.code === 200 && listJson.data) {
+                    const found = listJson.data.find(c => c.name === consultantName);
+                    console.log("[Appointment] Found consultant:", found);
+                    if (found && found.stages && found.stages.length > 0) {
+                        consultant = found;
+                        renderDomainSelector();
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.warn('API fetch failed, fallback to Android interface', e);
+            }
+            
+            // Fallback: 使用 Android 接口
+            if (window.Android && Android.getConsultantDetail) {
                 try {
                     const json = Android.getConsultantDetail(consultantName);
                     consultant = JSON.parse(json);
                     renderDomainSelector();
                 } catch (e) {
                     console.warn('Failed to load consultant info', e);
-                    // Fallback if load failed
                     document.getElementById('domainEmpty').style.display = 'block';
                 }
             } else {
-                 // 尝试直接从Android Intent Extra (如果WebViewActivity直接注入了)
-                 // 但目前我们没有直接注入对象，只能通过JS接口获取
-                 // 如果获取失败，显示空白或通用领域
-                 document.getElementById('domainEmpty').style.display = 'block';
+                document.getElementById('domainEmpty').style.display = 'block';
             }
         }
 
@@ -282,29 +354,25 @@
             const list = document.getElementById('domainList');
             const empty = document.getElementById('domainEmpty');
             
-            if (!consultant || !consultant.specialty) {
+            // 使用人生阶段标签替代specialty字段
+            const stages = consultant.stages || [];
+            
+            if (!consultant || stages.length === 0) {
                 list.innerHTML = '';
                 empty.style.display = 'block';
                 return;
             }
 
             empty.style.display = 'none';
-            // 解析specialty，假设是用逗号、顿号等分隔
-            const specialties = consultant.specialty.split(/[,，、]/).map(s => s.trim()).filter(s => s.length > 0);
             
-            if (specialties.length === 0) {
-                empty.style.display = 'block';
-                return;
-            }
-
             // 自动修正 selectedDomain: 如果当前选中的领域不在新列表中，重置
-            if (selectedDomain && !specialties.includes(selectedDomain)) {
+            if (selectedDomain && !stages.some(s => s.name === selectedDomain)) {
                 selectedDomain = '';
             }
 
-            list.innerHTML = specialties.map(tag => `
-                <div class="domain-tag ${selectedDomain === tag ? 'selected' : ''}" onclick="selectDomain('${tag}')">
-                    ${tag}
+            list.innerHTML = stages.map(stage => `
+                <div class="domain-tag ${selectedDomain === stage.name ? 'selected' : ''}" onclick="selectDomain('${stage.name}')">
+                    ${stage.name}
                 </div>
             `).join('');
         }
@@ -354,6 +422,16 @@
         }
 
         function submitAppointment() {
+            // 检查登录状态
+            const userProfile = window.getUserProfile ? window.getUserProfile() : {};
+            if (!userProfile.isLoggedIn) {
+                showToast('请先登录');
+                setTimeout(() => {
+                    window.location.href = 'auth.html';
+                }, 1500);
+                return;
+            }
+            
             // 领域必须选择（服务器要求，不依赖 consultant 是否加载成功）
             if (!selectedDomain) {
                 showToast('请选择咨询领域');
@@ -374,6 +452,14 @@
             }
             if (!selectedChild) {
                 showToast('请选择需要咨询的孩子');
+                return;
+            }
+
+            // 非会员检查余额
+            if (!isPaidUser && walletBalance < consultationFee) {
+                if (confirm('钱包余额不足（需¥' + consultationFee.toFixed(2) + '），是否前往充值？')) {
+                    window.location.href = 'wallet_recharge.html';
+                }
                 return;
             }
 

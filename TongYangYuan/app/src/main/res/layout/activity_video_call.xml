@@ -29,14 +29,7 @@
         android:layout_gravity="top|end"
         android:layout_margin="16dp"
         android:background="@drawable/rounded_video_frame"
-        android:elevation="8dp">
-
-        <!-- 默认占位背景 -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="#3D3D5C" />
-    </FrameLayout>
+        android:elevation="8dp" />
 
     <!-- 顶部状态区域 -->
     <LinearLayout
@@ -67,9 +60,19 @@
             android:text="正在连接..."
             android:textColor="#CCCCCC"
             android:textSize="14sp" />
+
+        <!-- 🔧 新增：对方在线状态 -->
+        <TextView
+            android:id="@+id/peer_status_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="对方未在线"
+            android:textColor="#FF4444"
+            android:textSize="12sp" />
     </LinearLayout>
 
-    <!-- 振铃动画区域（中间头像） -->
+    <!-- 头像等待区域（通话前显示） -->
     <LinearLayout
         android:id="@+id/avatarWaitingView"
         android:layout_width="wrap_content"
@@ -78,30 +81,10 @@
         android:gravity="center"
         android:orientation="vertical">
 
-        <!-- 外圈光环1 -->
-        <View
-            android:id="@+id/avatarRing1"
-            android:layout_width="160dp"
-            android:layout_height="160dp"
-            android:alpha="0.7"
-            android:background="@drawable/ring_animation"
-            android:visibility="gone" />
-
-        <!-- 外圈光环2 -->
-        <View
-            android:id="@+id/avatarRing2"
-            android:layout_width="160dp"
-            android:layout_height="160dp"
-            android:layout_marginTop="-160dp"
-            android:alpha="0.7"
-            android:background="@drawable/ring_animation"
-            android:visibility="gone" />
-
-        <!-- 头像圆圈 -->
+        <!-- 头像圆圈（包含首字母作为默认头像） -->
         <FrameLayout
             android:layout_width="140dp"
             android:layout_height="140dp"
-            android:layout_marginTop="-100dp"
             android:background="@drawable/avatar_circle">
 
             <!-- 头像首字母 -->
@@ -235,5 +218,35 @@
         android:padding="10dp"
         android:scaleType="centerInside"
         android:src="@drawable/ic_arrow_back" />
+
+    <!-- 录制状态指示器 -->
+    <LinearLayout
+        android:id="@+id/recordingIndicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="80dp"
+        android:background="@drawable/recording_indicator_bg"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        android:visibility="gone">
+
+        <View
+            android:id="@+id/recordingDot"
+            android:layout_width="12dp"
+            android:layout_height="12dp"
+            android:background="@drawable/recording_dot" />
+
+        <TextView
+            android:id="@+id/recordingText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="通话录制中"
+            android:textColor="@android:color/white"
+            android:textSize="12sp" />
+
+    </LinearLayout>
 
 </FrameLayout>

@@ -184,6 +184,68 @@
             border: 1px solid rgba(189, 235, 200, 0.3);
         }
 
+        /* 专长标签分组 */
+        .specialty-category {
+            margin-bottom: 14px;
+        }
+
+        .specialty-category:last-child {
+            margin-bottom: 0;
+        }
+
+        .specialty-category-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1E2A3B;
+            margin-bottom: 8px;
+            padding-left: 6px;
+            border-left: 3px solid #A9C9FF;
+        }
+
+        .specialty-category-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .specialty-chip {
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 500;
+            display: inline-block;
+        }
+
+        .specialty-chip.green {
+            background: rgba(189, 235, 200, 0.25);
+            color: #2E7D32;
+            border: 1px solid rgba(189, 235, 200, 0.4);
+        }
+
+        .specialty-chip.blue {
+            background: rgba(169, 201, 255, 0.25);
+            color: #1976D2;
+            border: 1px solid rgba(169, 201, 255, 0.4);
+        }
+
+        .specialty-chip.orange {
+            background: rgba(255, 214, 165, 0.25);
+            color: #E65100;
+            border: 1px solid rgba(255, 214, 165, 0.4);
+        }
+
+        .specialty-chip.purple {
+            background: rgba(206, 147, 216, 0.15);
+            color: #7B1FA2;
+            border: 1px solid rgba(206, 147, 216, 0.3);
+        }
+
+        .specialty-chip.teal {
+            background: rgba(128, 203, 196, 0.2);
+            color: #00695C;
+            border: 1px solid rgba(128, 203, 196, 0.35);
+        }
+
         .intro-text {
             font-size: 15px;
             color: #666;
@@ -312,13 +374,13 @@
             </div>
         </div>
 
-        <!-- 擅长领域 -->
-        <div class="detail-card">
+        <!-- 擅长人生阶段 -->
+        <div class="detail-card" id="lifeStagesCard">
             <div class="card-header">
                 <div class="card-icon">🎯</div>
-                <div class="card-title">擅长领域</div>
+                <div class="card-title">擅长人生阶段</div>
             </div>
-            <div class="specialty-tags" id="specialtyTags">
+            <div class="specialty-tags" id="lifeStagesTags">
                 <span class="specialty-tag">加载中...</span>
             </div>
         </div>
@@ -396,8 +458,8 @@
             document.getElementById('statServed').textContent = consultant.servedCount || consultant.served || 0;
             document.getElementById('statYears').textContent = consultant.years || consultant.experience || 0;
 
-            // 渲染擅长领域
-            renderSpecialty(consultant);
+            // 渲染专长标签（优先从API获取结构化数据）
+            loadAndRenderLifeStages(consultant);
             
             // 渲染咨询风格
             document.getElementById('introText').textContent = consultant.intro || '暂无简介';
@@ -454,18 +516,33 @@
             }
         }
 
-        function renderSpecialty(consultant) {
-            const container = document.getElementById('specialtyTags');
-            const specialty = consultant.specialty || '';
-            const list = specialty.split(/[,，、]/).filter(s => s.trim());
+        const CHIP_COLORS = ['green', 'blue', 'orange', 'purple', 'teal'];
+
+        async function loadAndRenderLifeStages(consultant) {
+            const container = document.getElementById('lifeStagesTags');
+            const consultantId = consultant.id || consultant.consultantId;
             
-            if (list.length > 0) {
-                container.innerHTML = list.map(s => 
-                    `<span class="specialty-tag">${escapeHtml(s.trim())}</span>`
-                ).join('');
-            } else {
-                container.innerHTML = '<span class="specialty-tag">暂无擅长领域</span>';
+            if (!consultantId) {
+                container.innerHTML = '<span class="specialty-tag">暂无擅长人生阶段</span>';
+                return;
             }
+            
+            try {
+                const response = await fetchWithAuth('/consultants/' + consultantId + '/specialties');
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.code === 200 && result.data && Array.isArray(result.data) && result.data.length > 0) {
+                        container.innerHTML = result.data.map(stage => 
+                            `<span class="specialty-tag">${escapeHtml(stage.name || stage)}</span>`
+                        ).join('');
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.warn('获取擅长人生阶段失败', e);
+            }
+            
+            container.innerHTML = '<span class="specialty-tag">暂无擅长人生阶段</span>';
         }
 
         function renderReviews(reviews = []) {

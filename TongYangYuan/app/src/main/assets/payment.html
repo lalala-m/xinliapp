@@ -342,6 +342,7 @@
             const productName = getUrlParam('productName') || '';
             const planId = getUrlParam('planId') || '';
             const appointmentId = getUrlParam('appointmentId') || '';
+            const paymentMethod = getUrlParam('paymentMethod') || '';
 
             // 保存支付数据
             paymentData = {
@@ -350,7 +351,8 @@
                 orderNumber: orderNumber,
                 productName: productName,
                 planId: planId,
-                appointmentId: appointmentId
+                appointmentId: appointmentId,
+                paymentMethod: paymentMethod
             };
 
             // 显示金额和描述
@@ -368,6 +370,11 @@
                 if (productName) {
                     document.getElementById('productName').textContent = productName;
                 }
+            }
+            
+            // 如果URL中已指定支付方式，自动选中
+            if (paymentMethod) {
+                selectPaymentMethod(paymentMethod);
             }
         }
 

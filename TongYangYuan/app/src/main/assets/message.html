@@ -120,6 +120,17 @@
             color: #ab6800;
         }
 
+        .status-badge.wait-signature {
+            background: linear-gradient(135deg, #E3F2FD, #BBDEFB);
+            color: #1565C0;
+            border: 1px solid #90CAF9;
+        }
+
+        .status-badge.signed {
+            background: linear-gradient(135deg, #E8F5E9, #C8E6C9);
+            color: #2E7D32;
+        }
+
         .appointment-time {
             font-size: 14px;
             color: #666666;
@@ -311,6 +322,9 @@
             listContainer.innerHTML = filtered.map((apt, index) => {
                 // 转义ID中的特殊字符，防止XSS和解析错误
                 const safeId = String(apt.id || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                // 使用serverId（如果可用）作为聊天标识，用于通话信令匹配
+                const chatId = (apt.serverId > 0) ? String(apt.serverId) : String(apt.id || '');
+                const safeChatId = chatId.replace(/'/g, "\\'").replace(/"/g, '&quot;');
                 const safeName = String(apt.consultantName || apt.consultant?.name || '咨询师').replace(/"/g, '&quot;');
                 const safeChildName = String(apt.childName || '未指定孩子').replace(/"/g, '&quot;');
                 const safeDate = String(apt.date || '').replace(/"/g, '&quot;');
@@ -325,24 +339,42 @@
 
                 let badgeText = '';
                 let badgeClass = 'status-badge';
-                if (isChatted) {
+                
+                // 优先检查签字状态
+                const hasSignature = !!apt.hasSignature;
+                const signatureRequired = !!apt.signatureRequired;
+                
+                if (hasSignature) {
+                    // 已完成签字
+                    badgeText = '已签字';
+                    badgeClass += ' signed';
+                } else if (signatureRequired) {
+                    // 需要签字但未完成
+                    badgeText = '待签字';
+                    badgeClass += ' wait-signature';
+                } else if (isChatted) {
+                    // 已沟通（无需签字或签字已完成）
                     badgeText = '已沟通';
-                } else if (isPending) {
-                    badgeText = '待确认';
-                    badgeClass += ' wait-confirm';
-                } else if (status === 'IN_PROGRESS') {
-                    badgeText = '进行中';
-                    badgeClass += ' to-chat';
                 } else if (isCancelled) {
+                    // 已取消
                     badgeText = '已取消';
                     badgeClass += ' wait-confirm';
+                } else if (status === 'IN_PROGRESS') {
+                    // 进行中
+                    badgeText = '进行中';
+                    badgeClass += ' to-chat';
+                } else if (isPending) {
+                    // 待确认
+                    badgeText = '待确认';
+                    badgeClass += ' wait-confirm';
                 } else {
+                    // 默认：待沟通
                     badgeText = '待沟通';
                     badgeClass += ' to-chat';
                 }
                 
                 return `
-                <div class="list-item appointment-card ${pinnedClass}" data-appointment-id="${safeId}" onclick="openChat('${safeId}')">
+                <div class="list-item appointment-card ${pinnedClass}" data-appointment-id="${safeId}" onclick="openChat('${safeChatId}')">
                     <div class="appointment-header">
                         <div class="consultant-name">
                             ${safeName}

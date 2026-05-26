@@ -274,6 +274,59 @@
             border: 1px solid rgba(111, 166, 248, 0.2);
         }
 
+        /* 筛选条件横幅 */
+        .filter-banner {
+            display: none;
+            margin: 0 16px 12px;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
+            border-radius: 16px;
+            border: 1px solid rgba(111, 166, 248, 0.2);
+        }
+
+        .filter-banner.active {
+            display: block;
+        }
+
+        .filter-banner-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1976D2;
+            margin-bottom: 6px;
+        }
+
+        .filter-banner-tags {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-banner-tag {
+            padding: 4px 12px;
+            background: white;
+            border-radius: 999px;
+            font-size: 12px;
+            color: #6FA6F8;
+            border: 1px solid rgba(111, 166, 248, 0.3);
+        }
+
+        .filter-clear-btn {
+            padding: 4px 12px;
+            background: #6FA6F8;
+            border: none;
+            border-radius: 999px;
+            font-size: 12px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .filter-clear-btn:active {
+            transform: scale(0.96);
+            background: #5A95E8;
+        }
+
         .consultant-card-footer {
             display: flex;
             gap: 10px;
@@ -348,16 +401,16 @@
 
     <div class="content">
         <!-- 分类标签 -->
-        <div class="consultant-tabs">
+        <div class="consultant-tabs" id="consultantTabs">
             <button class="consultant-tab active" data-filter="all" onclick="filterConsultants('all')">
                 全部<span class="tab-count" id="countAll">0</span>
             </button>
-            <button class="consultant-tab" data-filter="YELLOW_V" onclick="filterConsultants('YELLOW_V')">
-                黄V认证<span class="tab-count" id="countYellow">0</span>
-            </button>
-            <button class="consultant-tab" data-filter="BLUE_V" onclick="filterConsultants('BLUE_V')">
-                蓝V咨询师<span class="tab-count" id="countBlue">0</span>
-            </button>
+        </div>
+
+        <!-- 筛选条件横幅 -->
+        <div class="filter-banner" id="filterBanner">
+            <div class="filter-banner-title" id="filterBannerTitle">筛选条件</div>
+            <div class="filter-banner-tags" id="filterBannerTags"></div>
         </div>
 
         <!-- 统计信息 -->
@@ -415,28 +468,29 @@
         let allConsultants = [];
         let currentFilter = 'all';
 
-        const tierPriority = {
-            'YELLOW_V': 0,
-            'BLUE_V': 1,
-            'INTERNAL': 2
+        // 读取URL参数
+        const urlParams = new URLSearchParams(window.location.search);
+        const categoryCode = urlParams.get('category');
+        const tagIds = urlParams.get('tags'); // comma-separated tag IDs
+        const stageCodes = urlParams.get('stage'); // comma-separated stage codes
+        const stageNames = urlParams.get('stageName'); // comma-separated stage names
+
+        // 人生阶段标签配置（从stage code映射到显示名称）
+        const stageLabelMap = {
+            'newborn': '0-1岁',
+            'infant': '1-2岁',
+            'kindergarten': '3-6岁',
+            'primary_school': '7-12岁',
+            'middle_high_school': '13-18岁',
+            'college': '大学生',
+            'society': '步入社会',
+            'marriage': '婚前婚后',
+            'property_division': '分家财产',
+            'elderly_care': '养老赡养'
         };
 
-        function getIdentityTag(tier) {
-            const tags = {
-                'YELLOW_V': '黄V认证',
-                'BLUE_V': '蓝V咨询师',
-                'INTERNAL': '平台专家'
-            };
-            return tags[tier] || '';
-        }
-
         function getAvatarColor(consultant) {
-            const colors = {
-                'YELLOW_V': 'linear-gradient(135deg, #FFE082 0%, #FFCA28 100%)',
-                'BLUE_V': 'linear-gradient(135deg, #90CAF9 0%, #42A5F5 100%)',
-                'INTERNAL': 'linear-gradient(135deg, #CE93D8 0%, #AB47BC 100%)'
-            };
-            return colors[consultant.identityTier] || 'linear-gradient(135deg, #6FA6F8 0%, #A9C9FF 100%)';
+            return 'linear-gradient(135deg, #6FA6F8 0%, #A9C9FF 100%)';
         }
 
         function renderAvatar(consultant) {
@@ -451,43 +505,61 @@
                 avatarContent = `<span class="consultant-avatar-initial">${escapeHtml(initial)}</span>`;
             }
 
-            let badge = '';
-            if (consultant.identityTier === 'YELLOW_V') {
-                badge = '<span class="consultant-avatar-badge yellow-v">V</span>';
-            } else if (consultant.identityTier === 'BLUE_V') {
-                badge = '<span class="consultant-avatar-badge blue-v">V</span>';
-            }
-
             return `
                 <div class="consultant-avatar" style="background: ${color};">
                     ${avatarContent}
-                    ${badge}
                 </div>
             `;
+        }
+
+        // 缓存咨询师标签
+        const consultantTagsCache = {};
+
+        async function loadConsultantTags(consultantId) {
+            if (consultantTagsCache[consultantId]) {
+                return consultantTagsCache[consultantId];
+            }
+            try {
+                const baseUrl = window.API_BASE_URL || 'http://127.0.0.1:8080/api';
+                const res = await fetch(baseUrl + '/consultants/' + consultantId + '/specialties');
+                const result = await res.json();
+                let data = result;
+                if (result && typeof result === 'object' && 'data' in result && 'code' in result) {
+                    data = result.data;
+                }
+                const tags = Array.isArray(data) ? data : [];
+                consultantTagsCache[consultantId] = tags;
+                return tags;
+            } catch (e) {
+                console.error('加载咨询师标签失败:', e);
+                return [];
+            }
         }
 
         function renderConsultantCard(consultant) {
             const safeName = escapeHtml(consultant.name || '咨询师');
             const safeTitle = escapeHtml(consultant.title || '');
-            const safeSpecialty = consultant.specialty || '';
-            const specialtyList = safeSpecialty.split(/[,，、]/).filter(s => s.trim());
             const safeOnclickName = escapeForJsString(consultant.name || '');
             const rating = Number(consultant.rating || 0).toFixed(1);
             const served = consultant.servedCount || consultant.served || 0;
-            const identityTag = getIdentityTag(consultant.identityTier);
+            const consultantId = consultant.id;
             
-            const tagsHtml = specialtyList.slice(0, 3).map(tag => 
-                `<span class="consultant-specialty-tag">${escapeHtml(tag.trim())}</span>`
-            ).join('');
+            // 从stages数组渲染擅长阶段标签（支持对象数组或字符串数组）
+            const stages = consultant.stages || [];
+            const stageTagsHtml = stages.length > 0 
+                ? stages.map(s => {
+                    const stageName = (typeof s === 'object' ? (s.name || s.code || '') : s);
+                    return `<span class="consultant-specialty-tag">${escapeHtml(stageName)}</span>`;
+                }).join('')
+                : '<span class="consultant-specialty-tag" style="background:#f0f0f0;color:#999;">暂无</span>';
 
             return `
-                <div class="consultant-card" onclick="viewDetail('${safeOnclickName}')">
+                <div class="consultant-card" data-consultant-id="${consultantId}" onclick="viewDetail('${safeOnclickName}')">
                     <div class="consultant-card-header">
                         ${renderAvatar(consultant)}
                         <div class="consultant-card-info">
                             <div class="consultant-name-row">
                                 <span class="consultant-name">${safeName}</span>
-                                ${identityTag ? `<span class="consultant-identity-tag ${consultant.identityTier === 'YELLOW_V' ? 'yellow-v' : consultant.identityTier === 'BLUE_V' ? 'blue-v' : ''}">${identityTag}</span>` : ''}
                             </div>
                             <div class="consultant-title">${safeTitle}</div>
                             <div class="consultant-rating-row">
@@ -501,20 +573,21 @@
                             </div>
                         </div>
                     </div>
-                    ${specialtyList.length > 0 ? `
                     <div class="consultant-specialty">
-                        <div class="consultant-specialty-label">擅长领域</div>
-                        <div class="consultant-specialty-tags">
-                            ${tagsHtml}
-                        </div>
+                        <div class="consultant-specialty-label">擅长阶段</div>
+                        <div class="consultant-specialty-tags">${stageTagsHtml}</div>
                     </div>
-                    ` : ''}
                     <div class="consultant-card-footer">
                         <button class="consultant-btn primary" onclick="event.stopPropagation(); bookConsultant('${safeOnclickName}')">立即预约</button>
                         <button class="consultant-btn secondary" onclick="event.stopPropagation(); viewDetail('${safeOnclickName}')">查看详情</button>
                     </div>
                 </div>
             `;
+        }
+
+        async function fillConsultantTags(consultants) {
+            // 现在stages直接内联在卡片中渲染，此函数保留用于向后兼容
+            // 不再异步加载 specialties，而是直接使用 consultant.stages
         }
 
         function filterConsultants(filter) {
@@ -529,7 +602,15 @@
 
             let filtered = allConsultants;
             if (filter !== 'all') {
-                filtered = allConsultants.filter(c => c.identityTier === filter);
+                // 按人生阶段筛选：检查consultant.stages中是否包含该阶段
+                filtered = allConsultants.filter(c => {
+                    const stages = c.stages || [];
+                    return stages.some(s => {
+                        const stageCode = (typeof s === 'object' ? (s.code || '') : s);
+                        const stageName = (typeof s === 'object' ? (s.name || '') : s);
+                        return stageCode === filter || stageName === filter || stageName === stageLabelMap[filter];
+                    });
+                });
             }
 
             renderConsultantsList(filtered);
@@ -550,48 +631,197 @@
             }
 
             list.innerHTML = consultants.map(c => renderConsultantCard(c)).join('');
+            // 异步加载每个咨询师的标签
+            fillConsultantTags(consultants);
         }
 
         function sortConsultants(consultants) {
             return [...consultants].sort((a, b) => {
-                const tierDiff = (tierPriority[a.identityTier] ?? 3) - (tierPriority[b.identityTier] ?? 3);
-                if (tierDiff !== 0) return tierDiff;
                 return (b.rating ?? 0) - (a.rating ?? 0);
             });
         }
 
         function updateStats() {
-            const yellowCount = allConsultants.filter(c => c.identityTier === 'YELLOW_V').length;
-            const blueCount = allConsultants.filter(c => c.identityTier === 'BLUE_V').length;
             const totalServed = allConsultants.reduce((sum, c) => sum + (c.servedCount || c.served || 0), 0);
             const avgRating = allConsultants.length > 0 
                 ? (allConsultants.reduce((sum, c) => sum + (c.rating || 0), 0) / allConsultants.length).toFixed(1)
                 : '0';
 
             document.getElementById('countAll').textContent = allConsultants.length;
-            document.getElementById('countYellow').textContent = yellowCount;
-            document.getElementById('countBlue').textContent = blueCount;
             document.getElementById('totalCount').textContent = allConsultants.length;
             document.getElementById('avgRating').textContent = avgRating;
             document.getElementById('totalServed').textContent = totalServed;
         }
 
+        // 动态生成人生阶段筛选标签
+        function renderStageTabs() {
+            const tabsContainer = document.getElementById('consultantTabs');
+            if (!tabsContainer) return;
+            
+            // 收集所有咨询师的人生阶段
+            const stageSet = new Set();
+            allConsultants.forEach(c => {
+                const stages = c.stages || [];
+                stages.forEach(s => {
+                    const code = typeof s === 'object' ? (s.code || '') : s;
+                    const name = typeof s === 'object' ? (s.name || '') : s;
+                    if (code) stageSet.add(JSON.stringify({code, name: name || stageLabelMap[code] || code}));
+                });
+            });
+            
+            const stages = Array.from(stageSet).map(s => JSON.parse(s));
+            // 按预设顺序排序
+            const stageOrder = Object.keys(stageLabelMap);
+            stages.sort((a, b) => {
+                const idxA = stageOrder.indexOf(a.code);
+                const idxB = stageOrder.indexOf(b.code);
+                if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                if (idxA !== -1) return -1;
+                if (idxB !== -1) return 1;
+                return a.name.localeCompare(b.name);
+            });
+            
+            // 保留"全部"标签，添加阶段标签
+            let tabsHtml = `
+                <button class="consultant-tab active" data-filter="all" onclick="filterConsultants('all')">
+                    全部<span class="tab-count" id="countAll">0</span>
+                </button>
+            `;
+            stages.forEach(stage => {
+                const label = stageLabelMap[stage.code] || stage.name || stage.code;
+                tabsHtml += `
+                    <button class="consultant-tab" data-filter="${escapeAttr(stage.code)}" onclick="filterConsultants('${escapeAttr(stage.code)}')">
+                        ${escapeHtml(label)}
+                    </button>
+                `;
+            });
+            tabsContainer.innerHTML = tabsHtml;
+            
+            // 恢复当前筛选状态
+            if (currentFilter !== 'all') {
+                document.querySelectorAll('.consultant-tab').forEach(tab => {
+                    tab.classList.toggle('active', tab.dataset.filter === currentFilter);
+                });
+            }
+        }
+
+        function showFilterBanner() {
+            const banner = document.getElementById('filterBanner');
+            const titleEl = document.getElementById('filterBannerTitle');
+            const tagsEl = document.getElementById('filterBannerTags');
+
+            if (!categoryCode && !tagIds) {
+                banner.classList.remove('active');
+                return;
+            }
+
+            let titleText = '筛选条件';
+            if (categoryCode) {
+                titleText = '筛选条件: ' + escapeHtml(categoryCode);
+            }
+            titleEl.textContent = titleText;
+
+            let tagsHtml = '';
+            if (tagIds) {
+                const tags = tagIds.split(',').map(t => t.trim()).filter(t => t);
+                if (tags.length > 0) {
+                    tagsHtml += '<span style="font-size:12px;color:#666;margin-right:4px;">已选标签:</span>';
+                    tags.forEach(tag => {
+                        tagsHtml += `<span class="filter-banner-tag">${escapeHtml(tag)}</span>`;
+                    });
+                }
+            }
+            tagsHtml += `<button class="filter-clear-btn" onclick="clearFilters()">清除筛选</button>`;
+            tagsEl.innerHTML = tagsHtml;
+
+            banner.classList.add('active');
+        }
+
+        function clearFilters() {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('category');
+            url.searchParams.delete('tags');
+            window.location.href = url.toString();
+        }
+
         function loadConsultants() {
+            const hasFilters = categoryCode || tagIds || stageCodes;
+
+            if (hasFilters) {
+                // 有过滤条件时，使用fetch API从服务器获取
+                loadConsultantsFromApi(categoryCode, tagIds);
+                return;
+            }
+
+            // 无过滤条件时，先尝试从本地获取
+            let localLoaded = false;
             if (window.Android && Android.getConsultants) {
                 try {
                     const json = Android.getConsultants();
                     const parsed = JSON.parse(json);
-                    if (Array.isArray(parsed) && parsed.length) {
+                    if (Array.isArray(parsed) && parsed.length > 0) {
                         allConsultants = parsed;
+                        localLoaded = true;
+                        console.log('[Local] 咨询师数据加载成功:', allConsultants.length);
+                    } else {
+                        console.log('[Local] 本地咨询师数据为空');
                     }
                 } catch (e) {
-                    console.error('加载咨询师数据失败', e);
+                    console.error('[Local] 加载本地咨询师数据失败', e);
                 }
+            }
+
+            // 如果本地没有数据，自动从API获取
+            if (!localLoaded || allConsultants.length === 0) {
+                console.log('[Fallback] 本地无数据，尝试从API获取');
+                loadConsultantsFromApi(null, null);
+                return;
             }
 
             allConsultants = sortConsultants(allConsultants);
             updateStats();
+            renderStageTabs();
             filterConsultants(currentFilter);
+        }
+
+        function loadConsultantsFromApi(category, tags) {
+            let apiUrl = '/consultants';
+            const params = new URLSearchParams();
+            if (category) params.append('category', category);
+            if (tags) params.append('tags', tags);
+            params.append('sort', 'priority');
+            if (params.toString()) apiUrl += '?' + params.toString();
+
+            const fullApiUrl = (window.API_BASE_URL || 'http://127.0.0.1:8080/api') + apiUrl;
+            console.log('[API] fullApiUrl:', fullApiUrl);
+            fetch(fullApiUrl)
+                .then(res => {
+                    console.log('[API] Response status:', res.status);
+                    return res.json();
+                })
+                .then(result => {
+                    console.log('[API] Response:', result);
+                    let data = result;
+                    // Handle ApiResponse wrapper {code, message, data}
+                    if (result && typeof result === 'object' && 'data' in result && 'code' in result) {
+                        data = result.data;
+                    }
+                    if (Array.isArray(data) && data.length) {
+                        allConsultants = data;
+                    } else {
+                        allConsultants = [];
+                    }
+                    console.log('[API] Consultants loaded:', allConsultants.length);
+                    allConsultants = sortConsultants(allConsultants);
+                    updateStats();
+                    filterConsultants(currentFilter);
+                })
+                .catch(err => {
+                    console.error('[API] 加载咨询师数据失败', err);
+                    allConsultants = [];
+                    updateStats();
+                    filterConsultants(currentFilter);
+                });
         }
 
         function viewDetail(name) {
@@ -619,6 +849,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            showFilterBanner();
             loadConsultants();
         });
     </script>

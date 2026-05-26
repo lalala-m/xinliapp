@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Simple WebSocket Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a2e; color: #eee; }
+        #log { white-space: pre-wrap; background: #16213e; padding: 15px; border-radius: 8px; }
+        .ok { color: #4ecca3; }
+        .err { color: #e74c3c; }
+        .warn { color: #f39c12; }
+    </style>
+</head>
+<body>
+    <h2>Simple WebSocket Test</h2>
+    <div id="log"></div>
+
+    <script>
+        function log(msg, cls) {
+            const el = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            el.innerHTML += '<div class="' + (cls||'') + '">[' + time + '] ' + msg + '</div>';
+        }
+
+        log('Page loaded from: ' + location.href);
+        log('Protocol: ' + location.protocol);
+        
+        const token = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ3am0iLCJ1c2VySWQiOjIsInJvbGUiOiJQQVJFTlQiLCJpYXQiOjE3NDU1ODI4MDAsImV4cCI6MTc0NjE4NzYwMH0.test_token_for_debug';
+        const wsUrl = 'ws://127.0.0.1:8080/api/stomp?token=' + encodeURIComponent(token);
+        log('Creating WebSocket: ' + wsUrl, 'warn');
+        
+        const ws = new WebSocket(wsUrl);
+        const startTime = Date.now();
+        
+        ws.onopen = function() {
+            log('✓ WebSocket OPEN (took ' + (Date.now()-startTime) + 'ms)', 'ok');
+            ws.close();
+        };
+        
+        ws.onerror = function(e) {
+            log('✗ WebSocket ERROR (took ' + (Date.now()-startTime) + 'ms)', 'err');
+        };
+        
+        ws.onclose = function(e) {
+            log('✗ WebSocket CLOSE code=' + e.code + ' (took ' + (Date.now()-startTime) + 'ms)', e.wasClean ? 'ok' : 'err');
+        };
+        
+        log('readyState after creation: ' + ws.readyState);
+        
+        setTimeout(function() {
+            log('After 5s - readyState: ' + ws.readyState, ws.readyState === 1 ? 'ok' : 'warn');
+        }, 5000);
+        
+        setTimeout(function() {
+            log('After 15s - readyState: ' + ws.readyState, ws.readyState === 1 ? 'ok' : 'warn');
+            if (ws.readyState === 0) {
+                log('✗ TIMEOUT: Still CONNECTING after 15s', 'err');
+                ws.close();
+            }
+        }, 15000);
+    </script>
+</body>
+</html>

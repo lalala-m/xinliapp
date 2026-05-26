@@ -16,6 +16,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/consultants")
@@ -59,18 +60,32 @@ public class ConsultantController {
     @GetMapping
     public ApiResponse<List<Consultant>> getAllConsultants(
             @RequestParam(required = false) String domain,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) List<Long> tags,
             @RequestParam(required = false, defaultValue = "priority") String sort) {
         try {
             List<Consultant> consultants;
-            if ("priority".equalsIgnoreCase(sort)) {
-                if (domain != null && !domain.isEmpty()) {
+
+            // 优先按标签ID筛选
+            if (tags != null && !tags.isEmpty()) {
+                consultants = consultantService.findByTagIds(tags);
+            }
+            // 其次按分类编码筛选
+            else if (category != null && !category.isEmpty()) {
+                consultants = consultantService.findByCategoryCode(category);
+            }
+            // 再按domain（专长文本）筛选
+            else if (domain != null && !domain.isEmpty()) {
+                if ("priority".equalsIgnoreCase(sort)) {
                     consultants = consultantService.findByDomainOrderByPriority(domain);
                 } else {
-                    consultants = consultantService.findAllOrderByPriority();
-                }
-            } else {
-                if (domain != null && !domain.isEmpty()) {
                     consultants = consultantService.getConsultantsByDomain(domain);
+                }
+            }
+            // 无筛选条件
+            else {
+                if ("priority".equalsIgnoreCase(sort)) {
+                    consultants = consultantService.findAllOrderByPriority();
                 } else {
                     consultants = consultantService.getAllConsultants();
                 }
@@ -88,6 +103,29 @@ public class ConsultantController {
             return ApiResponse.success(consultant);
         } catch (Exception e) {
             return ApiResponse.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 获取咨询师的所有人生阶段标签
+     * GET /consultants/{id}/specialties
+     */
+    @GetMapping("/{id}/specialties")
+    public ApiResponse<List<?>> getConsultantSpecialties(@PathVariable Long id) {
+        try {
+            var stages = consultantService.getConsultantLifeStages(id);
+            // 转换为简单的Map结构返回
+            List<?> result = stages.stream().map(stage -> {
+                return new java.util.HashMap<String, Object>() {{
+                    put("id", stage.getId());
+                    put("name", stage.getName());
+                    put("code", stage.getCode());
+                    put("icon", stage.getIcon());
+                }};
+            }).collect(Collectors.toList());
+            return ApiResponse.success(result);
+        } catch (Exception e) {
+            return ApiResponse.error("获取擅长阶段失败: " + e.getMessage());
         }
     }
 

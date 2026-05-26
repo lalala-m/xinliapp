@@ -57,6 +57,15 @@ public class Appointment {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "payment_amount", precision = 10, scale = 2)
+    private java.math.BigDecimal paymentAmount;
+
+    @Column(name = "payment_status", length = 20)
+    private String paymentStatus = "UNPAID";
+
+    @Column(name = "paid_by_wallet")
+    private Boolean paidByWallet = false;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -202,5 +211,29 @@ public class Appointment {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public java.math.BigDecimal getPaymentAmount() {
+        return paymentAmount;
+    }
+
+    public void setPaymentAmount(java.math.BigDecimal paymentAmount) {
+        this.paymentAmount = paymentAmount;
+    }
+
+    public String getPaymentStatus() {
+        return paymentStatus;
+    }
+
+    public void setPaymentStatus(String paymentStatus) {
+        this.paymentStatus = paymentStatus;
+    }
+
+    public Boolean getPaidByWallet() {
+        return paidByWallet;
+    }
+
+    public void setPaidByWallet(Boolean paidByWallet) {
+        this.paidByWallet = paidByWallet;
     }
 }

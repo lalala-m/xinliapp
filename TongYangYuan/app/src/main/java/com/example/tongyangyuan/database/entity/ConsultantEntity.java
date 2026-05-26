@@ -27,6 +27,7 @@ public class ConsultantEntity {
     private String intro;
     private List<String> reviews;
     private List<String> identityTags;
+    private List<String> stages; // 擅长的人生阶段名称列表
 
     public int getId() {
         return id;
@@ -114,6 +115,14 @@ public class ConsultantEntity {
 
     public void setIdentityTags(List<String> identityTags) {
         this.identityTags = identityTags;
+    }
+
+    public List<String> getStages() {
+        return stages;
+    }
+
+    public void setStages(List<String> stages) {
+        this.stages = stages;
     }
 
     public long getUserId() {

@@ -33,6 +33,14 @@
             box-shadow: 0 4px 12px rgba(111, 166, 248, 0.35);
         }
 
+        .consultation-list {
+            display: none;
+        }
+
+        .consultation-list.active {
+            display: block;
+        }
+
         .consultation-card {
             margin-bottom: 12px;
             padding: 16px;
@@ -107,46 +115,46 @@
 
         .consultation-details {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: 1fr 1fr;
             gap: 8px;
-            padding: 12px;
-            background: rgba(0,0,0,0.02);
-            border-radius: 10px;
             margin-bottom: 12px;
+            padding: 12px;
+            background: var(--surface);
+            border-radius: 12px;
         }
 
         .consultation-detail-item {
             display: flex;
             flex-direction: column;
-            gap: 2px;
+            gap: 4px;
         }
 
         .consultation-detail-label {
-            font-size: 11px;
+            font-size: 12px;
             color: var(--text-secondary);
         }
 
         .consultation-detail-value {
-            font-size: 13px;
-            color: var(--text-primary);
+            font-size: 14px;
             font-weight: 500;
+            color: var(--text-primary);
         }
 
         .consultation-child {
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 10px 12px;
+            margin-bottom: 12px;
+            padding: 8px 12px;
             background: rgba(111, 166, 248, 0.08);
             border-radius: 10px;
-            margin-bottom: 12px;
         }
 
         .consultation-child-avatar {
             width: 32px;
             height: 32px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #FFB3C6 0%, #FF8FAB 100%);
+            background: linear-gradient(135deg, #6FA6F8 0%, #A9C9FF 100%);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -157,8 +165,8 @@
 
         .consultation-child-name {
             font-size: 14px;
-            color: var(--text-primary);
             font-weight: 500;
+            color: var(--text-primary);
         }
 
         .consultation-child-age {
@@ -175,11 +183,11 @@
             flex: 1;
             padding: 10px 16px;
             border-radius: 10px;
+            border: none;
             font-size: 14px;
             font-weight: 500;
-            border: none;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.2s;
         }
 
         .consultation-btn.primary {
@@ -187,55 +195,66 @@
             color: white;
         }
 
-        .consultation-btn.primary:active {
-            transform: scale(0.98);
-        }
-
         .consultation-btn.secondary {
-            background: rgba(0,0,0,0.04);
+            background: var(--surface);
             color: var(--text-secondary);
         }
 
         .consultation-empty {
             text-align: center;
-            padding: 60px 20px;
+            padding: 48px 24px;
         }
 
         .consultation-empty-icon {
-            font-size: 64px;
+            font-size: 48px;
             margin-bottom: 16px;
         }
 
         .consultation-empty h3 {
-            margin: 0 0 8px;
             font-size: 18px;
+            font-weight: 600;
             color: var(--text-primary);
+            margin-bottom: 8px;
         }
 
         .consultation-empty p {
-            margin: 0;
             font-size: 14px;
             color: var(--text-secondary);
+            margin-bottom: 24px;
         }
 
         .consultation-empty-btn {
-            margin-top: 20px;
-            padding: 12px 24px;
-            border-radius: 12px;
+            padding: 12px 32px;
             background: linear-gradient(135deg, #6FA6F8 0%, #A9C9FF 100%);
             color: white;
-            font-size: 14px;
-            font-weight: 500;
             border: none;
+            border-radius: 24px;
+            font-size: 15px;
+            font-weight: 600;
             cursor: pointer;
         }
 
-        .consultation-list {
-            display: none;
+        .loading-spinner {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-secondary);
         }
 
-        .consultation-list.active {
-            display: block;
+        .loading-spinner::after {
+            content: '';
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border);
+            border-top-color: var(--blue);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -258,104 +277,20 @@
             <button class="consultation-tab" data-tab="completed" onclick="switchTab('completed')">已完成</button>
         </div>
 
+        <!-- 加载中 -->
+        <div class="loading-spinner" id="loadingState">加载中...</div>
+
         <!-- 全部咨询 -->
-        <div class="consultation-list active" id="list-all">
-            <div class="consultation-card" id="consultationCard1">
-                <div class="consultation-header">
-                    <div class="consultation-avatar">李</div>
-                    <div class="consultation-info">
-                        <div class="consultation-name">李明咨询师</div>
-                        <div class="consultation-domain">亲子沟通 · 家庭教育</div>
-                    </div>
-                    <span class="consultation-status confirmed">已确认</span>
-                </div>
-                <div class="consultation-details">
-                    <div class="consultation-detail-item">
-                        <span class="consultation-detail-label">预约日期</span>
-                        <span class="consultation-detail-value">2024-03-15</span>
-                    </div>
-                    <div class="consultation-detail-item">
-                        <span class="consultation-detail-label">预约时段</span>
-                        <span class="consultation-detail-value">10:00-11:00</span>
-                    </div>
-                </div>
-                <div class="consultation-child">
-                    <div class="consultation-child-avatar">小</div>
-                    <div>
-                        <div class="consultation-child-name">小明</div>
-                        <div class="consultation-child-age">8岁</div>
-                    </div>
-                </div>
-                <div class="consultation-actions">
-                    <button class="consultation-btn primary" onclick="openChat('record1')">进入咨询</button>
-                    <button class="consultation-btn secondary" onclick="viewDetail('record1')">查看详情</button>
-                </div>
-            </div>
+        <div class="consultation-list active" id="list-all"></div>
 
-            <div class="consultation-card">
-                <div class="consultation-header">
-                    <div class="consultation-avatar" style="background: linear-gradient(135deg, #FFB3C6 0%, #FF8FAB 100%);">王</div>
-                    <div class="consultation-info">
-                        <div class="consultation-name">王芳咨询师</div>
-                        <div class="consultation-domain">学习困难 · 注意力训练</div>
-                    </div>
-                    <span class="consultation-status pending">待确认</span>
-                </div>
-                <div class="consultation-details">
-                    <div class="consultation-detail-item">
-                        <span class="consultation-detail-label">预约日期</span>
-                        <span class="consultation-detail-value">2024-03-18</span>
-                    </div>
-                    <div class="consultation-detail-item">
-                        <span class="consultation-detail-label">预约时段</span>
-                        <span class="consultation-detail-value">15:00-16:00</span>
-                    </div>
-                </div>
-                <div class="consultation-child">
-                    <div class="consultation-child-avatar">小</div>
-                    <div>
-                        <div class="consultation-child-name">小明</div>
-                        <div class="consultation-child-age">8岁</div>
-                    </div>
-                </div>
-                <div class="consultation-actions">
-                    <button class="consultation-btn secondary" onclick="cancelAppointment('record2')">取消预约</button>
-                    <button class="consultation-btn secondary" onclick="viewDetail('record2')">查看详情</button>
-                </div>
-            </div>
+        <!-- 待确认 -->
+        <div class="consultation-list" id="list-pending"></div>
 
-            <div class="consultation-card">
-                <div class="consultation-header">
-                    <div class="consultation-avatar" style="background: linear-gradient(135deg, #B9F6CA 0%, #69F0AE 100%);">张</div>
-                    <div class="consultation-info">
-                        <div class="consultation-name">张伟咨询师</div>
-                        <div class="consultation-domain">情绪管理 · 心理辅导</div>
-                    </div>
-                    <span class="consultation-status completed">已完成</span>
-                </div>
-                <div class="consultation-details">
-                    <div class="consultation-detail-item">
-                        <span class="consultation-detail-label">咨询日期</span>
-                        <span class="consultation-detail-value">2024-03-10</span>
-                    </div>
-                    <div class="consultation-detail-item">
-                        <span class="consultation-detail-label">咨询时长</span>
-                        <span class="consultation-detail-value">60分钟</span>
-                    </div>
-                </div>
-                <div class="consultation-child">
-                    <div class="consultation-child-avatar" style="background: linear-gradient(135deg, #B9F6CA 0%, #69F0AE 100%);">小</div>
-                    <div>
-                        <div class="consultation-child-name">小华</div>
-                        <div class="consultation-child-age">10岁</div>
-                    </div>
-                </div>
-                <div class="consultation-actions">
-                    <button class="consultation-btn primary" onclick="viewConsultationRecord('record3')">查看记录</button>
-                    <button class="consultation-btn secondary" onclick="rebookConsultant('record3')">再次预约</button>
-                </div>
-            </div>
-        </div>
+        <!-- 已确认 -->
+        <div class="consultation-list" id="list-confirmed"></div>
+
+        <!-- 已完成 -->
+        <div class="consultation-list" id="list-completed"></div>
 
         <!-- 空状态 -->
         <div class="consultation-empty" id="emptyState" style="display: none;">
@@ -368,22 +303,154 @@
 
     <script src="js/app.js"></script>
     <script>
+        let allAppointments = [];
+
+        // 页面加载时获取真实数据
+        document.addEventListener('DOMContentLoaded', loadConsultations);
+
+        function getApiBase() {
+            if (window.Android && typeof Android.getBaseUrl === 'function') {
+                try { return Android.getBaseUrl() || ''; } catch (e) {}
+            }
+            return (typeof API_BASE_URL !== 'undefined' ? API_BASE_URL : 'http://127.0.0.1:8080/api');
+        }
+
+        function getToken() {
+            if (window.Android && typeof Android.getAuthToken === 'function') {
+                try { return Android.getAuthToken() || ''; } catch (e) {}
+            }
+            return '';
+        }
+
+        function getUserId() {
+            if (window.Android && typeof Android.getUserId === 'function') {
+                try { return Android.getUserId(); } catch (e) {}
+            }
+            return null;
+        }
+
+        async function loadConsultations() {
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('emptyState').style.display = 'none';
+
+            try {
+                const baseUrl = getApiBase();
+                const token = getToken();
+                const userId = getUserId();
+
+                if (!userId) {
+                    showToast('请先登录');
+                    document.getElementById('loadingState').style.display = 'none';
+                    document.getElementById('emptyState').style.display = 'block';
+                    return;
+                }
+
+                const res = await fetch(`${baseUrl}/appointments/parent/${userId}`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const json = await res.json();
+
+                document.getElementById('loadingState').style.display = 'none';
+
+                if (json.code === 200 && json.data && json.data.length > 0) {
+                    allAppointments = json.data;
+                    renderAllTabs();
+                } else {
+                    allAppointments = [];
+                    document.getElementById('emptyState').style.display = 'block';
+                }
+            } catch (e) {
+                console.error('加载咨询记录失败:', e);
+                document.getElementById('loadingState').style.display = 'none';
+                showToast('加载失败，请稍后重试');
+            }
+        }
+
+        function renderAllTabs() {
+            renderList('list-all', allAppointments);
+            renderList('list-pending', allAppointments.filter(a => a.status === 'PENDING'));
+            renderList('list-confirmed', allAppointments.filter(a => a.status === 'CONFIRMED'));
+            renderList('list-completed', allAppointments.filter(a => a.status === 'COMPLETED'));
+        }
+
+        function renderList(containerId, appointments) {
+            const container = document.getElementById(containerId);
+            if (appointments.length === 0) {
+                container.innerHTML = '<div style="text-align:center;padding:32px;color:#999;">该分类下暂无记录</div>';
+                return;
+            }
+            container.innerHTML = appointments.map(apt => `
+                <div class="consultation-card">
+                    <div class="consultation-header">
+                        <div class="consultation-avatar">${apt.consultantName ? apt.consultantName.charAt(0) : '咨'}</div>
+                        <div class="consultation-info">
+                            <div class="consultation-name">${apt.consultantName || '咨询师'}</div>
+                            <div class="consultation-domain">${apt.domain || '心理咨询'}</div>
+                        </div>
+                        <span class="consultation-status ${(apt.status || 'PENDING').toLowerCase()}">${getStatusText(apt.status)}</span>
+                    </div>
+                    <div class="consultation-details">
+                        <div class="consultation-detail-item">
+                            <span class="consultation-detail-label">预约日期</span>
+                            <span class="consultation-detail-value">${apt.appointmentDate || '-'}</span>
+                        </div>
+                        <div class="consultation-detail-item">
+                            <span class="consultation-detail-label">预约时段</span>
+                            <span class="consultation-detail-value">${apt.timeSlot || '-'}</span>
+                        </div>
+                    </div>
+                    <div class="consultation-child">
+                        <div class="consultation-child-avatar">${apt.childName ? apt.childName.charAt(0) : '孩'}</div>
+                        <div>
+                            <div class="consultation-child-name">${apt.childName || '孩子'}</div>
+                            <div class="consultation-child-age">${apt.childAge ? apt.childAge + '岁' : ''}</div>
+                        </div>
+                    </div>
+                    <div class="consultation-actions">
+                        ${getActionButtons(apt)}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getActionButtons(apt) {
+            const status = apt.status || 'PENDING';
+            if (status === 'COMPLETED') {
+                return `
+                    <button class="consultation-btn primary" onclick="viewConsultationRecord('${apt.id}')">查看记录</button>
+                    <button class="consultation-btn secondary" onclick="rebookConsultant('${apt.id}')">再次预约</button>
+                `;
+            } else if (status === 'CONFIRMED') {
+                return `
+                    <button class="consultation-btn primary" onclick="openChat('${apt.id}')">进入咨询</button>
+                    <button class="consultation-btn secondary" onclick="viewDetail('${apt.id}')">查看详情</button>
+                `;
+            } else if (status === 'PENDING') {
+                return `
+                    <button class="consultation-btn secondary" onclick="cancelAppointment('${apt.id}')">取消预约</button>
+                    <button class="consultation-btn secondary" onclick="viewDetail('${apt.id}')">查看详情</button>
+                `;
+            }
+            return `<button class="consultation-btn secondary" onclick="viewDetail('${apt.id}')">查看详情</button>`;
+        }
+
+        function getStatusText(status) {
+            const map = {
+                'PENDING': '待确认',
+                'CONFIRMED': '已确认',
+                'COMPLETED': '已完成',
+                'CANCELLED': '已取消'
+            };
+            return map[status] || status;
+        }
+
         // 标签切换
         function switchTab(tab) {
-            // 更新标签样式
-            document.querySelectorAll('.consultation-tab').forEach(t => {
-                t.classList.remove('active');
-            });
+            document.querySelectorAll('.consultation-tab').forEach(t => t.classList.remove('active'));
             document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
 
-            // 更新列表显示
-            document.querySelectorAll('.consultation-list').forEach(list => {
-                list.classList.remove('active');
-            });
-            
-            if (tab === 'all') {
-                document.getElementById('list-all').classList.add('active');
-            }
+            document.querySelectorAll('.consultation-list').forEach(list => list.classList.remove('active'));
+            document.getElementById('list-' + tab).classList.add('active');
         }
 
         // 进入咨询聊天
@@ -397,11 +464,7 @@
 
         // 查看详情
         function viewDetail(appointmentId) {
-            if (window.Android && Android.viewAppointmentDetail) {
-                Android.viewAppointmentDetail(appointmentId);
-            } else {
-                showToast('查看详情功能开发中...');
-            }
+            viewConsultationRecord(appointmentId);
         }
 
         // 取消预约
@@ -417,10 +480,22 @@
 
         // 查看咨询记录
         function viewConsultationRecord(appointmentId) {
-            if (window.Android && Android.viewConsultationRecord) {
-                Android.viewConsultationRecord(appointmentId);
+            const detailUrl = `consultation-record-detail.html?appointmentId=${encodeURIComponent(appointmentId || '')}`;
+            if (window.Android && typeof Android.openWebPage === 'function') {
+                Android.openWebPage(detailUrl);
             } else {
-                showToast('查看记录功能开发中...');
+                window.location.href = detailUrl;
+            }
+        }
+
+        // 查找咨询师
+        function findConsultant() {
+            if (window.Android && typeof Android.navigateToConsultantList === 'function') {
+                Android.navigateToConsultantList();
+            } else if (window.Android && typeof Android.openWebPage === 'function') {
+                Android.openWebPage('consult.html');
+            } else {
+                window.location.href = 'consult.html';
             }
         }
 
@@ -430,17 +505,6 @@
                 Android.rebookConsultant(appointmentId);
             } else {
                 showToast('正在跳转预约页面...');
-            }
-        }
-
-        // 查找咨询师
-        function findConsultant() {
-            if (window.Android && Android.navigateToConsultantList) {
-                Android.navigateToConsultantList();
-            } else if (window.Android && Android.openWebPage) {
-                Android.openWebPage('consult.html');
-            } else {
-                showToast('查找咨询师功能开发中...');
             }
         }
 

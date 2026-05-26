@@ -28,6 +28,43 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
 
+        String path = request.getRequestURI();
+        // 跳过视频通话信令端点（WebSocket连接不需要JWT认证）
+        if (path != null && path.startsWith("/api/video-signaling")) {
+            chain.doFilter(request, response);
+            return;
+        }
+        // 也跳过不带context-path的路径（Spring Security处理的是不带context-path的）
+        if (path != null && path.startsWith("/video-signaling")) {
+            chain.doFilter(request, response);
+            return;
+        }
+        // 跳过通话配置端点
+        if (path != null && path.startsWith("/api/call/config")) {
+            chain.doFilter(request, response);
+            return;
+        }
+        // 跳过所有已放行的端点（避免Spring Security返回403）
+        if (path != null && (
+                path.startsWith("/api/call/") ||
+                path.startsWith("/auth/") ||
+                path.startsWith("/consultants/") ||
+                path.startsWith("/appointments/") ||
+                path.startsWith("/messages/") ||
+                path.startsWith("/uploads/") ||
+                path.startsWith("/upload/") ||
+                path.startsWith("/home/") ||
+                path.startsWith("/user/info") ||
+                path.startsWith("/v3/api-docs/") ||
+                path.startsWith("/swagger-ui/") ||
+                path.startsWith("/ws_test") ||
+                path.startsWith("/websocket_test") ||
+                path.startsWith("/api/consultation/pdf/")
+        )) {
+            chain.doFilter(request, response);
+            return;
+        }
+
         final String authorizationHeader = request.getHeader("Authorization");
 
         String phone = null;

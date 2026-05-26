@@ -23,9 +23,8 @@ public class ConsultationRecord {
     @Column(name = "child_id")
     private Long childId;
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "consultation_type", nullable = false, length = 20)
-    private ConsultationType consultationType;
+    private String consultationType;
 
     @Column(name = "duration")
     private Integer duration; // 咨询时长（分钟）
@@ -48,6 +47,22 @@ public class ConsultationRecord {
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
     private RecordStatus status = RecordStatus.COMPLETED;
+
+    @Column(name = "consultant_summary", columnDefinition = "TEXT")
+    private String consultantSummary;
+
+    @Column(name = "parent_acknowledged")
+    private Boolean parentAcknowledged = false;
+
+    @Column(name = "signature_record_id")
+    private Long signatureRecordId;
+
+    @Column(name = "verification_media_url", length = 500)
+    private String verificationMediaUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "record_completeness", length = 20)
+    private RecordCompleteness recordCompleteness = RecordCompleteness.PARTIAL;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -72,6 +87,10 @@ public class ConsultationRecord {
 
     public enum RecordStatus {
         COMPLETED, CANCELLED
+    }
+
+    public enum RecordCompleteness {
+        PARTIAL, COMPLETE
     }
 
     // Getters and Setters
@@ -115,11 +134,11 @@ public class ConsultationRecord {
         this.childId = childId;
     }
 
-    public ConsultationType getConsultationType() {
+    public String getConsultationType() {
         return consultationType;
     }
 
-    public void setConsultationType(ConsultationType consultationType) {
+    public void setConsultationType(String consultationType) {
         this.consultationType = consultationType;
     }
 
@@ -193,5 +212,45 @@ public class ConsultationRecord {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getConsultantSummary() {
+        return consultantSummary;
+    }
+
+    public void setConsultantSummary(String consultantSummary) {
+        this.consultantSummary = consultantSummary;
+    }
+
+    public Boolean getParentAcknowledged() {
+        return parentAcknowledged;
+    }
+
+    public void setParentAcknowledged(Boolean parentAcknowledged) {
+        this.parentAcknowledged = parentAcknowledged;
+    }
+
+    public Long getSignatureRecordId() {
+        return signatureRecordId;
+    }
+
+    public void setSignatureRecordId(Long signatureRecordId) {
+        this.signatureRecordId = signatureRecordId;
+    }
+
+    public String getVerificationMediaUrl() {
+        return verificationMediaUrl;
+    }
+
+    public void setVerificationMediaUrl(String verificationMediaUrl) {
+        this.verificationMediaUrl = verificationMediaUrl;
+    }
+
+    public RecordCompleteness getRecordCompleteness() {
+        return recordCompleteness;
+    }
+
+    public void setRecordCompleteness(RecordCompleteness recordCompleteness) {
+        this.recordCompleteness = recordCompleteness;
     }
 }

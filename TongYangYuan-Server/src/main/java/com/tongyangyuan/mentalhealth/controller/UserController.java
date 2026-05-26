@@ -1,7 +1,9 @@
 package com.tongyangyuan.mentalhealth.controller;
 
 import com.tongyangyuan.mentalhealth.dto.ApiResponse;
+import com.tongyangyuan.mentalhealth.entity.MembershipRecord;
 import com.tongyangyuan.mentalhealth.entity.User;
+import com.tongyangyuan.mentalhealth.repository.MembershipRecordRepository;
 import com.tongyangyuan.mentalhealth.repository.UserRepository;
 import com.tongyangyuan.mentalhealth.util.JwtUtil;
 import org.springframework.web.bind.annotation.*;
@@ -10,6 +12,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/user")
@@ -17,15 +20,35 @@ public class UserController {
 
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
+    private final MembershipRecordRepository membershipRecordRepository;
 
-    public UserController(UserRepository userRepository, JwtUtil jwtUtil) {
+    public UserController(UserRepository userRepository, JwtUtil jwtUtil,
+                          MembershipRecordRepository membershipRecordRepository) {
         this.userRepository = userRepository;
         this.jwtUtil = jwtUtil;
+        this.membershipRecordRepository = membershipRecordRepository;
+    }
+
+    /**
+     * 从 membership_records 表查询用户真实会员状态（优先）
+     * 同时同步到 users 表保持数据一致性
+     */
+    private MembershipRecord getActiveMembership(Long userId) {
+        Optional<MembershipRecord> recordOpt = membershipRecordRepository
+                .findTopByUserIdAndStatusOrderByEndTimeDesc(userId, MembershipRecord.STATUS_ACTIVE);
+        if (recordOpt.isPresent()) {
+            MembershipRecord record = recordOpt.get();
+            if (record.isActive()) {
+                return record;
+            }
+        }
+        return null;
     }
 
     /**
      * 获取用户VIP/支付状态
      * GET /user/payment-status
+     * 优先从 membership_records 表查询，同时兼容 users 表
      */
     @GetMapping("/payment-status")
     public ApiResponse<Map<String, Object>> getPaymentStatus(
@@ -37,16 +60,38 @@ public class UserController {
 
             Map<String, Object> status = new HashMap<>();
             
-            // VIP状态
-            boolean isVip = Boolean.TRUE.equals(user.getIsVip());
-            LocalDateTime vipExpireTime = user.getVipExpireTime();
+            // 优先从 membership_records 查询真实会员状态
+            MembershipRecord activeRecord = getActiveMembership(userId);
             
-            // 如果VIP过期，自动更新状态
-            if (isVip && vipExpireTime != null && vipExpireTime.isBefore(LocalDateTime.now())) {
-                user.setIsVip(false);
-                userRepository.save(user);
-                isVip = false;
-                vipExpireTime = null;
+            boolean isVip;
+            LocalDateTime vipExpireTime;
+            
+            if (activeRecord != null) {
+                // membership_records 有有效记录，以它为准
+                isVip = true;
+                vipExpireTime = activeRecord.getEndTime();
+                
+                // 同步更新 users 表（修复数据不一致）
+                if (!Boolean.TRUE.equals(user.getIsVip()) || 
+                    user.getVipExpireTime() == null ||
+                    !user.getVipExpireTime().equals(vipExpireTime)) {
+                    user.setIsVip(true);
+                    user.setVipExpireTime(vipExpireTime);
+                    userRepository.save(user);
+                }
+            } else {
+                // membership_records 无有效记录，回退到 users 表
+                isVip = Boolean.TRUE.equals(user.getIsVip());
+                vipExpireTime = user.getVipExpireTime();
+                
+                // 如果 users 表显示VIP但已过期，自动清理
+                if (isVip && vipExpireTime != null && vipExpireTime.isBefore(LocalDateTime.now())) {
+                    user.setIsVip(false);
+                    user.setVipExpireTime(null);
+                    userRepository.save(user);
+                    isVip = false;
+                    vipExpireTime = null;
+                }
             }
             
             status.put("isPaid", isVip);
@@ -63,6 +108,7 @@ public class UserController {
     /**
      * 获取用户信息
      * GET /user/info
+     * 优先从 membership_records 查询会员状态
      */
     @GetMapping("/info")
     public ApiResponse<Map<String, Object>> getUserInfo(
@@ -72,52 +118,45 @@ public class UserController {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("用户不存在"));
 
+            // 优先从 membership_records 查询真实会员状态
+            MembershipRecord activeRecord = getActiveMembership(userId);
+            boolean isVip;
+            LocalDateTime vipExpireTime;
+            
+            if (activeRecord != null) {
+                isVip = true;
+                vipExpireTime = activeRecord.getEndTime();
+                // 同步 users 表
+                if (!Boolean.TRUE.equals(user.getIsVip())) {
+                    user.setIsVip(true);
+                    user.setVipExpireTime(vipExpireTime);
+                    userRepository.save(user);
+                }
+            } else {
+                isVip = Boolean.TRUE.equals(user.getIsVip());
+                vipExpireTime = user.getVipExpireTime();
+                // 清理过期状态
+                if (isVip && vipExpireTime != null && vipExpireTime.isBefore(LocalDateTime.now())) {
+                    user.setIsVip(false);
+                    user.setVipExpireTime(null);
+                    userRepository.save(user);
+                    isVip = false;
+                    vipExpireTime = null;
+                }
+            }
+
             Map<String, Object> info = new HashMap<>();
             info.put("userId", user.getId());
             info.put("phone", user.getPhone());
             info.put("nickname", user.getNickname());
             info.put("avatarUrl", user.getAvatarUrl());
             info.put("userType", user.getUserType() != null ? user.getUserType().name() : null);
-            info.put("isVip", Boolean.TRUE.equals(user.getIsVip()));
-            info.put("vipExpireTime", user.getVipExpireTime());
+            info.put("isVip", isVip);
+            info.put("isPaid", isVip);
+            info.put("vipExpireTime", vipExpireTime);
             info.put("currentChildId", user.getCurrentChildId());
 
             return ApiResponse.success(info);
-        } catch (Exception e) {
-            return ApiResponse.error(e.getMessage());
-        }
-    }
-
-    /**
-     * 更新用户昵称和头像
-     * PUT /user/profile
-     */
-    @PutMapping("/profile")
-    public ApiResponse<Map<String, Object>> updateProfile(
-            @RequestBody UpdateProfileRequest request,
-            @RequestHeader("Authorization") String token) {
-        try {
-            Long userId = jwtUtil.extractUserId(token.replace("Bearer ", ""));
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new RuntimeException("用户不存在"));
-
-            // 更新昵称
-            if (request.getNickname() != null && !request.getNickname().trim().isEmpty()) {
-                user.setNickname(request.getNickname().trim());
-            }
-
-            // 更新头像
-            if (request.getAvatarUrl() != null) {
-                user.setAvatarUrl(request.getAvatarUrl());
-            }
-
-            userRepository.save(user);
-
-            Map<String, Object> result = new HashMap<>();
-            result.put("nickname", user.getNickname());
-            result.put("avatarUrl", user.getAvatarUrl());
-
-            return ApiResponse.success("用户信息已更新", result);
         } catch (Exception e) {
             return ApiResponse.error(e.getMessage());
         }
@@ -171,27 +210,6 @@ public class UserController {
 
         public void setExpireTime(String expireTime) {
             this.expireTime = expireTime;
-        }
-    }
-
-    public static class UpdateProfileRequest {
-        private String nickname;
-        private String avatarUrl;
-
-        public String getNickname() {
-            return nickname;
-        }
-
-        public void setNickname(String nickname) {
-            this.nickname = nickname;
-        }
-
-        public String getAvatarUrl() {
-            return avatarUrl;
-        }
-
-        public void setAvatarUrl(String avatarUrl) {
-            this.avatarUrl = avatarUrl;
         }
     }
 }

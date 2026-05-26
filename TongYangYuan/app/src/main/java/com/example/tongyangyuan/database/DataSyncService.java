@@ -16,6 +16,8 @@ import com.example.tongyangyuan.consult.Consultant;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -160,11 +162,100 @@ public class DataSyncService {
     private void saveConsultantsToLocal(List<ConsultantEntity> consultants) {
         AppDatabase db = AppDatabase.getInstance(context);
         ConsultantDao dao = db.consultantDao();
-        dao.deleteAll();
-        dao.insertConsultants(consultants);
+        // 使用 REPLACE 策略增量更新，保留本地数据不被清空
+        for (ConsultantEntity consultant : consultants) {
+            ConsultantEntity existing = null;
+            if (consultant.getServerId() > 0) {
+                existing = dao.getConsultantByServerId(consultant.getServerId());
+            }
+            if (existing == null && consultant.getUserId() > 0) {
+                existing = dao.getConsultantByUserId(consultant.getUserId());
+            }
+            if (existing != null) {
+                consultant.setId(existing.getId());
+            }
+            dao.insertConsultant(consultant);
+        }
     }
 
     private List<ChildProfileEntity> fetchChildProfilesFromApi(String userPhone) throws Exception {
+        // 使用 userId 从服务器获取孩子列表
+        long userId = com.example.tongyangyuan.data.PreferenceStore.getInstance(context).getUserId();
+        if (userId == -1) {
+            Log.w(TAG, "fetchChildProfilesFromApi: userId not found, skipping");
+            return new ArrayList<>();
+        }
+        
+        String baseUrl = NetworkConfig.getBaseUrl();
+        String token = com.example.tongyangyuan.data.PreferenceStore.getInstance(context).getAuthToken();
+        URL url = new URL(baseUrl + "/children/parent/" + userId);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("GET");
+        conn.setConnectTimeout(10000);
+        conn.setReadTimeout(10000);
+        conn.setRequestProperty("Authorization", "Bearer " + token);
+        
+        int responseCode = conn.getResponseCode();
+        if (responseCode == 200) {
+            InputStream is = conn.getInputStream();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line);
+            }
+            reader.close();
+            
+            JSONObject json = new JSONObject(sb.toString());
+            if (json.getInt("code") == 200) {
+                JSONArray data = json.getJSONArray("data");
+                List<ChildProfileEntity> profiles = new ArrayList<>();
+                for (int i = 0; i < data.length(); i++) {
+                    JSONObject item = data.getJSONObject(i);
+                    ChildProfileEntity entity = new ChildProfileEntity();
+                    entity.setId(String.valueOf(item.optLong("id")));
+                    entity.setUserPhone("uid-" + userId); // 使用 userId 作为 key
+                    entity.setName(item.optString("name"));
+                    entity.setGender(item.optString("gender", "BOY"));
+                    entity.setBirthDate(item.optString("birthDate"));
+                    entity.setEthnicity(item.optString("ethnicity"));
+                    entity.setNativePlace(item.optString("nativePlace"));
+                    entity.setFamilyRank(item.optString("familyRank"));
+                    entity.setBirthPlace(item.optString("birthPlace"));
+                    entity.setLanguageEnv(item.optString("languageEnv"));
+                    entity.setSchool(item.optString("school"));
+                    entity.setHomeAddress(item.optString("homeAddress"));
+                    entity.setInterests(item.optString("interests"));
+                    entity.setActivities(item.optString("activities"));
+                    entity.setBodyStatus(item.optString("bodyStatus"));
+                    entity.setBodyStatusDetail(item.optString("bodyStatusDetail"));
+                    entity.setMedicalHistoryOther(item.optString("medicalHistoryOther"));
+                    entity.setFatherPhone(item.optString("fatherPhone"));
+                    entity.setMotherPhone(item.optString("motherPhone"));
+                    entity.setGuardianPhone(item.optString("guardianPhone"));
+                    
+                    // 处理 medicalHistory
+                    String historyStr = item.optString("medicalHistory");
+                    List<String> historyList = new ArrayList<>();
+                    if (historyStr != null && !historyStr.isEmpty()) {
+                        try {
+                            JSONArray arr = new JSONArray(historyStr);
+                            for (int j = 0; j < arr.length(); j++) {
+                                historyList.add(arr.getString(j));
+                            }
+                        } catch (Exception e) {
+                            String[] parts = historyStr.split(",");
+                            for (String p : parts) {
+                                if (!p.trim().isEmpty()) historyList.add(p.trim());
+                            }
+                        }
+                    }
+                    entity.setMedicalHistory(historyList);
+                    profiles.add(entity);
+                }
+                return profiles;
+            }
+        }
         return new ArrayList<>();
     }
 
@@ -263,8 +354,10 @@ public class DataSyncService {
     private void saveChildProfilesToLocal(List<ChildProfileEntity> profiles, String userPhone) {
         AppDatabase db = AppDatabase.getInstance(context);
         ChildProfileDao dao = db.childProfileDao();
-        dao.deleteChildProfilesByUser(userPhone);
-        dao.insertChildProfiles(profiles);
+        // 使用 REPLACE 策略增量更新，不删除本地已有数据
+        for (ChildProfileEntity profile : profiles) {
+            dao.insertChildProfile(profile);
+        }
     }
 
     private void saveChildProfileToLocal(ChildProfileEntity profile) {
@@ -311,11 +404,60 @@ public class DataSyncService {
                 entity.setAvatarUrl(sc.getAvatarUrl());
                 entity.setIntro(sc.getIntro());
                 entity.setReviews(new ArrayList<>());
-                entity.setIdentityTags(new ArrayList<>());
+                // 根据后端 identityTier 映射为前端 identityTags
+                List<String> identityTags = mapTierToIdentityTags(sc.getIdentityTier());
+                entity.setIdentityTags(identityTags);
+                // 保存擅长的人生阶段
+                List<String> stageNames = new ArrayList<>();
+                if (sc.getStages() != null) {
+                    for (ServerLifeStage stage : sc.getStages()) {
+                        if (stage.getName() != null) {
+                            stageNames.add(stage.getName());
+                        }
+                    }
+                }
+                entity.setStages(stageNames);
                 result.add(entity);
             }
         }
         return result;
+    }
+
+    /**
+     * 将后端 identityTier 映射为前端 identityTags 列表
+     * 前端 Consultant.resolveTier() 依赖这些标签来解析 tier
+     */
+    private static List<String> mapTierToIdentityTags(String tier) {
+        List<String> tags = new ArrayList<>();
+        if (tier == null || tier.isEmpty()) {
+            tags.add("童康源黄V认证");
+            return tags;
+        }
+        switch (tier) {
+            case "PLATINUM":
+                tags.add("童康源黄V认证");
+                break;
+            case "GOLD":
+                tags.add("童康源指导师（蓝V认证）");
+                break;
+            case "SILVER":
+            case "BRONZE":
+                tags.add("童康源内部人员");
+                break;
+            default:
+                // 如果后端已经返回前端映射值（YELLOW_V/BLUE_V/INTERNAL）
+                if ("YELLOW_V".equals(tier)) {
+                    tags.add("童康源黄V认证");
+                } else if ("BLUE_V".equals(tier)) {
+                    tags.add("童康源指导师（蓝V认证）");
+                } else if ("INTERNAL".equals(tier)) {
+                    tags.add("童康源内部人员");
+                } else {
+                    tags.add("童康源黄V认证");
+                }
+                break;
+        }
+        return tags;
     }
 
     private static class ApiResponse<T> {
@@ -338,6 +480,8 @@ public class DataSyncService {
         private String avatarColor;
         private String avatarUrl;
         private String intro;
+        private String identityTier;
+        private List<ServerLifeStage> stages;
 
         public Long getUserId() {
             return userId;
@@ -378,6 +522,24 @@ public class DataSyncService {
         public String getIntro() {
             return intro;
         }
+
+        public String getIdentityTier() {
+            return identityTier;
+        }
+
+        public List<ServerLifeStage> getStages() {
+            return stages;
+        }
+    }
+
+    private static class ServerLifeStage {
+        private Long id;
+        private String name;
+        private String code;
+
+        public Long getId() { return id; }
+        public String getName() { return name; }
+        public String getCode() { return code; }
     }
     
     private static class ServerAppointment {

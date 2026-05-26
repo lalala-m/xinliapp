@@ -17,21 +17,47 @@ public class FileUploadController {
 
     @PostMapping("/video")
     public ApiResponse<String> uploadVideo(@RequestParam("file") MultipartFile file) {
+        return doUploadVideo(file, "/uploads/videos/");
+    }
+
+    /**
+     * Web端视频存档上传接口
+     * 用于 Web 端视频通话录制上传
+     */
+    @PostMapping("/chat-video")
+    public ApiResponse<String> uploadChatVideo(@RequestParam("file") MultipartFile file) {
+        return doUploadVideo(file, "/uploads/videos/");
+    }
+
+    /**
+     * 通用视频上传处理
+     */
+    private ApiResponse<String> doUploadVideo(MultipartFile file, String relativePath) {
         if (file.isEmpty()) {
             return ApiResponse.error("请选择要上传的文件");
+        }
+
+        // 验证文件类型
+        String contentType = file.getContentType();
+        if (contentType != null && !contentType.startsWith("video/")) {
+            // 允许 webm 类型
+            String filename = file.getOriginalFilename();
+            if (filename != null && !filename.toLowerCase().endsWith(".webm")) {
+                return ApiResponse.error("只支持视频文件上传");
+            }
         }
 
         try {
             // 获取当前工作目录
             String projectDir = System.getProperty("user.dir");
-            String uploadDir = projectDir + "/uploads/videos/";
-            
+            String uploadDir = projectDir + relativePath;
+
             File directory = new File(uploadDir);
             if (!directory.exists()) {
                 directory.mkdirs();
             }
 
-            // 生成唯一文件名
+            // 生成唯一文件名，保持原始扩展名
             String originalFilename = file.getOriginalFilename();
             String extension = "";
             if (originalFilename != null && originalFilename.contains(".")) {
@@ -44,10 +70,8 @@ public class FileUploadController {
             file.transferTo(dest);
 
             // 返回访问URL
-            // 注意：这里假设服务器端口是8080，且配置了资源映射
-            // 实际生产环境可能需要更复杂的URL生成逻辑
-            String fileUrl = "/uploads/videos/" + newFilename;
-            
+            String fileUrl = relativePath + newFilename;
+
             return ApiResponse.success("上传成功", fileUrl);
 
         } catch (IOException e) {
@@ -125,61 +149,6 @@ public class FileUploadController {
         } catch (IOException e) {
             e.printStackTrace();
             return ApiResponse.error("文件上传失败: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 上传用户头像
-     * POST /upload/avatar
-     */
-    @PostMapping("/avatar")
-    public ApiResponse<String> uploadAvatar(@RequestParam("file") MultipartFile file) {
-        if (file.isEmpty()) {
-            return ApiResponse.error("请选择要上传的文件");
-        }
-
-        // 验证文件类型
-        String contentType = file.getContentType();
-        if (contentType == null || !contentType.startsWith("image/")) {
-            return ApiResponse.error("请上传图片文件");
-        }
-
-        // 限制文件大小为 5MB
-        if (file.getSize() > 5 * 1024 * 1024) {
-            return ApiResponse.error("图片大小不能超过5MB");
-        }
-
-        try {
-            String projectDir = System.getProperty("user.dir");
-            String uploadDir = projectDir + "/uploads/avatars/";
-
-            File directory = new File(uploadDir);
-            if (!directory.exists()) {
-                directory.mkdirs();
-            }
-
-            // 保留原始扩展名
-            String originalFilename = file.getOriginalFilename();
-            String extension = "";
-            if (originalFilename != null && originalFilename.contains(".")) {
-                extension = originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase();
-            }
-            // 默认使用 .jpg
-            if (extension.isEmpty() || !extension.matches("\\.(jpg|jpeg|png|gif|webp)")) {
-                extension = ".jpg";
-            }
-            String newFilename = UUID.randomUUID().toString() + extension;
-
-            File dest = new File(uploadDir + newFilename);
-            file.transferTo(dest);
-
-            // 返回访问URL
-            String fileUrl = "/uploads/avatars/" + newFilename;
-
-            return ApiResponse.success("头像上传成功", fileUrl);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return ApiResponse.error("头像上传失败: " + e.getMessage());
         }
     }
 }

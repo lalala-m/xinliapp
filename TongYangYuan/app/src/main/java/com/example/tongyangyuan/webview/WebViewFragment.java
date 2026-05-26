@@ -68,6 +68,8 @@ public class WebViewFragment extends Fragment {
         webSettings.setAllowFileAccessFromFileURLs(true);
         webSettings.setAllowUniversalAccessFromFileURLs(true);
         webSettings.setDomStorageEnabled(true);
+        // 禁用缓存，确保加载最新页面和资源
+        webSettings.setCacheMode(WebSettings.LOAD_NO_CACHE);
 
         // 注入 JS 接口
         mAgentWeb.getJsInterfaceHolder().addJavaObject("Android", new WebAppInterface(requireContext(), mAgentWeb.getWebCreator().getWebView()));

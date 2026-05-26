@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>下载童康源APP</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif;
+            background: linear-gradient(135deg, #EEF3FE 0%, #F0F7FF 50%, #FFFFFF 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 8px 32px rgba(111, 166, 248, 0.15);
+            padding: 48px 40px;
+            max-width: 480px;
+            width: 100%;
+            text-align: center;
+        }
+        .logo {
+            width: 100px;
+            height: 100px;
+            border-radius: 24px;
+            object-fit: cover;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 16px rgba(111, 166, 248, 0.3);
+        }
+        h1 {
+            color: #333;
+            font-size: 26px;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            color: #888;
+            font-size: 15px;
+            margin-bottom: 32px;
+        }
+        .info-box {
+            background: #f8f9fa;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            text-align: left;
+        }
+        .info-box h3 {
+            color: #555;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+        .info-item:last-child { border-bottom: none; }
+        .info-label { color: #888; }
+        .info-value { color: #333; font-weight: 600; }
+        .btn-download {
+            display: inline-block;
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #6FA6F8 0%, #4A8AE8 100%);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            font-size: 18px;
+            font-weight: 700;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.25s;
+            margin-bottom: 16px;
+        }
+        .btn-download:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(111, 166, 248, 0.4);
+        }
+        .tips {
+            color: #999;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .tips p { margin-bottom: 6px; }
+        .badge {
+            display: inline-block;
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="images/tongkangyuan.png" alt="童康源" class="logo">
+        <h1>童康源心理健康</h1>
+        <p class="subtitle">专业的心理咨询服务平台</p>
+        
+        <div class="badge">Android 版</div>
+        
+        <div class="info-box">
+            <h3>应用信息</h3>
+            <div class="info-item">
+                <span class="info-label">版本</span>
+                <span class="info-value">v1.0.0</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">大小</span>
+                <span class="info-value">约 40 MB</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">更新日期</span>
+                <span class="info-value">2026-05-12</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">系统要求</span>
+                <span class="info-value">Android 8.0+</span>
+            </div>
+        </div>
+        
+        <a href="tongyangyuan-app.apk" class="btn-download" download>
+            📥 立即下载安装
+        </a>
+        
+        <div class="tips">
+            <p>💡 下载完成后，点击APK文件即可安装</p>
+            <p>⚠️ 如遇安装拦截，请允许「未知来源应用」</p>
+            <p>🌐 需要连接互联网使用</p>
+        </div>
+    </div>
+</body>
+</html>

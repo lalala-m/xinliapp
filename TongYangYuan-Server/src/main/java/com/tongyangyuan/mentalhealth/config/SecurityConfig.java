@@ -43,21 +43,27 @@ public class SecurityConfig {
                         "/consultants/**",
                         "/appointments/**",
                         "/learning/**",
-                        "/livekit/**",
                         "/messages/**",
-                        // 注意：/uploads/** 和 /upload/** 允许公开访问（用于头像图片访问）
-                        // 但 /upload/avatar 需要认证才能上传，这由业务逻辑控制
                         "/uploads/**",
                         "/upload/**",
                         "/home/config",
                         "/home/admin/**",
                         "/api/call/**",
-                        "/v3/api-docs/**",
+                        "/user/info",
+                        "/v3/api-docs/",
                         "/swagger-ui/**",
-                        "/swagger-ui.html"
+                        "/swagger-ui.html",
+                        "/ws_test.html",
+                        "/websocket_test.html",
+                        "/video-signaling",
+                        "/video-signaling/**",
+                        "/api/video-signaling",
+                        "/api/video-signaling/**",
+                        // PDF endpoints
+                        "/api/consultation/pdf/**"
                 ).permitAll()
                 .requestMatchers("/admin/**").authenticated() // Explicitly require authentication for admin
-                .anyRequest().authenticated()
+                .anyRequest().permitAll() // 允许所有其他请求（JWT过滤器会单独处理认证）
             );
 
         http.addFilterBefore(jwtRequestFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);

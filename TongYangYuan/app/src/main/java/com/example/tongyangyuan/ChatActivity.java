@@ -1,4 +1,4 @@
-package com.example.tongyangyuan;
+ package com.example.tongyangyuan;
 
 import android.Manifest;
 import android.content.BroadcastReceiver;
@@ -23,6 +23,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.WebChromeClient;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.LinearLayout;
@@ -40,7 +41,7 @@ import androidx.core.content.FileProvider;
 
 import com.example.tongyangyuan.consult.Consultant;
 import com.example.tongyangyuan.webview.WebAppInterface;
-import com.example.tongyangyuan.VideoCallActivity;
+import com.example.tongyangyuan.videocall.WebRTCVideoCallActivity;
 import com.just.agentweb.AgentWeb;
 
 import java.io.ByteArrayOutputStream;
@@ -118,7 +119,7 @@ public class ChatActivity extends AppCompatActivity implements WebAppInterface.M
     protected void onStart() {
         super.onStart();
         if (!videoCallReceiverRegistered) {
-            IntentFilter f = new IntentFilter(VideoCallActivity.ACTION_VIDEO_CALL_FINISHED);
+            IntentFilter f = new IntentFilter(WebRTCVideoCallActivity.ACTION_VIDEO_CALL_FINISHED);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 registerReceiver(videoCallFinishedReceiver, f, Context.RECEIVER_NOT_EXPORTED);
             } else {
@@ -126,6 +127,27 @@ public class ChatActivity extends AppCompatActivity implements WebAppInterface.M
             }
             videoCallReceiverRegistered = true;
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (mAgentWeb != null) {
+            mAgentWeb.getWebLifeCycle().onResume();
+        }
+        // 🔧 修复：从视频通话页面返回时，确保清理弹窗状态并刷新聊天记录
+        // 因为广播可能在 ChatActivity 后台时发送，导致接收不到
+        if (webInterface != null) {
+            webInterface.notifyVideoCallClosed();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        if (mAgentWeb != null) {
+            mAgentWeb.getWebLifeCycle().onPause();
+        }
+        super.onPause();
     }
 
     @Override
@@ -156,6 +178,10 @@ public class ChatActivity extends AppCompatActivity implements WebAppInterface.M
         // 提前创建 WebAppInterface，WebView 引用后续再补充
         // 原因：DOMContentLoaded 早于 onPageFinished，所以必须把接口预注入到 JS 上下文
         initWebInterface(null);
+        // 设置当前 Activity 引用，用于启动通话页面时带到前台
+        if (webInterface != null) {
+            webInterface.setActivity(this);
+        }
 
         // 创建 AgentWeb：先调用 .go(null) 让 AgentWeb 初始化 WebView，
         // 此时页面尚未开始解析，再注入 JS 接口，最后才 loadUrl
@@ -178,6 +204,8 @@ public class ChatActivity extends AppCompatActivity implements WebAppInterface.M
         webInterface.setWebView(webView);
 
         // 向接口写入会话数据
+        // 注意：通话信令的目标用户ID必须是咨询师的users.id，
+        // 因为咨询师端Web登录和WebSocket信令路由都使用users.id
         long cuid = consultant != null ? consultant.getUserId() : 0L;
         String cname = consultant != null ? consultant.getName() : "";
         webInterface.setChatSessionForWebView(
@@ -188,12 +216,32 @@ public class ChatActivity extends AppCompatActivity implements WebAppInterface.M
         );
 
         // 开始加载页面（接口已注入，DOMContentLoaded 时 window.Android 就已存在）
-        mAgentWeb.getUrlLoader().loadUrl("file:///android_asset/chat.html");
+        // 使用 http://127.0.0.1:8080 作为 base URL，避免 file:// 协议对 WebSocket 的限制
+        try {
+            java.io.InputStream is = getAssets().open("chat.html");
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            byte[] buffer = new byte[1024];
+            int len;
+            while ((len = is.read(buffer)) != -1) {
+                baos.write(buffer, 0, len);
+            }
+            is.close();
+            String html = baos.toString("UTF-8");
+            webView.loadDataWithBaseURL("http://127.0.0.1:8080/android_asset/", html, "text/html", "UTF-8", null);
+        } catch (Exception e) {
+            Log.e("ChatActivity", "Failed to load chat.html", e);
+            mAgentWeb.getUrlLoader().loadUrl("file:///android_asset/chat.html");
+        }
 
         Log.d("ChatActivity", "setupWebView done, Android interface pre-injected before page load");
     }
 
     private void configureWebView(WebView webView) {
+        // 启用WebView调试
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            WebView.setWebContentsDebuggingEnabled(true);
+        }
+        
         // WebSettings
         android.webkit.WebSettings webSettings = webView.getSettings();
         webSettings.setJavaScriptEnabled(true);
@@ -201,17 +249,39 @@ public class ChatActivity extends AppCompatActivity implements WebAppInterface.M
         webSettings.setAllowUniversalAccessFromFileURLs(true);
         webSettings.setDomStorageEnabled(true);
         webSettings.setDatabaseEnabled(true);
+        // 禁用缓存，确保加载最新页面
+        webSettings.setCacheMode(WebSettings.LOAD_NO_CACHE);
+        
+        // 允许从 file:// 加载的页面访问 ws:// (明文WebSocket)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+        }
 
         // 禁用硬件加速（解决模拟器 GPU 不足导致的 shader 报错）
         webView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
 
-        // WebChromeClient：转发 JS console 到 logcat
+        // WebChromeClient：转发 JS console 到 logcat，并处理摄像头权限
         webView.setWebChromeClient(new WebChromeClient() {
             @SuppressWarnings("deprecation")
             @Override
             public void onConsoleMessage(String message, int lineNumber, String sourceId) {
                 Log.d("ChatWebChrome", "[JS " + sourceId + ":" + lineNumber + "] " + message);
                 super.onConsoleMessage(message, lineNumber, sourceId);
+            }
+
+            @Override
+            public void onPermissionRequest(android.webkit.PermissionRequest request) {
+                String[] resources = request.getResources();
+                for (String resource : resources) {
+                    if (resource.equals(android.webkit.PermissionRequest.RESOURCE_VIDEO_CAPTURE)) {
+                        if (ContextCompat.checkSelfPermission(ChatActivity.this, Manifest.permission.CAMERA)
+                                == PackageManager.PERMISSION_GRANTED) {
+                            request.grant(resources);
+                            return;
+                        }
+                    }
+                }
+                request.deny();
             }
         });
 
@@ -247,6 +317,17 @@ public class ChatActivity extends AppCompatActivity implements WebAppInterface.M
                         view.loadUrl("javascript:" + initScript);
                     }
                 });
+                
+                // 5秒超时：如果loading还没消失，强制隐藏
+                view.postDelayed(() -> {
+                    String forceHideScript = "(function() { " +
+                            "var el = document.getElementById('initialLoading'); " +
+                            "if (el) { el.style.display = 'none'; console.log('[ChatActivity] Force hid loading'); } " +
+                            "})();";
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                        view.evaluateJavascript(forceHideScript, null);
+                    }
+                }, 5000);
             }
         });
     }
@@ -313,6 +394,9 @@ public class ChatActivity extends AppCompatActivity implements WebAppInterface.M
         }
         stopVoiceRecorderInternal(false); // Don't send message on destroy
         releaseMediaPlayer();
+        if (mAgentWeb != null) {
+            mAgentWeb.getWebLifeCycle().onDestroy();
+        }
         super.onDestroy();
     }
 

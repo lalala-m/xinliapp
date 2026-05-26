@@ -40,6 +40,10 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
         if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
             // 方法1：从 Authorization header 获取 token
             String authHeader = accessor.getFirstNativeHeader("Authorization");
+            
+            // 调试：打印所有header
+            log.info("STOMP CONNECT headers: {}", accessor.toNativeHeaderMap());
+            log.info("STOMP CONNECT sessionId: {}, authHeader: {}", accessor.getSessionId(), authHeader);
 
             // 方法2：如果 header 没有 token，检查 WebSocket 握手时是否已通过 URL token 认证
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -49,7 +53,7 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
                     Object userId = accessor.getSessionAttributes().get("userId");
                     accessor.setUser(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
                             userId, null, java.util.Collections.emptyList()));
-                    log.debug("STOMP auth success: userId={} (from WebSocket handshake)", userId);
+                    log.info("STOMP auth success: userId={} (from WebSocket handshake)", userId);
                     return message;
                 }
                 // 两者都没有，拒绝连接
@@ -67,16 +71,16 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
                     userId = jwtUtil.extractUserId(token);
                 }
             } catch (Exception e) {
-                log.debug("STOMP token is not a valid JWT, trying OpenIM token: {}", e.getMessage());
+                log.info("STOMP token is not a valid JWT, trying OpenIM token: {}", e.getMessage());
             }
 
             // 方式B：如果 JWT 验证失败，尝试作为 OpenIM token 验证
             if (userId == null && openIMService != null) {
                 try {
                     userId = openIMService.extractUserIdFromToken(token);
-                    log.debug("STOMP auth via OpenIM token: userId={}", userId);
+                    log.info("STOMP auth via OpenIM token: userId={}", userId);
                 } catch (Exception e) {
-                    log.debug("STOMP token is not a valid OpenIM token either: {}", e.getMessage());
+                    log.info("STOMP token is not a valid OpenIM token either: {}", e.getMessage());
                 }
             }
 
@@ -96,7 +100,7 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
             if (userId != null) {
                 accessor.setUser(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
                         userId, null, java.util.Collections.emptyList()));
-                log.debug("STOMP auth success: userId={}", userId);
+                log.info("STOMP auth success: userId={}", userId);
                 return message;
             }
 

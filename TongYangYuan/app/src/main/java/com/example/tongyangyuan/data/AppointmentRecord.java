@@ -18,6 +18,8 @@ public class AppointmentRecord implements Serializable {
     private long serverId;
     private String status = "PENDING";
     private String domain; // 新增领域字段
+    private boolean hasSignature; // 是否已签字确认
+    private boolean signatureRequired; // 是否需要签字（咨询师已发送签字请求）
 
     public AppointmentRecord(String id, Consultant consultant, String date,
                              String timeSlot, String description, long createTime,
@@ -33,6 +35,8 @@ public class AppointmentRecord implements Serializable {
         this.childId = childId;
         this.childName = childName;
         this.serverId = -1;
+        this.hasSignature = false;
+        this.signatureRequired = false;
     }
 
     public String getDomain() {
@@ -105,6 +109,22 @@ public class AppointmentRecord implements Serializable {
 
     public String getChildName() {
         return childName;
+    }
+
+    public boolean hasSignature() {
+        return hasSignature;
+    }
+
+    public void setHasSignature(boolean hasSignature) {
+        this.hasSignature = hasSignature;
+    }
+
+    public boolean isSignatureRequired() {
+        return signatureRequired;
+    }
+
+    public void setSignatureRequired(boolean signatureRequired) {
+        this.signatureRequired = signatureRequired;
     }
 }
 

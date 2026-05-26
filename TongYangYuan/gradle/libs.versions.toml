@@ -20,7 +20,7 @@ room = "2.6.1"
 mysqlConnector = "8.0.33"
 gson = "2.10.1"
 nim = "10.6.0"
-livekit = "2.6.0"
+
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -48,8 +48,6 @@ lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtim
 nim-uikit = { group = "com.netease.nim", name = "uikit", version.ref = "nim" }
 nim-avchatkit = { group = "com.netease.nim", name = "avchatkit", version.ref = "nim" }
 
-# LiveKit SDK
-livekit = { group = "io.livekit", name = "livekit-android", version.ref = "livekit" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

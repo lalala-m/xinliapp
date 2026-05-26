@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test</title>
+</head>
+<body>
+    <h1>WebSocket Test</h1>
+    <div id="log"></div>
+    <script>
+        function log(msg) {
+            document.getElementById('log').innerHTML += '<p>' + msg + '</p>';
+            console.log(msg);
+        }
+        
+        const wsUrl = 'ws://127.0.0.1:8080/api/stomp';
+        log('Connecting to: ' + wsUrl);
+        
+        const socket = new WebSocket(wsUrl);
+        
+        socket.onopen = function() {
+            log('WebSocket OPEN');
+            // Send STOMP CONNECT frame
+            const connectFrame = 'CONNECT\naccept-version:1.1,1.2\nheart-beat:10000,10000\n\n\u0000';
+            socket.send(connectFrame);
+            log('Sent CONNECT frame');
+        };
+        
+        socket.onmessage = function(event) {
+            log('WebSocket MESSAGE: ' + event.data.substring(0, 100));
+        };
+        
+        socket.onerror = function(error) {
+            log('WebSocket ERROR: ' + JSON.stringify(error));
+        };
+        
+        socket.onclose = function(event) {
+            log('WebSocket CLOSE: code=' + event.code + ', reason=' + event.reason);
+        };
+        
+        log('WebSocket readyState: ' + socket.readyState + ' (0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED)');
+    </script>
+</body>
+</html>

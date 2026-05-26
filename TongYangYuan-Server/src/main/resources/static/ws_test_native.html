@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Native WebSocket STOMP Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        #log { background: #000; color: #0f0; padding: 10px; height: 400px; overflow-y: auto; }
+        .error { color: #f00; }
+        .info { color: #0ff; }
+    </style>
+</head>
+<body>
+    <h1>Native WebSocket STOMP Test</h1>
+    <p>This page tests direct WebSocket STOMP connection without STOMP.js library</p>
+    <div>
+        <label>Token: <input type="text" id="token" value="" style="width: 400px;"></label>
+        <button onclick="connect()">Connect</button>
+        <button onclick="disconnect()">Disconnect</button>
+    </div>
+    <div id="log"></div>
+
+    <script>
+        let ws = null;
+        
+        function log(msg, cls) {
+            const div = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = cls || '';
+            entry.textContent = new Date().toLocaleTimeString() + ' ' + msg;
+            div.appendChild(entry);
+            div.scrollTop = div.scrollHeight;
+        }
+        
+        function connect() {
+            const token = document.getElementById('token').value;
+            if (!token) {
+                log('Please enter a token', 'error');
+                return;
+            }
+            
+            const wsUrl = 'ws://127.0.0.1:8080/api/stomp?token=' + encodeURIComponent(token);
+            log('Connecting to: ' + wsUrl, 'info');
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = function() {
+                log('WebSocket OPENED', 'info');
+                
+                // Send STOMP CONNECT frame manually
+                const connectFrame = 'CONNECT\n' +
+                    'accept-version:1.1,1.2\n' +
+                    'heart-beat:10000,10000\n' +
+                    'Authorization:Bearer ' + token + '\n' +
+                    '\n' +
+                    '\x00';
+                log('Sending CONNECT frame...');
+                ws.send(connectFrame);
+            };
+            
+            ws.onmessage = function(event) {
+                log('Received: ' + event.data.substring(0, 200));
+                
+                if (event.data.indexOf('CONNECTED') === 0) {
+                    log('STOMP CONNECTED!', 'info');
+                    
+                    // Subscribe to /user/queue/messages
+                    const subId1 = 'sub-' + Date.now();
+                    ws.send('SUBSCRIBE\nid:' + subId1 + '\ndestination:/user/queue/messages\n\n\x00');
+                    log('Subscribed to /user/queue/messages');
+                    
+                    // Send a test message
+                    ws.send('SEND\ndestination:/app/chat.online\n\n2\x00');
+                    log('Sent online message');
+                }
+            };
+            
+            ws.onerror = function(e) {
+                log('ERROR: ' + JSON.stringify(e), 'error');
+            };
+            
+            ws.onclose = function(e) {
+                log('CLOSE code=' + e.code + ' reason=' + e.reason, 'error');
+            };
+        }
+        
+        function disconnect() {
+            if (ws) {
+                ws.close();
+                ws = null;
+                log('Disconnected');
+            }
+        }
+    </script>
+</body>
+</html>

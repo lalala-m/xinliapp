@@ -30,6 +30,9 @@ import com.example.tongyangyuan.data.AppointmentStore;
 import com.example.tongyangyuan.data.ChatMessageRecord;
 import com.example.tongyangyuan.data.ChatStore;
 import com.example.tongyangyuan.data.PreferenceStore;
+import com.example.tongyangyuan.payment.PaymentHelper;
+import com.example.tongyangyuan.payment.AliPayActivity;
+import com.example.tongyangyuan.payment.AlipayUtil;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -83,6 +86,7 @@ public class WebAppInterface {
         this.voiceRecordCallbackEnabled = enabled;
     }
     private final Context context;
+    private WeakReference<Activity> activityRef;
     private final AppointmentStore appointmentStore;
     private final ChatStore chatStore;
     private final PreferenceStore preferenceStore;
@@ -90,6 +94,7 @@ public class WebAppInterface {
     private final ChildProfileRepository childProfileRepository;
     private WeakReference<WebView> webViewRef;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final PaymentHelper paymentHelper;
 
     /**
      * ChatActivity 在 file:// 下注入：WebView 常把 {@code location.search} 置空，JS 读不到 URL 参数。
@@ -140,11 +145,17 @@ public class WebAppInterface {
         this.consultantRepository = ConsultantRepository.getInstance(context);
         this.childProfileRepository = com.example.tongyangyuan.child.ChildProfileRepository.getInstance(context);
         this.webViewRef = new WeakReference<>(webView);
+        this.paymentHelper = new PaymentHelper(context);
         
         // 如果是 MainActivity，设置当前的 webInterface 实例
         if (context instanceof MainActivity) {
             ((MainActivity) context).setCurrentWebInterface(this);
         }
+    }
+
+    /** 设置关联的 Activity，用于启动新 Activity 时带到前台 */
+    public void setActivity(Activity activity) {
+        this.activityRef = new WeakReference<>(activity);
     }
 
     @JavascriptInterface
@@ -251,7 +262,7 @@ public class WebAppInterface {
         intent.putExtra(ChatActivity.KEY_APPOINTMENT_ID, record.getId());
         intent.putExtra(ChatActivity.KEY_CHILD_ID, record.getChildId() != null ? record.getChildId() : "");
         intent.putExtra(ChatActivity.KEY_CHILD_NAME, record.getChildName() != null ? record.getChildName() : "");
-        intent.putExtra("chat_server_id", record.getServerId());
+        intent.putExtra(ChatActivity.KEY_SERVER_ID, record.getServerId());
         context.startActivity(intent);
     }
 
@@ -263,6 +274,36 @@ public class WebAppInterface {
     @JavascriptInterface
     public boolean isConsultationEnded(String appointmentId) {
         return appointmentStore.isConsultationEnded(appointmentId);
+    }
+
+    /**
+     * 跳转到评价页面
+     */
+    @JavascriptInterface
+    public void navigateToRating(String url) {
+        navigateToPage(url);
+    }
+
+    /**
+     * 通用页面跳转（支持带参数的URL）
+     * 用于 signature-confirm.html、rating.html 等页面的跳转
+     */
+    @JavascriptInterface
+    public void navigateToPage(String url) {
+        if (context == null || TextUtils.isEmpty(url)) return;
+        Intent intent = new Intent(context, WebViewActivity.class);
+        // 支持两种格式：纯文件名 或 文件名?参数
+        if (url.contains("?")) {
+            String htmlFile = url.substring(0, url.indexOf("?"));
+            String queryString = url.substring(url.indexOf("?") + 1);
+            intent.putExtra(WebViewActivity.EXTRA_HTML_FILE, htmlFile);
+            // 将查询参数传递过去
+            intent.putExtra("query_string", queryString);
+        } else {
+            intent.putExtra(WebViewActivity.EXTRA_HTML_FILE, url);
+        }
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        context.startActivity(intent);
     }
 
     @JavascriptInterface
@@ -394,6 +435,11 @@ public class WebAppInterface {
     }
 
     @JavascriptInterface
+    public void navigateToWallet() {
+        openWebPage("wallet.html");
+    }
+
+    @JavascriptInterface
     public boolean isPaidUser() {
         return preferenceStore.isPaidUser();
     }
@@ -457,18 +503,145 @@ public class WebAppInterface {
 
     @JavascriptInterface
     public void launchWeChatPay(String amount, String orderId, String productName) {
-        showToast("正在启动微信支付 (测试模式)...");
-        simulatePaymentSuccess("微信支付");
+        // 先通知前端显示loading
+        dispatchJs("window.onPaymentLoading && window.onPaymentLoading(true)");
+        showToast("正在创建微信支付订单...");
+        
+        // 创建订单
+        paymentHelper.createOrder(getPackageCodeFromProduct(productName), "wechat", 
+            new PaymentHelper.PaymentCallback() {
+                @Override
+                public void onSuccess(String orderNo, String payParams, String paymentMethod) {
+                    // 模拟支付流程：直接调用后端支付成功回调
+                    simulatePayAndNotifyBackend(orderNo, "微信支付");
+                }
+                
+                @Override
+                public void onError(String message) {
+                    dispatchJs("window.onPaymentLoading && window.onPaymentLoading(false)");
+                    showToast("创建订单失败: " + message);
+                }
+            });
     }
 
     @JavascriptInterface
     public void launchAlipay(String amount, String orderId, String productName) {
-        showToast("正在启动支付宝 (测试模式)...");
-        simulatePaymentSuccess("支付宝");
+        // 先通知前端显示loading
+        dispatchJs("window.onPaymentLoading && window.onPaymentLoading(true)");
+        showToast("正在创建支付宝订单...");
+        
+        // 生成订单号（如果未提供）
+        final String finalOrderId = TextUtils.isEmpty(orderId) 
+            ? AlipayUtil.generateOrderId() 
+            : orderId;
+        
+        // 创建订单
+        paymentHelper.createOrder(getPackageCodeFromProduct(productName), "alipay", 
+            new PaymentHelper.PaymentCallback() {
+                @Override
+                public void onSuccess(String orderNo, String payParams, String paymentMethod) {
+                    // 启动支付宝支付页面
+                    Intent intent = new Intent(context, AliPayActivity.class);
+                    intent.putExtra("amount", amount);
+                    intent.putExtra("order_id", finalOrderId);
+                    intent.putExtra("subject", TextUtils.isEmpty(productName) ? "童康源服务" : productName);
+                    intent.putExtra("body", "童康源家庭教育咨询服务");
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(intent);
+                    
+                    // 通知前端隐藏loading
+                    dispatchJs("window.onPaymentLoading && window.onPaymentLoading(false)");
+                }
+                
+                @Override
+                public void onError(String message) {
+                    dispatchJs("window.onPaymentLoading && window.onPaymentLoading(false)");
+                    showToast("创建订单失败: " + message);
+                }
+            });
+    }
+    
+    /**
+     * 模拟支付并通知后端支付成功
+     * 调用新支付系统的支付宝回调接口
+     */
+    private void simulatePayAndNotifyBackend(String orderNo, String methodName) {
+        new Thread(() -> {
+            try {
+                // 调用后端支付回调接口 - 使用新支付系统的支付宝回调
+                String baseUrl = com.example.tongyangyuan.database.NetworkConfig.getBaseUrl();
+                // 去掉 /api 后缀，因为 PaymentController 的路径是 /api/payment/notify/alipay
+                String serverUrl = baseUrl.replace("/api", "");
+                java.net.URL url = new java.net.URL(serverUrl + "/api/payment/notify/alipay");
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+                conn.setDoOutput(true);
+                conn.setConnectTimeout(10000);
+                conn.setReadTimeout(10000);
+                
+                // 构建支付宝回调数据（form格式）
+                String callbackData = "out_trade_no=" + java.net.URLEncoder.encode(orderNo, "UTF-8")
+                        + "&trade_no=SIM" + System.currentTimeMillis()
+                        + "&trade_status=TRADE_SUCCESS"
+                        + "&total_amount=0.01";
+                
+                try (java.io.OutputStream os = conn.getOutputStream()) {
+                    os.write(callbackData.getBytes("UTF-8"));
+                }
+                
+                int responseCode = conn.getResponseCode();
+                Log.d(TAG, "支付回调响应码: " + responseCode);
+                
+                // 读取响应
+                StringBuilder response = new StringBuilder();
+                try (java.io.BufferedReader br = new java.io.BufferedReader(
+                        new java.io.InputStreamReader(conn.getInputStream(), "UTF-8"))) {
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        response.append(line);
+                    }
+                }
+                Log.d(TAG, "支付回调响应: " + response.toString());
+                
+                mainHandler.post(() -> {
+                    dispatchJs("window.onPaymentLoading && window.onPaymentLoading(false)");
+                    dispatchJs("window.onPaymentSuccess && window.onPaymentSuccess()");
+                    showToast(methodName + "支付成功");
+                    
+                    // 延迟返回上一页
+                    mainHandler.postDelayed(() -> {
+                        goBack();
+                    }, 1500);
+                });
+                
+            } catch (Exception e) {
+                Log.e(TAG, "支付回调失败", e);
+                mainHandler.post(() -> {
+                    dispatchJs("window.onPaymentLoading && window.onPaymentLoading(false)");
+                    showToast("支付处理失败: " + e.getMessage());
+                });
+            }
+        }).start();
+    }
+    
+    private String getPackageCodeFromProduct(String productName) {
+        if (productName == null) return "month";
+        // 钱包充值套餐
+        if (productName.contains("钱包充值")) {
+            if (productName.contains("50")) return "wallet_50";
+            if (productName.contains("100")) return "wallet_100";
+            if (productName.contains("200")) return "wallet_200";
+            if (productName.contains("500")) return "wallet_500";
+        }
+        // 会员套餐
+        if (productName.contains("季度") || productName.contains("季")) return "quarter";
+        return "month";
     }
 
     private void simulatePaymentSuccess(String method) {
         // 先通知前端隐藏 Loading
+        dispatchJs("window.onPaymentLoading && window.onPaymentLoading(false)");
         dispatchJs("window.onPaymentSuccess && window.onPaymentSuccess()");
         
         mainHandler.postDelayed(() -> {
@@ -484,46 +657,123 @@ public class WebAppInterface {
     }
 
     @JavascriptInterface
-    public void startVideoCall(String appointmentId, String consultantName, long targetUserId) {
-        Intent intent = new Intent(context, com.example.tongyangyuan.VideoCallActivity.class);
-        intent.putExtra(com.example.tongyangyuan.VideoCallActivity.KEY_APPOINTMENT_ID, Long.parseLong(appointmentId));
-        intent.putExtra(com.example.tongyangyuan.VideoCallActivity.KEY_CONSULTANT_NAME, consultantName);
-        intent.putExtra(com.example.tongyangyuan.VideoCallActivity.KEY_CURRENT_USER_ID, preferenceStore.getUserId());
-        intent.putExtra(com.example.tongyangyuan.VideoCallActivity.KEY_TARGET_USER_ID, targetUserId);
-        intent.putExtra(com.example.tongyangyuan.VideoCallActivity.KEY_CALL_TYPE, "video");
-        intent.putExtra(com.example.tongyangyuan.VideoCallActivity.KEY_IS_CALLER, true);
-        context.startActivity(intent);
+    public void startVideoCall(String appointmentId, String consultantName, String targetUserIdStr) {
+        startOutgoingCall(appointmentId, consultantName, targetUserIdStr, "video");
     }
 
     @JavascriptInterface
     public void startVoiceCall(String consultantName, String appointmentId) {
-        // 语音通话功能
-        showToast("正在连接" + consultantName + "咨询师的语音通话...");
-        // 可以在这里实现实际的语音通话逻辑
+        startOutgoingCall(appointmentId, consultantName, "0", "audio");
     }
 
     @JavascriptInterface
-    public void startVideoCallWithType(String appointmentId, String consultantName, long targetUserId, String callType) {
-        Intent intent = new Intent(context, com.example.tongyangyuan.VideoCallActivity.class);
-        intent.putExtra(com.example.tongyangyuan.VideoCallActivity.KEY_APPOINTMENT_ID, Long.parseLong(appointmentId));
-        intent.putExtra(com.example.tongyangyuan.VideoCallActivity.KEY_CONSULTANT_NAME, consultantName);
-        intent.putExtra(com.example.tongyangyuan.VideoCallActivity.KEY_CURRENT_USER_ID, preferenceStore.getUserId());
-        intent.putExtra(com.example.tongyangyuan.VideoCallActivity.KEY_TARGET_USER_ID, targetUserId);
-        intent.putExtra(com.example.tongyangyuan.VideoCallActivity.KEY_CALL_TYPE, callType);
-        intent.putExtra(com.example.tongyangyuan.VideoCallActivity.KEY_IS_CALLER, true);
-        context.startActivity(intent);
+    public void startVideoCallWithType(String appointmentId, String consultantName, String targetUserIdStr, String callType) {
+        startOutgoingCall(appointmentId, consultantName, targetUserIdStr, callType);
     }
 
     @JavascriptInterface
-    public void startOutgoingCall(String appointmentId, String consultantName, long targetUserId, String callType) {
-        Intent intent = new Intent(context, com.example.tongyangyuan.VideoCallActivity.class);
-        intent.putExtra(com.example.tongyangyuan.VideoCallActivity.KEY_APPOINTMENT_ID, Long.parseLong(appointmentId));
-        intent.putExtra(com.example.tongyangyuan.VideoCallActivity.KEY_CONSULTANT_NAME, consultantName);
-        intent.putExtra(com.example.tongyangyuan.VideoCallActivity.KEY_CURRENT_USER_ID, preferenceStore.getUserId());
-        intent.putExtra(com.example.tongyangyuan.VideoCallActivity.KEY_TARGET_USER_ID, targetUserId);
-        intent.putExtra(com.example.tongyangyuan.VideoCallActivity.KEY_CALL_TYPE, callType);
-        intent.putExtra(com.example.tongyangyuan.VideoCallActivity.KEY_IS_CALLER, true);
-        context.startActivity(intent);
+    public void startOutgoingCall(String appointmentId, String consultantName, String targetUserIdStr, String callType) {
+        Log.d(TAG, "startOutgoingCall: appointmentId=" + appointmentId + ", consultantName=" + consultantName + ", targetUserIdStr=" + targetUserIdStr + ", callType=" + callType);
+        try {
+            long appId = 0L;
+            if (appointmentId != null && !appointmentId.isEmpty()) {
+                try {
+                    appId = Long.parseLong(appointmentId);
+                } catch (NumberFormatException e) {
+                    Log.w(TAG, "startOutgoingCall: invalid appointmentId format, using 0");
+                }
+            }
+            long targetUserId = 0L;
+            if (targetUserIdStr != null && !targetUserIdStr.isEmpty()) {
+                try {
+                    targetUserId = Long.parseLong(targetUserIdStr);
+                } catch (NumberFormatException e) {
+                    Log.w(TAG, "startOutgoingCall: invalid targetUserId format, using 0");
+                }
+            }
+            Intent intent = new Intent(context, com.example.tongyangyuan.videocall.WebRTCVideoCallActivity.class);
+            intent.putExtra(com.example.tongyangyuan.videocall.WebRTCVideoCallActivity.KEY_APPOINTMENT_ID, appId);
+            intent.putExtra(com.example.tongyangyuan.videocall.WebRTCVideoCallActivity.KEY_CONSULTANT_NAME, consultantName != null ? consultantName : "咨询师");
+            intent.putExtra(com.example.tongyangyuan.videocall.WebRTCVideoCallActivity.KEY_CURRENT_USER_ID, preferenceStore.getUserId());
+            intent.putExtra(com.example.tongyangyuan.videocall.WebRTCVideoCallActivity.KEY_TARGET_USER_ID, targetUserId);
+            intent.putExtra(com.example.tongyangyuan.videocall.WebRTCVideoCallActivity.KEY_CALL_TYPE, callType != null ? callType : "video");
+            intent.putExtra(com.example.tongyangyuan.videocall.WebRTCVideoCallActivity.KEY_IS_CALLER, true);
+            // 使用 Activity 引用启动，不加 NEW_TASK，确保在当前任务栈前台启动
+            mainHandler.post(() -> {
+                try {
+                    Activity activity = activityRef != null ? activityRef.get() : null;
+                    if (activity != null && !activity.isFinishing()) {
+                        // 使用 Activity 启动，不加 NEW_TASK，确保在当前任务栈前台启动
+                        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                        activity.startActivity(intent);
+                        Log.d(TAG, "startOutgoingCall: Activity started from Activity context");
+                    } else {
+                        // 回退：使用 ApplicationContext + NEW_TASK
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                        context.startActivity(intent);
+                        Log.d(TAG, "startOutgoingCall: Activity started from ApplicationContext (fallback)");
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "startOutgoingCall failed on main thread: " + e.getMessage(), e);
+                    showToast("启动通话失败: " + e.getMessage());
+                }
+            });
+        } catch (Exception e) {
+            Log.e(TAG, "startOutgoingCall failed: " + e.getMessage(), e);
+            showToast("启动通话失败: " + e.getMessage());
+        }
+    }
+
+    @JavascriptInterface
+    public void startIncomingCall(String appointmentId, String consultantName, String targetUserIdStr, String callType) {
+        Log.d(TAG, "startIncomingCall: appointmentId=" + appointmentId + ", consultantName=" + consultantName + ", targetUserIdStr=" + targetUserIdStr + ", callType=" + callType);
+        try {
+            long appId = 0L;
+            if (appointmentId != null && !appointmentId.isEmpty()) {
+                try {
+                    appId = Long.parseLong(appointmentId);
+                } catch (NumberFormatException e) {
+                    Log.w(TAG, "startIncomingCall: invalid appointmentId format, using 0");
+                }
+            }
+            long targetUserId = 0L;
+            if (targetUserIdStr != null && !targetUserIdStr.isEmpty()) {
+                try {
+                    targetUserId = Long.parseLong(targetUserIdStr);
+                } catch (NumberFormatException e) {
+                    Log.w(TAG, "startIncomingCall: invalid targetUserId format, using 0");
+                }
+            }
+            Intent intent = new Intent(context, com.example.tongyangyuan.videocall.WebRTCVideoCallActivity.class);
+            intent.putExtra(com.example.tongyangyuan.videocall.WebRTCVideoCallActivity.KEY_APPOINTMENT_ID, appId);
+            intent.putExtra(com.example.tongyangyuan.videocall.WebRTCVideoCallActivity.KEY_CONSULTANT_NAME, consultantName != null ? consultantName : "咨询师");
+            intent.putExtra(com.example.tongyangyuan.videocall.WebRTCVideoCallActivity.KEY_CURRENT_USER_ID, preferenceStore.getUserId());
+            intent.putExtra(com.example.tongyangyuan.videocall.WebRTCVideoCallActivity.KEY_TARGET_USER_ID, targetUserId);
+            intent.putExtra(com.example.tongyangyuan.videocall.WebRTCVideoCallActivity.KEY_CALL_TYPE, callType != null ? callType : "video");
+            intent.putExtra(com.example.tongyangyuan.videocall.WebRTCVideoCallActivity.KEY_IS_CALLER, false);
+            // 在主线程启动 Activity，优先使用 Activity 引用启动（不带 NEW_TASK，确保在前台）
+            mainHandler.post(() -> {
+                try {
+                    Activity activity = activityRef != null ? activityRef.get() : null;
+                    if (activity != null && !activity.isFinishing()) {
+                        // 使用 Activity 启动，不加 NEW_TASK，确保在当前任务栈前台启动
+                        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                        activity.startActivity(intent);
+                        Log.d(TAG, "startIncomingCall: Activity started from Activity context");
+                    } else {
+                        // 回退：使用 ApplicationContext + NEW_TASK
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                        context.startActivity(intent);
+                        Log.d(TAG, "startIncomingCall: Activity started from ApplicationContext (fallback)");
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "startIncomingCall failed on main thread: " + e.getMessage(), e);
+                }
+            });
+        } catch (Exception e) {
+            Log.e(TAG, "startIncomingCall failed: " + e.getMessage(), e);
+            showToast("启动通话失败: " + e.getMessage());
+        }
     }
 
     // ==================== 音视频通话控制方法 ====================
@@ -531,14 +781,14 @@ public class WebAppInterface {
     @JavascriptInterface
     public void setMute(boolean muted) {
         Log.d(TAG, "setMute: " + muted);
-        // 实际静音控制需要传递到VideoCallActivity
+        // 实际静音控制需要传递到 WebRTCVideoCallActivity
         // 这里只做日志记录
     }
 
     @JavascriptInterface
     public void setVideoEnabled(boolean enabled) {
         Log.d(TAG, "setVideoEnabled: " + enabled);
-        // 实际视频控制需要传递到VideoCallActivity
+        // 实际视频控制需要传递到 WebRTCVideoCallActivity
     }
 
     @JavascriptInterface
@@ -553,16 +803,60 @@ public class WebAppInterface {
         mainHandler.post(() -> showToast("通话已连接"));
     }
 
+    /**
+     * 通知 WebView 在跳转到原生视频通话页面之前断开 WebSocket 连接
+     * 避免同一用户在信令服务器上保持多个连接
+     */
+    @JavascriptInterface
+    public void disconnectSignalingBeforeNativeCall() {
+        Log.d(TAG, "disconnectSignalingBeforeNativeCall called");
+        mainHandler.post(() -> {
+            WebView webView = webViewRef != null ? webViewRef.get() : null;
+            if (webView != null) {
+                // 执行 JavaScript 代码断开 WebSocket 连接
+                String script = "if (typeof window.disconnectSignalingBeforeNativeCall === 'function') { window.disconnectSignalingBeforeNativeCall(); }";
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                    webView.evaluateJavascript(script, null);
+                } else {
+                    webView.loadUrl("javascript:" + script);
+                }
+            }
+        });
+    }
+
     @JavascriptInterface
     public void openCallPage(String appointmentId, String consultantName, String targetUserId, String callType) {
-        // 打开通话测试页面
-        Intent intent = new Intent(context, com.example.tongyangyuan.webview.WebViewActivity.class);
-        intent.putExtra(com.example.tongyangyuan.webview.WebViewActivity.EXTRA_HTML_FILE, "call.html");
-        if (appointmentId != null) intent.putExtra("appointmentId", appointmentId);
-        if (consultantName != null) intent.putExtra("consultantName", consultantName);
-        if (targetUserId != null) intent.putExtra("targetUserId", targetUserId);
-        if (callType != null) intent.putExtra("callType", callType);
-        context.startActivity(intent);
+        // 打开 WebRTC 通话页面
+        Intent intent = new Intent(context, com.example.tongyangyuan.videocall.WebRTCVideoCallActivity.class);
+        long appId = 0L;
+        if (appointmentId != null && !appointmentId.isEmpty()) {
+            try { appId = Long.parseLong(appointmentId); } catch (NumberFormatException ignored) {}
+        }
+        intent.putExtra(com.example.tongyangyuan.videocall.WebRTCVideoCallActivity.KEY_APPOINTMENT_ID, appId);
+        intent.putExtra(com.example.tongyangyuan.videocall.WebRTCVideoCallActivity.KEY_CONSULTANT_NAME, consultantName != null ? consultantName : "咨询师");
+        long targetId = 0L;
+        if (targetUserId != null && !targetUserId.isEmpty()) {
+            try { targetId = Long.parseLong(targetUserId); } catch (NumberFormatException ignored) {}
+        }
+        intent.putExtra(com.example.tongyangyuan.videocall.WebRTCVideoCallActivity.KEY_TARGET_USER_ID, targetId);
+        intent.putExtra(com.example.tongyangyuan.videocall.WebRTCVideoCallActivity.KEY_CALL_TYPE, callType != null ? callType : "video");
+        intent.putExtra(com.example.tongyangyuan.videocall.WebRTCVideoCallActivity.KEY_IS_CALLER, true);
+        // 使用 Activity 引用启动，不加 NEW_TASK，确保在当前任务栈前台启动
+        mainHandler.post(() -> {
+            try {
+                Activity activity = activityRef != null ? activityRef.get() : null;
+                if (activity != null && !activity.isFinishing()) {
+                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                    activity.startActivity(intent);
+                } else {
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                    context.startActivity(intent);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "openCallPage failed: " + e.getMessage(), e);
+                showToast("启动通话页面失败");
+            }
+        });
     }
 
     @JavascriptInterface
@@ -573,7 +867,15 @@ public class WebAppInterface {
     @JavascriptInterface
     public void openWebPage(String htmlFile) {
         Intent intent = new Intent(context, WebViewActivity.class);
-        intent.putExtra(WebViewActivity.EXTRA_HTML_FILE, htmlFile);
+        // 支持带查询参数的URL，如 consultant_list.html?tags=1,2,3&category=xxx
+        if (htmlFile.contains("?")) {
+            String file = htmlFile.substring(0, htmlFile.indexOf("?"));
+            String queryString = htmlFile.substring(htmlFile.indexOf("?") + 1);
+            intent.putExtra(WebViewActivity.EXTRA_HTML_FILE, file);
+            intent.putExtra("query_string", queryString);
+        } else {
+            intent.putExtra(WebViewActivity.EXTRA_HTML_FILE, htmlFile);
+        }
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         context.startActivity(intent);
     }
@@ -606,7 +908,7 @@ public class WebAppInterface {
      */
     @JavascriptInterface
     public void saveAuthToken(String token) {
-        preferenceStore.saveConsultantToken(token);
+        preferenceStore.setAuthToken(token);
     }
 
     /**
@@ -758,6 +1060,7 @@ public class WebAppInterface {
             obj.put("phone", phone != null ? phone : "");
             obj.put("nickname", nickname != null ? nickname : "");
             obj.put("avatarUrl", avatarUrl != null ? avatarUrl : "");
+            obj.put("userId", preferenceStore.getUserId());
             obj.put("isPaid", preferenceStore.isPaidUser());
             obj.put("hasChildProfile", preferenceStore.hasChildProfile());
             obj.put("isLoggedIn", preferenceStore.isLoggedIn());
@@ -795,8 +1098,44 @@ public class WebAppInterface {
 
     @JavascriptInterface
     public String getConsultantDetail(String name) {
+        // 优先从后端 API 获取（包含 stages 字段）
+        try {
+            String baseUrl = com.example.tongyangyuan.database.NetworkConfig.getBaseUrl();
+            java.net.URL url = new java.net.URL(baseUrl + "/consultants");
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(5000);
+            
+            int responseCode = conn.getResponseCode();
+            if (responseCode == 200) {
+                java.io.BufferedReader reader = new java.io.BufferedReader(
+                        new java.io.InputStreamReader(conn.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
+                }
+                reader.close();
+                
+                JSONObject json = new JSONObject(response.toString());
+                if (json.getInt("code") == 200) {
+                    JSONArray data = json.getJSONArray("data");
+                    for (int i = 0; i < data.length(); i++) {
+                        JSONObject c = data.getJSONObject(i);
+                        if (name.equals(c.optString("name", ""))) {
+                            // 找到匹配的咨询师，直接返回
+                            return c.toString();
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to fetch consultant from API, fallback to local", e);
+        }
+        
+        // Fallback: 从本地数据库获取
         Consultant consultant = consultantRepository.findByNameSync(name);
-        // 如果数据库没有找到，不再使用 fallback
         if (consultant == null) {
             return "{}";
         }
@@ -844,6 +1183,17 @@ public class WebAppInterface {
 
     @JavascriptInterface
     public void submitAppointment(String date, String timeSlot, String description, String childId, String childName, String domain) {
+        // 尽早检查登录状态
+        if (!preferenceStore.isLoggedIn()) {
+            showToast("请先登录");
+            return;
+        }
+        long userId = preferenceStore.getUserId();
+        if (userId <= 0) {
+            showToast("登录状态异常，请重新登录");
+            return;
+        }
+        
         if (TextUtils.isEmpty(date) || TextUtils.isEmpty(timeSlot) || TextUtils.isEmpty(childId)) {
             showToast("请填写完整信息");
             return;
@@ -1233,6 +1583,54 @@ public class WebAppInterface {
         appointmentStore.clearOrphanIds();
     }
 
+    // ==================== 签字状态相关方法 ====================
+
+    /**
+     * 检查预约是否需要签字
+     */
+    @JavascriptInterface
+    public boolean isSignatureRequired(String appointmentId) {
+        if (TextUtils.isEmpty(appointmentId)) {
+            return false;
+        }
+        return appointmentStore.isSignatureRequired(appointmentId);
+    }
+
+    /**
+     * 检查签字是否已完成
+     */
+    @JavascriptInterface
+    public boolean isSignatureCompleted(String appointmentId) {
+        if (TextUtils.isEmpty(appointmentId)) {
+            return false;
+        }
+        return appointmentStore.isSignatureCompleted(appointmentId);
+    }
+
+    /**
+     * 设置签字请求状态（咨询师已发送签字请求）
+     */
+    @JavascriptInterface
+    public void setSignatureRequired(String appointmentId, boolean required) {
+        if (TextUtils.isEmpty(appointmentId)) {
+            return;
+        }
+        appointmentStore.setSignatureRequired(appointmentId, required);
+        Log.d(TAG, "setSignatureRequired: appointmentId=" + appointmentId + ", required=" + required);
+    }
+
+    /**
+     * 标记签字已完成
+     */
+    @JavascriptInterface
+    public void markSignatureCompleted(String appointmentId) {
+        if (TextUtils.isEmpty(appointmentId)) {
+            return;
+        }
+        appointmentStore.markSignatureCompleted(appointmentId);
+        Log.d(TAG, "markSignatureCompleted: appointmentId=" + appointmentId);
+    }
+
     @JavascriptInterface
     public String getAppointments() {
         // 立即返回本地缓存，避免 CountDownLatch 阻塞 WebView JS 线程导致整页卡死。
@@ -1295,6 +1693,7 @@ public class WebAppInterface {
         JSONObject obj = new JSONObject();
         obj.put("id", apt.getId());
         obj.put("appointmentNo", apt.getId()); // 本地ID作为编号
+        obj.put("serverId", apt.getServerId()); // 服务器ID（用于通话信令匹配）
         obj.put("date", apt.getDate());
         obj.put("appointmentDate", apt.getDate()); // 兼容字段
         obj.put("timeSlot", apt.getTimeSlot());
@@ -1303,6 +1702,8 @@ public class WebAppInterface {
         obj.put("domain", apt.getDomain());
         obj.put("hasChatted", apt.hasChatted());
         obj.put("pinned", apt.isPinned());
+        obj.put("hasSignature", apt.hasSignature());
+        obj.put("signatureRequired", apt.isSignatureRequired());
         
         // 构造 consultantName 和 consultantId
         Consultant c = apt.getConsultant();
@@ -1317,10 +1718,12 @@ public class WebAppInterface {
     public void loginWithPhone(String phone, String code) {
         if (TextUtils.isEmpty(phone) || phone.length() != 11) {
             showToast("请填写11位手机号");
+            notifyLoginComplete(false);
             return;
         }
         if (TextUtils.isEmpty(code) || code.length() != 6) {
             showToast("请填写6位验证码");
+            notifyLoginComplete(false);
             return;
         }
 
@@ -1375,16 +1778,25 @@ public class WebAppInterface {
                         });
                     } else {
                         String msg = json.optString("message", "登录失败");
-                        mainHandler.post(() -> showToast(msg));
+                        mainHandler.post(() -> {
+                            showToast(msg);
+                            notifyLoginComplete(false);
+                        });
                     }
                 } else {
                     Log.e("WebAppInterface", "Server error: " + responseCode);
-                    mainHandler.post(() -> showToast("服务器错误: " + responseCode));
+                    mainHandler.post(() -> {
+                        showToast("服务器错误: " + responseCode);
+                        notifyLoginComplete(false);
+                    });
                 }
             } catch (Exception e) {
                 e.printStackTrace();
                 Log.e("WebAppInterface", "Login exception", e);
-                mainHandler.post(() -> showToast("网络请求失败: " + e.getMessage()));
+                mainHandler.post(() -> {
+                    showToast("网络请求失败: " + e.getMessage());
+                    notifyLoginComplete(false);
+                });
             }
         }).start();
     }
@@ -1452,10 +1864,12 @@ public class WebAppInterface {
     public void loginWithPassword(String account, String password) {
         if (TextUtils.isEmpty(account)) {
             showToast("请输入账号");
+            notifyLoginComplete(false);
             return;
         }
         if (TextUtils.isEmpty(password)) {
             showToast("请输入密码");
+            notifyLoginComplete(false);
             return;
         }
 
@@ -1508,16 +1922,41 @@ public class WebAppInterface {
                         });
                     } else {
                         String msg = json.optString("message", "登录失败");
-                        mainHandler.post(() -> showToast(msg));
+                        mainHandler.post(() -> {
+                            showToast(msg);
+                            notifyLoginComplete(false);
+                        });
                     }
                 } else {
-                    mainHandler.post(() -> showToast("服务器错误: " + responseCode));
+                    mainHandler.post(() -> {
+                        showToast("服务器错误: " + responseCode);
+                        notifyLoginComplete(false);
+                    });
                 }
             } catch (Exception e) {
                 Log.e("WebAppInterface", "Password login exception", e);
-                mainHandler.post(() -> showToast("网络请求失败: " + e.getMessage()));
+                mainHandler.post(() -> {
+                    showToast("网络请求失败: " + e.getMessage());
+                    notifyLoginComplete(false);
+                });
             }
         }).start();
+    }
+
+    /**
+     * 通知前端登录完成（成功或失败），重置按钮状态
+     */
+    private void notifyLoginComplete(boolean success) {
+        WebView webView = webViewRef != null ? webViewRef.get() : null;
+        if (webView == null) return;
+        webView.post(() -> {
+            String script = "if (typeof window.onLoginComplete === 'function') { window.onLoginComplete(" + success + "); }";
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                webView.evaluateJavascript(script, null);
+            } else {
+                webView.loadUrl("javascript:" + script);
+            }
+        });
     }
     
     /**
@@ -1624,17 +2063,40 @@ public class WebAppInterface {
     
     /**
      * 登录成功后的回调（由前端调用）
-     * @param account 登录账号
+     * @param jsonData 登录返回的JSON数据（包含token, userId等）
      */
     @JavascriptInterface
-    public void onLoginSuccess(String account) {
-        preferenceStore.setLoggedIn(true);
-        preferenceStore.setLastLoginPhone(account);
-        // 从服务器刷新真实会员状态
-        preferenceStore.refreshPaidStatusFromServer(context);
-        mainHandler.post(() -> {
-            proceedAfterLogin();
-        });
+    public void onLoginSuccess(String jsonData) {
+        try {
+            org.json.JSONObject data = new org.json.JSONObject(jsonData);
+            String token = data.optString("token", "");
+            long userId = data.optLong("userId", -1);
+            String phone = data.optString("phone", "");
+            String avatarUrl = data.optString("avatarUrl", "");
+            
+            // 保存登录状态
+            preferenceStore.setLoggedIn(true);
+            preferenceStore.setAuthToken(token);
+            preferenceStore.setUserId(userId);
+            preferenceStore.setLastLoginPhone(phone);
+            preferenceStore.setAvatarUrl(avatarUrl);
+            
+            android.util.Log.d("WebAppInterface", "登录成功保存: userId=" + userId + ", phone=" + phone + ", token长度=" + token.length());
+            
+            // 从服务器刷新真实会员状态
+            preferenceStore.refreshPaidStatusFromServer(context);
+            mainHandler.post(() -> {
+                proceedAfterLogin();
+            });
+        } catch (Exception e) {
+            android.util.Log.e("WebAppInterface", "onLoginSuccess解析失败", e);
+            // 降级处理：只保存基本状态
+            preferenceStore.setLoggedIn(true);
+            preferenceStore.setLastLoginPhone(jsonData);
+            mainHandler.post(() -> {
+                showToast("登录状态保存异常，请重新登录");
+            });
+        }
     }
     
     /**
@@ -1659,6 +2121,26 @@ public class WebAppInterface {
     @JavascriptInterface
     public long getUserId() {
         return preferenceStore.getUserId();
+    }
+
+    /**
+     * 诊断方法：返回当前用户信息和连接状态
+     */
+    @JavascriptInterface
+    public String getDiagnostics() {
+        try {
+            JSONObject obj = new JSONObject();
+            obj.put("userId", preferenceStore.getUserId());
+            obj.put("hasAuthToken", !android.text.TextUtils.isEmpty(preferenceStore.getAuthToken()));
+            obj.put("baseUrl", com.example.tongyangyuan.database.NetworkConfig.getBaseUrl());
+            obj.put("chatLocalAppointmentId", chatLocalAppointmentId);
+            obj.put("chatServerAppointmentId", chatServerAppointmentIdNative);
+            obj.put("chatConsultantName", chatConsultantDisplayName);
+            obj.put("chatConsultantUserId", chatConsultantUserIdNative);
+            return obj.toString();
+        } catch (Exception e) {
+            return "{\"error\":\"" + e.getMessage() + "\"}";
+        }
     }
 
     // ==================== 当前操作孩子相关 ====================
@@ -1999,6 +2481,14 @@ public class WebAppInterface {
             reviews.put(review);
         }
         obj.put("reviews", reviews);
+        // 添加擅长的人生阶段
+        JSONArray stages = new JSONArray();
+        if (consultant.getStages() != null) {
+            for (String stage : consultant.getStages()) {
+                stages.put(stage);
+            }
+        }
+        obj.put("stages", stages);
         obj.put("userId", consultant.getUserId());
         return obj;
     }
@@ -2018,7 +2508,7 @@ public class WebAppInterface {
     }
 
     /**
-     * 从 VideoCallActivity 返回时由 Activity 调用：WebView 在后台时定时器不跑，需原生侧主动清横幅并拉取含「通话结束」的记录。
+     * 从 WebRTCVideoCallActivity 返回时由 Activity 调用：WebView 在后台时定时器不跑，需原生侧主动清横幅并拉取含「通话结束」的记录。
      */
     public void notifyVideoCallClosed() {
         mainHandler.post(() -> dispatchJs(
@@ -2061,8 +2551,110 @@ public class WebAppInterface {
         }
         String name = intent.getStringExtra("consultant_name");
         Consultant consultant = consultantRepository.findByNameSync(name);
-        // 如果数据库没有找到，不再使用 fallback
+        if (consultant != null) {
+            return consultant;
+        }
+        // 本地数据库找不到，尝试从服务器 API 获取
+        if (name != null && !name.isEmpty()) {
+            consultant = fetchConsultantFromServer(name);
+            if (consultant != null) {
+                Log.d("WebAppInterface", "Fetched consultant from server: " + name 
+                        + " (serverId=" + consultant.getServerId() + ", userId=" + consultant.getUserId() + ")");
+            }
+        }
         return consultant;
+    }
+
+    /**
+     * 从服务器 API 获取咨询师信息
+     */
+    private Consultant fetchConsultantFromServer(String name) {
+        try {
+            String baseUrl = com.example.tongyangyuan.database.NetworkConfig.getBaseUrl();
+            java.net.URL url = new java.net.URL(baseUrl + "/consultants");
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(5000);
+            String token = preferenceStore.getAuthToken();
+            if (token != null && !token.isEmpty()) {
+                conn.setRequestProperty("Authorization", "Bearer " + token);
+            }
+            conn.connect();
+            int responseCode = conn.getResponseCode();
+            if (responseCode == 200) {
+                java.io.BufferedReader reader = new java.io.BufferedReader(
+                        new java.io.InputStreamReader(conn.getInputStream(), "UTF-8"));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line);
+                }
+                reader.close();
+                String response = sb.toString();
+                org.json.JSONObject json = new org.json.JSONObject(response);
+                if (json.optInt("code", -1) == 200) {
+                    org.json.JSONArray data = json.optJSONArray("data");
+                    if (data != null) {
+                        for (int i = 0; i < data.length(); i++) {
+                            org.json.JSONObject c = data.optJSONObject(i);
+                            if (c != null && name.equals(c.optString("name", ""))) {
+                                long userId = c.optLong("userId", 0);
+                                long serverId = c.optLong("id", 0);
+                                String cName = c.optString("name", name);
+                                String title = c.optString("title", "");
+                                String specialty = c.optString("specialty", "");
+                                double rating = c.optDouble("rating", 5.0);
+                                String servedCount = c.optString("servedCount", "0");
+                                String avatarColor = c.optString("avatarColor", "#6FA6F8");
+                                String avatarUrl = c.optString("avatarUrl", "");
+                                String intro = c.optString("intro", "");
+                                Consultant result = new Consultant(
+                                        userId, cName, title, specialty, rating,
+                                        servedCount, avatarColor, avatarUrl,
+                                        new java.util.ArrayList<>(), intro, new java.util.ArrayList<>());
+                                result.setServerId(serverId);
+                                // 缓存到本地数据库
+                                cacheConsultantToLocal(result);
+                                return result;
+                            }
+                        }
+                    }
+                }
+            }
+            conn.disconnect();
+        } catch (Exception e) {
+            Log.e("WebAppInterface", "Failed to fetch consultant from server: " + e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * 将咨询师信息缓存到本地数据库
+     */
+    private void cacheConsultantToLocal(Consultant consultant) {
+        try {
+            com.example.tongyangyuan.database.AppDatabase db = 
+                    com.example.tongyangyuan.database.AppDatabase.getInstance(context);
+            com.example.tongyangyuan.database.entity.ConsultantEntity entity = 
+                    new com.example.tongyangyuan.database.entity.ConsultantEntity();
+            entity.setUserId(consultant.getUserId());
+            entity.setServerId(consultant.getServerId());
+            entity.setName(consultant.getName());
+            entity.setTitle(consultant.getTitle());
+            entity.setSpecialty(consultant.getSpecialty());
+            entity.setRating(consultant.getRating());
+            entity.setServedCount(consultant.getServedCount());
+            entity.setAvatarColor(consultant.getAvatarColor());
+            entity.setAvatarUrl(consultant.getAvatarUrl());
+            entity.setIntro(consultant.getIntro());
+            entity.setIdentityTags(new java.util.ArrayList<>());
+            entity.setReviews(new java.util.ArrayList<>());
+            db.consultantDao().insertConsultant(entity);
+            Log.d("WebAppInterface", "Cached consultant to local DB: " + consultant.getName());
+        } catch (Exception e) {
+            Log.e("WebAppInterface", "Failed to cache consultant: " + e.getMessage());
+        }
     }
 
     // ==================== OpenIM JavaScript接口（替代旧 NIM） ====================
@@ -2070,6 +2662,37 @@ public class WebAppInterface {
     private com.example.tongyangyuan.openim.OpenIMService getOpenIMService() {
         if (openIMService == null) {
             openIMService = com.example.tongyangyuan.openim.OpenIMService.getInstance(context);
+            // 设置通话信令回调，收到来电时自动跳转到视频通话界面
+            openIMService.setCallCallback(new com.example.tongyangyuan.openim.OpenIMService.CallCallback() {
+                @Override
+                public void onCallReceived(String fromUserId, String callType, String sessionId) {
+                    Log.d(TAG, "onCallReceived: fromUserId=" + fromUserId + ", callType=" + callType + ", sessionId=" + sessionId);
+                    // 跳转到 WebRTC 视频通话界面（被叫角色）
+                    Intent intent = new Intent(context, com.example.tongyangyuan.videocall.WebRTCVideoCallActivity.class);
+                    intent.putExtra(com.example.tongyangyuan.videocall.WebRTCVideoCallActivity.KEY_APPOINTMENT_ID, 0L);
+                    intent.putExtra(com.example.tongyangyuan.videocall.WebRTCVideoCallActivity.KEY_CONSULTANT_NAME, "咨询师");
+                    intent.putExtra(com.example.tongyangyuan.videocall.WebRTCVideoCallActivity.KEY_CURRENT_USER_ID, preferenceStore.getUserId());
+                    long targetId = 0L;
+                    if (fromUserId != null && !fromUserId.isEmpty()) {
+                        try { targetId = Long.parseLong(fromUserId); } catch (NumberFormatException ignored) {}
+                    }
+                    intent.putExtra(com.example.tongyangyuan.videocall.WebRTCVideoCallActivity.KEY_TARGET_USER_ID, targetId);
+                    intent.putExtra(com.example.tongyangyuan.videocall.WebRTCVideoCallActivity.KEY_CALL_TYPE, callType != null ? callType : "video");
+                    intent.putExtra(com.example.tongyangyuan.videocall.WebRTCVideoCallActivity.KEY_IS_CALLER, false);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(intent);
+                }
+
+                @Override
+                public void onCallAnswered(String sessionId, boolean accepted) {
+                    Log.d(TAG, "onCallAnswered: sessionId=" + sessionId + ", accepted=" + accepted);
+                }
+
+                @Override
+                public void onCallEnded(String sessionId) {
+                    Log.d(TAG, "onCallEnded: sessionId=" + sessionId);
+                }
+            });
         }
         return openIMService;
     }
@@ -2166,7 +2789,7 @@ public class WebAppInterface {
     }
 
     /**
-     * 发起音视频通话（信令走 OpenIM，媒体走 LiveKit）
+     * 发起音视频通话（信令走 OpenIM，媒体走 WebRTC）
      */
     @JavascriptInterface
     public void startNIMCall(String targetAccountId, String callType) {

@@ -88,11 +88,17 @@ if not errorlevel 1 (
     echo [WARNING] Port 5500 is occupied, frontend may already be running
 ) else (
     echo Starting frontend...
-    start "TYY-Frontend" cmd /k "title TYY Frontend && npx live-server --port=5500 --host=127.0.0.1"
+    start "TYY-Frontend" cmd /k "title TYY Frontend && npx live-server --port=5500 --host=127.0.0.1 --open=login.html"
 )
 echo.
 
 cd /d %~dp0
+
+REM Open browser tabs for login pages
+timeout /t 3 >nul
+echo Opening login pages...
+start "" "http://localhost:5500/login.html"
+start "" "http://localhost:5500/admin/login.html"
 
 echo ========================================
 echo  Startup Complete!
@@ -100,7 +106,8 @@ echo ========================================
 echo.
 echo Service URLs:
 echo   Backend API:  http://localhost:8080/api
-echo   Frontend:     http://localhost:5500
+echo   Consultant Login: http://localhost:5500/login.html
+echo   Admin Login:      http://localhost:5500/admin/login.html
 echo   LiveKit:      ws://localhost:7880
 echo   OpenIM WS:   ws://localhost:10001
 echo   OpenIM HTTP:  http://localhost:10002

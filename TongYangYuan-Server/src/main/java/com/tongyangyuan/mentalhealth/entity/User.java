@@ -13,6 +13,9 @@ public class User {
     @Column(unique = true, nullable = false, length = 20)
     private String phone;
 
+    @Column(unique = true, length = 100)
+    private String email;
+
     @Column(nullable = false)
     private String password;
 
@@ -98,6 +101,14 @@ public class User {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getPassword() {

@@ -1,6 +1,7 @@
 package com.tongyangyuan.mentalhealth.dto;
 
 import com.tongyangyuan.mentalhealth.entity.Consultant;
+import java.util.List;
 
 public class CreateConsultantRequest {
     private String phone;
@@ -10,6 +11,7 @@ public class CreateConsultantRequest {
     private String intro;
     private Consultant.IdentityTier identityTier;
     private String avatarUrl;
+    private List<Long> tagIds; // 擅长人生阶段ID列表（对应 life_stages.id）
 
     // Getters and Setters
     public String getPhone() {
@@ -66,5 +68,13 @@ public class CreateConsultantRequest {
 
     public void setAvatarUrl(String avatarUrl) {
         this.avatarUrl = avatarUrl;
+    }
+
+    public List<Long> getTagIds() {
+        return tagIds;
+    }
+
+    public void setTagIds(List<Long> tagIds) {
+        this.tagIds = tagIds;
     }
 }
